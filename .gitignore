@@ -1,3 +1,9 @@
+# Project files
+bin/*
+!bin/.gitkeep
+lib/*
+!lib/.gitkeep
+
 # Prerequisites
 *.d
 

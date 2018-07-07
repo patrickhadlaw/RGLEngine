@@ -1,0 +1,4 @@
+// the configured options and settings for cpp-vulkan
+#define CPPOGL_VERSION_MAJOR @CPPOGL_VERSION_MAJOR@
+#define CPPOGL_VERSION_MINOR @CPPOGL_VERSION_MINOR@
+#define CPPOGL_VERSION_REVISION @CPPOGL_VERSION_REVISION@
