@@ -41,7 +41,8 @@ $ cmake .. -G <CMake Generator>
 ## Run instructions: 
 
 ```
-$ cd &lt;project-dir&gt;/cpp-opengl/bin
+$ cd <project-dir>/cpp-opengl/bin
 $ ./cpp-opengl [window-width] [window-height]
 ```
 
+![screenshot1](/screenshot1.PNG?raw=true "Screenshot")
