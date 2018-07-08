@@ -30,8 +30,7 @@ $ git clone https://github.com/nigels-com/glew.git lib/glew
 $ git clone https://github.com/glfw/glfw lib/glfw
 $ git clone https://github.com/g-truc/glm lib/glm
 $ git clone https://github.com/nothings/stb.git lib/stb
-# NOTE: freetype not required yet this line is just for reference
-# $ git clone git://git.sv.nongnu.org/freetype/freetype2.git lib/freetype
+$ git clone git://git.sv.nongnu.org/freetype/freetype2.git lib/freetype
 $ cd bin
 $ cmake .. -G <CMake Generator>
 # Build using generated files (ie run make for Unix Makefiles generator)
