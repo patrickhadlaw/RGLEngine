@@ -1,5 +1,8 @@
 #include "Graphics.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
+
 cppogl::Shape::Shape()
 {
 	this->model.matrix = glm::mat4(1.0f);
@@ -97,34 +100,144 @@ void cppogl::Shape::rotate(float x, float y, float z)
 
 cppogl::Image::Image()
 {
+	image = nullptr;
+	width = -1;
+	height = -1;
+	bpp = -1;
 }
 
 cppogl::Image::Image(std::string imagefile)
 {
-	image = cimg_library::CImg<unsigned char>(imagefile.data());
+	image = stbi_load(imagefile.data(), &width, &height, &bpp, STBI_rgb_alpha);
+	if (this->image == nullptr) {
+		throw std::runtime_error("failed to load image");
+	}
+}
+
+cppogl::Image::Image(Image && rvalue)
+{
+	this->width = rvalue.width;
+	this->height = rvalue.height;
+	this->bpp = rvalue.bpp;
+	this->image = rvalue.image;
+	rvalue.image = nullptr;
+}
+
+void cppogl::Image::operator=(const Image& other)
+{
+	this->width = other.width;
+	this->height = other.height;
+	this->bpp = other.bpp;
+	this->image = other.image;
+	this->image = new unsigned char[width * bpp * height];
+	for (int i = 0; i < width * bpp * height; i++) {
+		this->image[i] = other.image[i];
+	}
 }
 
 cppogl::Image::~Image()
 {
+	delete[] image;
+	image = nullptr;
 }
 
 cppogl::Sampler2D::Sampler2D()
 {
+	this->texture = GL_TEXTURE0;
 }
 
-cppogl::Sampler2D::Sampler2D(std::string uniformname, std::string imagefile) : Image(imagefile)
+cppogl::Sampler2D::Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture) : Image(imagefile)
 {
-	glGenTextures(1, &textureID);
+	this->texture = texture;
+	this->shader = shader;
+	this->_generate();
+}
+
+cppogl::Sampler2D::Sampler2D(const Sampler2D & other)
+{
+	this->width = other.width;
+	this->height = other.height;
+	this->bpp = other.bpp;
+	this->image = other.image;
+	this->texture = other.texture;
+	this->textureID = other.textureID;
+	this->image = new unsigned char[width * bpp * height];
+	for (int i = 0; i < width * bpp * height; i++) {
+		this->image[i] = other.image[i];
+	}
+	this->_generate();
+}
+
+cppogl::Sampler2D::Sampler2D(Sampler2D && rvalue)
+{
+	this->width = rvalue.width;
+	this->height = rvalue.height;
+	this->bpp = rvalue.bpp;
+	this->image = rvalue.image;
+	this->shader = rvalue.shader;
+	this->texture = rvalue.texture;
+	rvalue.image = nullptr;
+	this->_generate();
+}
+
+void cppogl::Sampler2D::operator=(const Sampler2D& other)
+{
+	this->shader = other.shader;
+	this->width = other.width;
+	this->height = other.height;
+	this->bpp = other.bpp;
+	this->image = new unsigned char[width * bpp * height];
+	for (int i = 0; i < width * bpp * height; i++) {
+		this->image[i] = other.image[i];
+	}
+	this->_generate();
 }
 
 cppogl::Sampler2D::~Sampler2D()
 {
+	glDeleteTextures(1, &textureID);
 }
 
 void cppogl::Sampler2D::use()
 {
+	glUniform1i(this->enableLocation, 1);
+	glUniform1i(this->samplerLocation, 0);
+	glActiveTexture(texture);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+}
 
+void cppogl::Sampler2D::disable()
+{
+	glUniform1i(this->enableLocation, 0);
+}
+
+void cppogl::Sampler2D::_generate()
+{
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		GL_RGBA,
+		width,
+		height,
+		0,
+		GL_RGBA,
+		GL_UNSIGNED_BYTE,
+		image
+	);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	checkGLErrors(__LINE__);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	this->enableLocation = glGetUniformLocation(this->shader->id(), "enable_texture");
+	if (this->enableLocation < 0) {
+		throw std::runtime_error("failed to get uniform location of: enable texture");
+	}
+	this->samplerLocation = glGetUniformLocation(this->shader->id(), "texture_0");
+	if (this->samplerLocation < 0) {
+		throw std::runtime_error("failed to get uniform location of: texture 0");
+	}
 }
 
 cppogl::Triangle::Triangle()
@@ -178,21 +291,40 @@ cppogl::Rect::Rect()
 {
 }
 
+cppogl::Rect::Rect(sShaderProgram shader, float width, float height, std::vector<glm::vec4> colors)
+{
+	this->_construct(shader, width, height, colors);
+}
+
 cppogl::Rect::Rect(sShaderProgram shader, float width, float height, glm::vec4 color)
+{
+	std::vector<glm::vec4> colors;
+	colors.reserve(6);
+	for (int i = 0; i < 6; i++) {
+		colors.push_back(color);
+	}
+	this->_construct(shader, width, height, colors);
+}
+
+cppogl::Rect::~Rect()
+{
+}
+
+void cppogl::Rect::_construct(sShaderProgram & shader, float & width, float & height, std::vector<glm::vec4> colors)
 {
 	this->shader = shader;
 	this->model.matrix = glm::mat4(1.0f);
 	this->model.location = glGetUniformLocation(shader->id(), "model");
 	if (this->model.location < 0) {
-		throw std::runtime_error("failed to locate shader uniform");
+		throw std::runtime_error("failed to locate shader uniform: model matrix");
 	}
 	this->color.location = glGetAttribLocation(shader->id(), "vertex_color");
 	if (this->color.location < 0) {
-		throw std::runtime_error("failed to locate shader attribute");
+		throw std::runtime_error("failed to locate shader attribute: vertex color");
 	}
 	this->vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw std::runtime_error("failed to locate shader attribute");
+		throw std::runtime_error("failed to locate shader attribute: vertex position");
 	}
 	this->vertex.list = {
 		glm::vec3(-width / 2, height / 2, 0.0),
@@ -203,15 +335,8 @@ cppogl::Rect::Rect(sShaderProgram shader, float width, float height, glm::vec4 c
 		glm::vec3(width / 2, -height / 2, 0.0)
 	};
 	this->shader = shader;
-	this->color.list.reserve(this->vertex.list.size());
-	for (int i = 0; i < this->color.list.size(); i++) {
-		this->color.list[i] = color;
-	}
+	this->color.list = colors;
 	this->generate();
-}
-
-cppogl::Rect::~Rect()
-{
 }
 
 
@@ -257,4 +382,70 @@ void cppogl::Geometry3D::generate()
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * uv.list.size() * 2, uv.list.data(), GL_STATIC_DRAW);
 	}
 	
+}
+
+cppogl::ImageRect::ImageRect()
+{
+}
+
+cppogl::ImageRect::ImageRect(sShaderProgram shader, float width, float height, std::string image)
+{
+	this->shader = shader;
+	this->samplers.push_back(Sampler2D(shader, image));
+	this->model.matrix = glm::mat4(1.0f);
+	this->model.location = glGetUniformLocation(shader->id(), "model");
+	if (this->model.location < 0) {
+		throw std::runtime_error("failed to locate shader uniform: model matrix");
+	}
+	this->vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
+	if (this->vertex.location < 0) {
+		throw std::runtime_error("failed to locate shader attribute: vertex position");
+	}
+	this->uv.location = glGetAttribLocation(shader->id(), "texture_coords");
+	if (this->uv.location < 0) {
+		throw std::runtime_error("failed to locate shader attribute: texture coordinates");
+	}
+	this->vertex.list = {
+		glm::vec3(-width / 2, height / 2, 0.0),
+		glm::vec3(-width / 2, -height / 2, 0.0),
+		glm::vec3(width / 2, height / 2, 0.0),
+		glm::vec3(-width / 2, -height / 2, 0.0),
+		glm::vec3(width / 2, height / 2, 0.0),
+		glm::vec3(width / 2, -height / 2, 0.0)
+	};
+	this->uv.list = {
+		glm::vec2(0.0, 1.0),
+		glm::vec2(0.0, 0.0),
+		glm::vec2(1.0, 1.0),
+		glm::vec2(0.0, 0.0),
+		glm::vec2(1.0, 1.0),
+		glm::vec2(1.0, 0.0)
+	};
+	this->shader = shader;
+	this->generate();
+}
+
+cppogl::ImageRect::~ImageRect()
+{
+}
+
+void cppogl::ImageRect::render()
+{
+	glBindVertexArray(vertexArray);
+	glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
+
+	this->samplers[0].use();
+	checkGLErrors(__LINE__);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
+	glEnableVertexAttribArray(vertex.location);
+	glVertexAttribPointer(vertex.location, 3, GL_FLOAT, GL_FALSE, 0, 0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, uv.buffer);
+	glEnableVertexAttribArray(uv.location);
+	glVertexAttribPointer(uv.location, 2, GL_FLOAT, GL_FALSE, 0, 0);
+	checkGLErrors(__LINE__);
+
+	glDrawArrays(GL_TRIANGLES, 0, vertex.list.size());
+	checkGLErrors(__LINE__);
 }

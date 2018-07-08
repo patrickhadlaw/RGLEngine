@@ -1,6 +1,6 @@
 # cpp-opengl
 
-Simple OpenGL renderer, currently only draws triangle and transforms perspective camera on WASD keys and mouse movement.
+Simple OpenGL renderer, currently only draws triangles, rectangles and images and transforms perspective camera on WASD keys and mouse movement.
 Controls are:
 * Click window to grab cursor.
 * Press WASD, LCTRL, SPACE keys to move camera.
@@ -29,10 +29,9 @@ $ cd cpp-opengl
 $ git clone https://github.com/nigels-com/glew.git lib/glew
 $ git clone https://github.com/glfw/glfw lib/glfw
 $ git clone https://github.com/g-truc/glm lib/glm
-$ git clone https://github.com/dtschump/CImg.git lib/cimg
+$ git clone https://github.com/nothings/stb.git lib/stb
 # NOTE: freetype not required yet this line is just for reference
 # $ git clone git://git.sv.nongnu.org/freetype/freetype2.git lib/freetype
-$ mkdir bin
 $ cd bin
 $ cmake .. -G <CMake Generator>
 # Build using generated files (ie run make for Unix Makefiles generator)
@@ -45,4 +44,5 @@ $ cd <project-dir>/cpp-opengl/bin
 $ ./cpp-opengl [window-width] [window-height]
 ```
 
+## Screenshot
 ![screenshot1](/screenshot1.PNG?raw=true "Screenshot")
