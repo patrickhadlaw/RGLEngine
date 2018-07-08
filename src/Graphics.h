@@ -7,19 +7,37 @@ namespace cppogl {
 	struct Image {
 		Image();
 		Image(std::string imagefile);
+		Image(Image&& rvalue);
 		~Image();
-		cimg_library::CImg<unsigned char> image;
+
+		void operator=(const Image& other);
+
+		unsigned char* image;
+		int width;
+		int height;
+		int bpp;
 	};
 
 	struct Sampler2D : public Image {
 		Sampler2D();
-		Sampler2D(std::string uniformname, std::string imagefile);
+		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0);
+		Sampler2D(const Sampler2D& other);
+		Sampler2D(Sampler2D&& rvalue);
 		~Sampler2D();
 
+		void operator=(const Sampler2D& other);
+
 		void use();
+		void disable();
 
 		GLuint textureID;
+		GLenum texture;
 		GLint samplerLocation;
+		GLint enableLocation;
+
+		sShaderProgram shader;
+	protected:
+		void _generate();
 	};
 
 	class Geometry3D {
@@ -119,15 +137,29 @@ namespace cppogl {
 		Triangle(sShaderProgram shader, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		~Triangle();
 
-	private:
+	protected:
 		void _construct(sShaderProgram& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
 	};
 
 	class Rect : public Shape {
 	public:
 		Rect();
+		Rect(sShaderProgram shader, float width, float height, std::vector<glm::vec4> colors);
 		Rect(sShaderProgram shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		~Rect();
+
+	protected:
+		void _construct(sShaderProgram& shader, float& width, float& height, std::vector<glm::vec4> colors);
+	};
+
+	class ImageRect : public Shape {
+	public:
+		ImageRect();
+		ImageRect(sShaderProgram shader, float width, float height, std::string image);
+		~ImageRect();
+
+		void render();
+
 	};
 
 

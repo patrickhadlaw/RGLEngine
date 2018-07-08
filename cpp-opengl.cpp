@@ -36,13 +36,15 @@ int main(const int argc, const char* const argv[]) {
 		}
 		
 		cppogl::sShaderProgram basic3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
-		
+		cppogl::sShaderProgram textured3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
+
 		// ShaderManager will be used for shader lookup when materials are incorporated
 		cppogl::ShaderManager shaderManager = {
 			basic3D,
+			textured3D
 		};
 
-		cppogl::NoClipCamera camera(cppogl::PERSPECTIVE_PROJECTION, window, basic3D);
+		cppogl::NoClipCamera camera(cppogl::PERSPECTIVE_PROJECTION, window);
 		camera.translate(-0.1, 0.0, -0.5);
 		
 		srand(clock());
@@ -53,6 +55,9 @@ int main(const int argc, const char* const argv[]) {
 			glm::radians(60.0f),
 			{ randomColor(), randomColor(), randomColor() }
 		);
+
+		cppogl::ImageRect rect = cppogl::ImageRect(textured3D, 1.0, 1.0, "res/sky.png");
+		rect.translate(0.0, 2.0, 0.0);
 
 		cppogl::Triangle triangleB = cppogl::Triangle(
 			basic3D,
@@ -67,6 +72,8 @@ int main(const int argc, const char* const argv[]) {
 		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		float deltaTime = 0.0f;
 		clock_t currentTime = clock();
 		clock_t previousTime = currentTime;
@@ -82,8 +89,16 @@ int main(const int argc, const char* const argv[]) {
 
 			camera.update(deltaTime);
 
+			camera.bind(basic3D);
+
 			triangleA.render();
 			triangleB.render();
+
+			textured3D->use();
+
+			camera.bind(textured3D);
+
+			rect.render();
 
 			checkGLErrors(__LINE__);
 			

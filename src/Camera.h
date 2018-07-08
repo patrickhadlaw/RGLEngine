@@ -15,10 +15,12 @@ namespace cppogl {
 	class Camera {
 	public:
 		Camera();
-		Camera(CameraType type, sWindow window, sShaderProgram shader);
+		Camera(CameraType type, sWindow window);
 		~Camera();
 
 		virtual void update(float deltaT);
+
+		virtual void bind(sShaderProgram program);
 
 		void generate(CameraType type);
 
@@ -42,7 +44,7 @@ namespace cppogl {
 	class NoClipCamera : public Camera {
 	public:
 		NoClipCamera();
-		NoClipCamera(CameraType type, sWindow window, sShaderProgram program);
+		NoClipCamera(CameraType type, sWindow window);
 		~NoClipCamera();
 
 		virtual void update(float deltaT);

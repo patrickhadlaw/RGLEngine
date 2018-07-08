@@ -8,7 +8,7 @@ set(CPPOGL_VERSION_REVISION 1)
 set(GLEW_LOCATION lib/glew)
 set(GLFW_LOCATION lib/glfw)
 set(FREETYPE_LOCATION lib/freetype)
-set(CIMG_LOCATION lib/cimg)
+set(STB_LOCATION lib/stb)
 
 configure_file (
     "${PROJECT_SOURCE_DIR}/configuration.h.in"
@@ -16,17 +16,23 @@ configure_file (
 )
 
 file(GLOB_RECURSE sources src/*.cpp src/*.h)
-file(GLOB_RECURSE resources resources/*)
-file(GLOB_RECURSE shader shader/*)
+file(GLOB_RECURSE resources res/*)
 file(GLOB_RECURSE lib lib/*)
+file(GLOB shaders shader/*)
 
 add_executable(cpp-opengl cpp-opengl.cpp ${sources})
 target_compile_options(cpp-opengl PUBLIC -std=c++11)
 
-add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/bin ${PROJECT_SOURCE_DIR})
+add_custom_target(copy)
+foreach(shader ${shaders})
+	add_custom_command(TARGET copy PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${shader} ${PROJECT_BINARY_DIR}/shader/${shader})
+endforeach()
 
-file(COPY ${resources} DESTINATION resources)
-file(COPY ${shader} DESTINATION shader)
+add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/shader ${PROJECT_BINARY_DIR}/shader)
+add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_BINARY_DIR}/bin ${PROJECT_BINARY_DIR})
+
+file(COPY ${resources} DESTINATION res)
+
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
@@ -38,6 +44,6 @@ add_subdirectory(${FREETYPE_LOCATION})
 
 find_package(OpenGL REQUIRED)
 
-target_include_directories(cpp-opengl PUBLIC src ${PROJECT_BINARY_DIR} ${GLFW_INCLUDE_DIRS} ${CIMG_LOCATION} ${FREETYPE_LOCATION}/include lib/glm ${OPENGL_INCLUDE_DIRS} ${GLEW_LOCATION}/include)
+target_include_directories(cpp-opengl PUBLIC src ${PROJECT_BINARY_DIR} ${GLFW_INCLUDE_DIRS} ${STB_LOCATION} ${FREETYPE_LOCATION}/include lib/glm ${OPENGL_INCLUDE_DIRS} ${GLEW_LOCATION}/include)
 
 target_link_libraries(cpp-opengl PUBLIC glew ${OPENGL_LIBRARIES} glfw freetype)

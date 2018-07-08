@@ -60,7 +60,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	glGetShaderiv(fragmentShaderID, GL_INFO_LOG_LENGTH, &logLength);
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
-		glGetShaderInfoLog(vertexShaderID, logLength, nullptr, &errorMessage[0]);
+		glGetShaderInfoLog(fragmentShaderID, logLength, nullptr, &errorMessage[0]);
 		std::cout << errorMessage.data() << std::endl;
 	}
 
@@ -108,8 +108,7 @@ void checkGLErrors(int line)
 {
 	GLenum err;
 	while ((err = glGetError()) != GL_NO_ERROR) {
-		;
-		std::cout << "[" << line << "]OpenGL ERROR: (" << err << ")" << std::endl;
+		std::cout << "[" << line << "]OpenGL ERROR: (" << err << ")" << glewGetErrorString(err) << std::endl;
 	}
 }
 
