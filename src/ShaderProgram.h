@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Exception.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -20,6 +22,7 @@
 #include <GLFW\glfw3.h>
 #include <glm\glm.hpp>
 #include <ft2build.h>
+#include <freetype\ftglyph.h>
 #include FT_FREETYPE_H
 
 #ifdef NDEBUG

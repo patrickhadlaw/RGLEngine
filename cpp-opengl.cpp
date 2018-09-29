@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include "Font.h"
 
 void cleanup() {
 	glfwTerminate();
@@ -13,10 +14,12 @@ glm::vec4 randomColor() {
 	);
 }
 
+const float UI_TICK = 100.0f / 1000.0f;
+
 int main(const int argc, const char* const argv[]) {
 	try {
 		if (!glfwInit()) {
-			throw std::runtime_error("Error: failed to initialize glfw");
+			throw cppogl::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
 		}
 
 		int width = 800;
@@ -32,16 +35,20 @@ int main(const int argc, const char* const argv[]) {
 		glewExperimental = true;
 		GLenum err = glewInit();
 		if (err != GLEW_OK) {
-			throw std::runtime_error("Error: failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)));
+			throw cppogl::Exception("Error: failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), EXCEPT_DETAIL_DEFAULT);
 		}
 		
 		cppogl::sShaderProgram basic3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
 		cppogl::sShaderProgram textured3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
+		cppogl::sShaderProgram text = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
+
+		cppogl::sFont consolas = std::make_shared<cppogl::Font>(cppogl::Font(window, "res/Consolas.ttf"));
 
 		// ShaderManager will be used for shader lookup when materials are incorporated
 		cppogl::ShaderManager shaderManager = {
 			basic3D,
-			textured3D
+			textured3D,
+			text
 		};
 
 		cppogl::NoClipCamera camera(cppogl::PERSPECTIVE_PROJECTION, window);
@@ -69,6 +76,8 @@ int main(const int argc, const char* const argv[]) {
 		triangleB.rotate(0.0, 0.0, glm::radians(60.0f));
 		triangleB.translate(0.0, 0.0, 1.0);
 
+		cppogl::Text fpsText = cppogl::Text(window, text, consolas, "Framerate: ", 16);
+
 		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LESS);
@@ -77,10 +86,16 @@ int main(const int argc, const char* const argv[]) {
 		float deltaTime = 0.0f;
 		clock_t currentTime = clock();
 		clock_t previousTime = currentTime;
-		while (!glfwWindowShouldClose(window->window)) {
-			deltaTime = ((float)currentTime - (float)previousTime) / CLOCKS_PER_SEC;
+
+		float uiTime = 0.0f;
+		int framerate = 0;
+
+		while (!window->shouldClose()) {
 			previousTime = currentTime;
 			currentTime = clock();
+			deltaTime = ((float)currentTime - (float)previousTime) / CLOCKS_PER_SEC;
+			uiTime += deltaTime;
+			framerate = (int)(1 / deltaTime);
 
 			glViewport(0, 0, window->width(), window->height());
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -100,14 +115,26 @@ int main(const int argc, const char* const argv[]) {
 
 			rect.render();
 
+			text->use();
+			if (uiTime > UI_TICK) {
+				fpsText.update(std::string("Framerate: ") + std::to_string(framerate));
+				uiTime = 0.0f;
+			}
+			fpsText.render();
+
 			checkGLErrors(__LINE__);
 			
-			glfwSwapBuffers(window->window);
-			glfwPollEvents();
+			window->update();
 		}
 	}
-	catch (std::runtime_error &e) {
-		std::cout << e.what();
+	catch (cppogl::Exception &e) {
+		std::cout << e.log();
+		cleanup();
+		std::cin.get();
+		return -1;
+	}
+	catch (std::exception &e) {
+		std::cout << "UNHANDLED EXCEPTION: " << e.what();
 		cleanup();
 		std::cin.get();
 		return -1;

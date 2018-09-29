@@ -7,8 +7,9 @@ namespace cppogl {
 	struct Image {
 		Image();
 		Image(std::string imagefile);
+		Image(const Image& other);
 		Image(Image&& rvalue);
-		~Image();
+		virtual ~Image();
 
 		void operator=(const Image& other);
 
@@ -18,27 +19,40 @@ namespace cppogl {
 		int bpp;
 	};
 
-	struct Sampler2D : public Image {
+	typedef std::shared_ptr<Image> sImage;
+
+	struct Sampler2D {
+
+		struct Format {
+			GLint internal;
+			GLint target;
+		};
+
 		Sampler2D();
-		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0);
+		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA, GL_RGBA });
 		Sampler2D(const Sampler2D& other);
 		Sampler2D(Sampler2D&& rvalue);
-		~Sampler2D();
+		Sampler2D(sShaderProgram shader, const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA, GL_RGBA });
+		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
 
 		void use();
 		void disable();
 
+		sImage image;
 		GLuint textureID;
 		GLenum texture;
 		GLint samplerLocation;
 		GLint enableLocation;
+		Format format;
 
 		sShaderProgram shader;
 	protected:
 		void _generate();
 	};
+
+	typedef std::shared_ptr<Sampler2D> sSampler2D;
 
 	class Geometry3D {
 	public:
@@ -51,7 +65,7 @@ namespace cppogl {
 			unsigned short& i3;
 		};
 		Geometry3D();
-		~Geometry3D();
+		virtual ~Geometry3D();
 
 		virtual void update();
 		virtual void render();
@@ -71,7 +85,10 @@ namespace cppogl {
 			glm::mat4 matrix;
 			GLint location;
 		} model;
-		std::vector<unsigned short> indicies;
+		struct {
+			std::vector<unsigned short> list;
+			GLuint buffer;
+		} index;
 		struct {
 			std::vector<glm::vec4> list;
 			GLint location;
@@ -91,7 +108,7 @@ namespace cppogl {
 	class Scene {
 	public:
 		Scene();
-		~Scene();
+		virtual ~Scene();
 
 		virtual void add(Geometry3D* geometry);
 	private:
@@ -119,7 +136,7 @@ namespace cppogl {
 		Shape();
 		Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
 		Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
-		~Shape();
+		virtual ~Shape();
 
 		virtual void render();
 
@@ -135,7 +152,7 @@ namespace cppogl {
 		Triangle();
 		Triangle(sShaderProgram shader, float a, float b, float theta, std::vector<glm::vec4> colors);
 		Triangle(sShaderProgram shader, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
-		~Triangle();
+		virtual ~Triangle();
 
 	protected:
 		void _construct(sShaderProgram& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
@@ -146,17 +163,26 @@ namespace cppogl {
 		Rect();
 		Rect(sShaderProgram shader, float width, float height, std::vector<glm::vec4> colors);
 		Rect(sShaderProgram shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
-		~Rect();
+		virtual ~Rect();
 
 	protected:
 		void _construct(sShaderProgram& shader, float& width, float& height, std::vector<glm::vec4> colors);
+	};
+
+	class Torus : public Shape {
+	public:
+		Torus(sShaderProgram shader, float& a, float& b);
+
+
+	protected:
+		void _construct(sShaderProgram shader, float& a, float& b, std::vector<glm::vec4> colors);
 	};
 
 	class ImageRect : public Shape {
 	public:
 		ImageRect();
 		ImageRect(sShaderProgram shader, float width, float height, std::string image);
-		~ImageRect();
+		virtual ~ImageRect();
 
 		void render();
 
@@ -170,7 +196,7 @@ namespace cppogl {
 	public:
 		Model();
 		Model(std::string file);
-		~Model();
+		virtual ~Model();
 
 		virtual void render();
 		virtual void update();

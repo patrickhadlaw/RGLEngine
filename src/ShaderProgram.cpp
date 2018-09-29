@@ -22,7 +22,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 		vertexFile.close();
 	}
 	else {
-		throw std::runtime_error("Error: could not open file: " + std::string(vertexShader));
+		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
 	}
 	std::string fragCode;
 	std::ifstream fragFile(fragmentShader, std::ios::in);
@@ -34,7 +34,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 		fragFile.close();
 	}
 	else {
-		throw std::runtime_error("Error: could not open file: " + std::string(vertexShader));
+		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	GLint result = GL_FALSE;
@@ -48,7 +48,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(vertexShaderID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to compile vertex shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	logLength = 0;
@@ -61,7 +61,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(fragmentShaderID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to compile fragment shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	_programID = glCreateProgram();
@@ -74,7 +74,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetProgramInfoLog(_programID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to create shader program: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	glDetachShader(_programID, vertexShaderID);

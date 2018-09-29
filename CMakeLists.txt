@@ -25,14 +25,13 @@ target_compile_options(cpp-opengl PUBLIC -std=c++11)
 
 add_custom_target(copy)
 foreach(shader ${shaders})
-	add_custom_command(TARGET copy PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${shader} ${PROJECT_BINARY_DIR}/shader/${shader})
+	get_filename_component(shaderfile ${shader} NAME)
+	configure_file(${shader} ${PROJECT_BINARY_DIR}/shader/${shaderfile} COPYONLY)
 endforeach()
 
-add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/shader ${PROJECT_BINARY_DIR}/shader)
 add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_BINARY_DIR}/bin ${PROJECT_BINARY_DIR})
 
 file(COPY ${resources} DESTINATION res)
-
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)

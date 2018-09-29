@@ -12,7 +12,31 @@ namespace cppogl {
 		ORTHOGONAL_PROJECTION,
 	};
 
-	class Camera {
+	class Viewport {
+	public:
+		Viewport();
+		Viewport(int width, int height, glm::ivec2 position);
+		virtual ~Viewport();
+
+		virtual void use();
+
+	private:
+		int _width;
+		int _height;
+		glm::ivec2 _position;
+	};
+
+	typedef std::shared_ptr<Viewport> sViewport;
+
+	class ViewTransformer {
+	public:
+		ViewTransformer();
+		virtual ~ViewTransformer();
+	};
+
+	typedef std::shared_ptr<ViewTransformer> sViewTransformer;
+
+	class Camera : public ViewTransformer {
 	public:
 		Camera();
 		Camera(CameraType type, sWindow window);
@@ -41,17 +65,23 @@ namespace cppogl {
 		sWindow window;
 	};
 
-	class NoClipCamera : public Camera {
+	class NoClipCamera : public Camera, EventListener {
 	public:
 		NoClipCamera();
 		NoClipCamera(CameraType type, sWindow window);
 		~NoClipCamera();
+
+		virtual void onMessage(std::string eventname, EventMessage* message);
 
 		virtual void update(float deltaT);
 
 		void moveRelative(float forward, float horizontal, float vertical);
 
 	protected:
+		struct {
+			double deltaX;
+			double deltaY;
+		} _mouse;
 		bool isGrabbed;
 	};
 }

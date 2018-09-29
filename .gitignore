@@ -36,3 +36,4 @@ lib/*
 *.exe
 *.out
 *.app
+/.vs
