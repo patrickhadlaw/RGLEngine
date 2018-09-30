@@ -43,7 +43,7 @@ void cppogl::Font::generate(int size)
 		if (FT_Get_Glyph(_face->glyph, &ft_glyph)) {
 			throw Exception("failed to get glyph", EXCEPT_DETAIL_DEFAULT);
 		}
-		glyphs[c] = std::make_shared<Glyph>(Glyph(ft_glyph));
+		glyphs[c] = std::make_shared<Glyph>(Glyph(ft_glyph, _face->glyph->metrics));
 	}
 	this->_generated[size] = glyphs;
 }
@@ -73,17 +73,24 @@ cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, 
 	}
 	float width = window->parseUnit((float)glyph->border.width, Window::Unit::PT) / window->width();
 	float height = window->parseUnit((float)glyph->border.height, Window::Unit::PT) / window->height();
+	glm::vec3 scaled = glm::vec3(
+		window->normalizeX(window->parseUnit(offset.x, Window::Unit::PT)),
+		window->normalizeY(window->parseUnit(offset.y, Window::Unit::PT)),
+		offset.z
+	);
 	this->vertex.list = {
-		glm::vec3(0.0, 0.0, 0.0) + offset,
-		glm::vec3(width, 0.0, 0.0) + offset,
-		glm::vec3(0.0, height, 0.0) + offset,
-		glm::vec3(width, height, 0.0) + offset
+		glm::vec3(0.0, 0.0, 0.0) + scaled,
+		glm::vec3(width, 0.0, 0.0) + scaled,
+		glm::vec3(0.0, height, 0.0) + scaled,
+		glm::vec3(width, height, 0.0) + scaled
 	};
+	float uvWidth = (float)glyph->border.width / glyph->image->width;
+	float uvHeight = (float)glyph->border.height / glyph->image->height;
 	this->uv.list = {
-		glm::vec2(0.0, 1.0),
-		glm::vec2(1.0, 1.0),
+		glm::vec2(0.0, uvHeight),
+		glm::vec2(uvWidth, uvHeight),
 		glm::vec2(0.0, 0.0),
-		glm::vec2(1.0, 0.0)
+		glm::vec2(uvWidth, 0.0)
 	};
 	this->index.list = {
 		0,
@@ -94,7 +101,7 @@ cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, 
 		3
 	};
 	this->glyph = glyph;
-	this->samplers = { Sampler2D(shader, glyph->image, GL_TEXTURE0, Sampler2D::Format{ GL_ALPHA8, GL_ALPHA8 }) };
+	this->samplers = { Sampler2D(shader, glyph->image, GL_TEXTURE0, Sampler2D::Format{ GL_R8, GL_RED }) };
 	this->generate();
 }
 
@@ -111,7 +118,6 @@ cppogl::CharRect::CharRect(const CharRect & other)
 	vertex = other.vertex;
 	index = other.index;
 	uv = other.uv;
-	vertexArray = other.vertexArray;
 	this->generate();
 }
 
@@ -124,11 +130,12 @@ cppogl::CharRect::CharRect(CharRect && rvalue)
 	window = rvalue.window;
 	glyph = rvalue.glyph;
 	color = rvalue.color;
-	samplers = { Sampler2D(rvalue.samplers[0]) };
+	samplers = rvalue.samplers;
 	vertex = rvalue.vertex;
 	index = rvalue.index;
 	uv = rvalue.uv;
 	vertexArray = rvalue.vertexArray;
+	rvalue.vertexArray = 0;
 	rvalue.vertex = {};
 	rvalue.index = {};
 	rvalue.uv = {};
@@ -136,14 +143,7 @@ cppogl::CharRect::CharRect(CharRect && rvalue)
 
 cppogl::CharRect::~CharRect()
 {
-	glDeleteBuffers(1, &vertex.buffer);
-	vertex.buffer = 0;
-	glDeleteBuffers(1, &uv.buffer);
-	uv.buffer = 0;
-	glDeleteBuffers(1, &index.buffer);
-	index.buffer = 0;
-	glDeleteVertexArrays(1, &vertexArray);
-	vertexArray = 0;
+
 }
 
 void cppogl::CharRect::operator=(CharRect && rvalue)
@@ -155,14 +155,34 @@ void cppogl::CharRect::operator=(CharRect && rvalue)
 	window = rvalue.window;
 	glyph = rvalue.glyph;
 	color = rvalue.color;
-	samplers = { Sampler2D(rvalue.samplers[0]) };
+	samplers = rvalue.samplers;
 	vertex = rvalue.vertex;
 	index = rvalue.index;
 	uv = rvalue.uv;
 	vertexArray = rvalue.vertexArray;
+	rvalue.vertexArray = 0;
 	rvalue.vertex = {};
 	rvalue.index = {};
 	rvalue.uv = {};
+}
+
+void cppogl::CharRect::recalculate()
+{
+	float width = window->parseUnit((float)glyph->border.width, Window::Unit::PT) / window->width();
+	float height = window->parseUnit((float)glyph->border.height, Window::Unit::PT) / window->height();
+	glm::vec3 scaled = glm::vec3(
+		window->normalizeX(window->parseUnit(offset.x, Window::Unit::PT)),
+		window->normalizeY(window->parseUnit(offset.y, Window::Unit::PT)),
+		offset.z
+	);
+	this->vertex.list = {
+		glm::vec3(0.0, 0.0, 0.0) + scaled,
+		glm::vec3(width, 0.0, 0.0) + scaled,
+		glm::vec3(0.0, height, 0.0) + scaled,
+		glm::vec3(width, height, 0.0) + scaled
+	};
+	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
 void cppogl::CharRect::render()
@@ -181,7 +201,6 @@ void cppogl::CharRect::render()
 	
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
 	glDrawElements(GL_TRIANGLES, index.list.size(), GL_UNSIGNED_SHORT, nullptr);
-	checkGLErrors(__LINE__);
 }
 
 cppogl::Glyph::Glyph()
@@ -189,27 +208,28 @@ cppogl::Glyph::Glyph()
 	this->image = nullptr;
 }
 
-cppogl::Glyph::Glyph(FT_Glyph& glyph)
+cppogl::Glyph::Glyph(FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 {
 	FT_Glyph_To_Bitmap(&glyph, ft_render_mode_normal, 0, 1);
 	FT_BitmapGlyph bitmap_glyph = (FT_BitmapGlyph)glyph;
 	FT_Bitmap& bitmap = bitmap_glyph->bitmap;
 	this->glyph = glyph;
+	this->metrics = metrics;
+	FT_Glyph_Get_CBox(this->glyph, FT_GLYPH_BBOX_UNSCALED, &this->bbox);
 	this->border.width = bitmap.width;
 	this->border.height = bitmap.rows;
 	this->image = std::make_shared<Image>(Image());
-	this->image->width = this->border.width;
-	this->image->height = this->border.height;
+	this->image->width = next_power_n<2>(this->border.width);
+	this->image->height = next_power_n<2>(this->border.height);
 	this->image->bpp = 1;
-	this->image->image = new unsigned char[this->image->width * 4 * this->image->height];
+	this->image->image = new unsigned char[this->image->width * this->image->bpp * this->image->height];
 	for (int i = 0; i < this->image->width; i++) {
 		for (int j = 0; j < this->image->height; j++) {
+			int index = this->image->bpp * (i + j * this->image->width);
 			if (i < this->border.width && j < this->border.height) {
-				int index = this->image->bpp * (i + j * this->image->width);
-				this->image->image[index] = bitmap.buffer[j * this->image->width + i];
+				this->image->image[index] = bitmap.buffer[j * this->border.width + i];
 			}
 			else {
-				int index = this->image->bpp * (i + j * this->image->width);
 				this->image->image[index] = 0;
 			}
 		}
@@ -238,6 +258,9 @@ cppogl::Text::Text(sWindow window, sShaderProgram shader, sFont font, std::strin
 	if (this->_model.location < 0) {
 		throw Exception("failed to locate shader uniform: model", EXCEPT_DETAIL_DEFAULT);
 	}
+
+	this->_window->registerListener("resize", this);
+
 	this->_model.matrix = glm::mat4(1.0f);
 	this->_model.matrix[0][3] = position.x;
 	this->_model.matrix[1][3] = position.y;
@@ -247,6 +270,15 @@ cppogl::Text::Text(sWindow window, sShaderProgram shader, sFont font, std::strin
 
 cppogl::Text::~Text()
 {
+}
+
+void cppogl::Text::onMessage(std::string eventname, EventMessage * message)
+{
+	if (eventname == "resize") {
+		for (int i = 0; i < _charecters.size(); i++) {
+			_charecters[i].recalculate();
+		}
+	}
 }
 
 void cppogl::Text::generate(std::string text, int fontsize)
@@ -260,8 +292,15 @@ void cppogl::Text::generate(std::string text, int fontsize)
 	this->_charecters.reserve(text.length());
 	float horizontalOffset = 0.0f;
 	for (int i = 0; i < text.length(); i++) {
-		this->_charecters.push_back(CharRect(_window, _shader, _font->_generated[fontsize][text[i]], glm::vec3(horizontalOffset, 0.0, 0.0)));
-		horizontalOffset += (float)_font->_generated[fontsize][text[i]]->border.width / _window->width();
+		sGlyph& glyph = _font->_generated[fontsize][text[i]];
+		float verticalOffset = ((float)glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height;
+		this->_charecters.push_back(CharRect(
+			_window,
+			_shader,
+			glyph,
+			glm::vec3(horizontalOffset, verticalOffset, 0.0)
+		));
+		horizontalOffset += glyph->glyph->advance.x >> 16;
 	}
 	_fontSize = fontsize;
 }
@@ -271,15 +310,16 @@ void cppogl::Text::update(std::string text)
 	_charecters.reserve(text.length());
 	float horizontalOffset = 0.0f;
 	for (int i = 0; i < text.length(); i++) {
+		sGlyph glyph = _font->_generated[_fontSize][text[i]];
 		if (i < _text.length()) {
 			if (text[i] != _text[i]) {
-				_charecters[i] = CharRect(_window, _shader, _font->_generated[_fontSize][text[i]], glm::vec3(horizontalOffset, _charecters.back().offset.y, _charecters.back().offset.z));
+				_charecters[i] = CharRect(_window, _shader, glyph, glm::vec3(horizontalOffset, -(glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height, _charecters.back().offset.z));
 			}
 		}
 		else {
-			_charecters.push_back(CharRect(_window, _shader, _font->_generated[_fontSize][text[i]], glm::vec3(horizontalOffset, _charecters.back().offset.y, _charecters.back().offset.z)));
+			_charecters.push_back(CharRect(_window, _shader, glyph, glm::vec3(horizontalOffset, -(glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height, _charecters.back().offset.z)));
 		}
-		horizontalOffset += (float) _charecters[i].glyph->border.width / _window->width();
+		horizontalOffset += _charecters[i].glyph->glyph->advance.x >> 16;
 	}
 	_text = text;
 }

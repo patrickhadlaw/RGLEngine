@@ -14,7 +14,7 @@ glm::vec4 randomColor() {
 	);
 }
 
-const float UI_TICK = 100.0f / 1000.0f;
+const float UI_TICK = 20.0f / 1000.0f;
 
 int main(const int argc, const char* const argv[]) {
 	try {
@@ -37,6 +37,9 @@ int main(const int argc, const char* const argv[]) {
 		if (err != GLEW_OK) {
 			throw cppogl::Exception("Error: failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), EXCEPT_DETAIL_DEFAULT);
 		}
+
+		glEnable(GL_DEBUG_OUTPUT);
+		glDebugMessageCallback(cppogl::debugCallback, 0);
 		
 		cppogl::sShaderProgram basic3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
 		cppogl::sShaderProgram textured3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
@@ -76,7 +79,7 @@ int main(const int argc, const char* const argv[]) {
 		triangleB.rotate(0.0, 0.0, glm::radians(60.0f));
 		triangleB.translate(0.0, 0.0, 1.0);
 
-		cppogl::Text fpsText = cppogl::Text(window, text, consolas, "Framerate: ", 16);
+		cppogl::Text fpsText = cppogl::Text(window, text, consolas, "Framerate: ", 32);
 
 		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glEnable(GL_DEPTH_TEST);
@@ -121,8 +124,6 @@ int main(const int argc, const char* const argv[]) {
 				uiTime = 0.0f;
 			}
 			fpsText.render();
-
-			checkGLErrors(__LINE__);
 			
 			window->update();
 		}

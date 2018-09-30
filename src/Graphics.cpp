@@ -42,9 +42,7 @@ cppogl::Shape::Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, gl
 
 cppogl::Shape::~Shape()
 {
-	glDeleteBuffers(1, &vertex.buffer);
-	glDeleteBuffers(1, &color.buffer);
-	glDeleteVertexArrays(1, &vertexArray);
+
 }
 
 void cppogl::Shape::render()
@@ -121,6 +119,9 @@ cppogl::Image::Image(std::string imagefile)
 
 cppogl::Image::Image(const Image & other)
 {
+	if (other.image == nullptr) {
+		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+	}
 	this->width = other.width;
 	this->height = other.height;
 	this->bpp = other.bpp;
@@ -160,7 +161,7 @@ cppogl::Image::~Image()
 cppogl::Sampler2D::Sampler2D()
 {
 	this->texture = GL_TEXTURE0;
-	this->format.internal = GL_RGBA;
+	this->format.internal = GL_RGBA8;
 	this->format.target = GL_RGBA;
 	this->image = nullptr;
 	this->shader = nullptr;
@@ -181,6 +182,7 @@ cppogl::Sampler2D::Sampler2D(const Sampler2D & other)
 {
 	this->shader = other.shader;
 	this->image = other.image;
+	this->format = other.format;
 	this->texture = other.texture;
 	this->textureID = other.textureID;
 	this->_generate();
@@ -188,15 +190,10 @@ cppogl::Sampler2D::Sampler2D(const Sampler2D & other)
 
 cppogl::Sampler2D::Sampler2D(Sampler2D && rvalue)
 {
-	this->image = std::make_shared<Image>(Image());
-	this->image->image = rvalue.image->image;
-	this->image->width = rvalue.image->width;
-	this->image->height = rvalue.image->height;
-	this->image->bpp = rvalue.image->bpp;
+	this->image = std::move(rvalue.image);
 	this->shader = rvalue.shader;
 	this->format = rvalue.format;
 	this->texture = rvalue.texture;
-	rvalue.image->image = nullptr;
 	this->_generate();
 }
 
@@ -218,9 +215,19 @@ void cppogl::Sampler2D::operator=(const Sampler2D& other)
 	this->_generate();
 }
 
+void cppogl::Sampler2D::operator=(Sampler2D && rvalue)
+{
+	this->image = std::move(rvalue.image);
+	this->shader = rvalue.shader;
+	this->format = rvalue.format;
+	this->texture = rvalue.texture;
+	this->_generate();
+}
+
 cppogl::Sampler2D::~Sampler2D()
 {
 	glDeleteTextures(1, &textureID);
+	textureID = 0;
 }
 
 void cppogl::Sampler2D::use()
@@ -244,9 +251,9 @@ void cppogl::Sampler2D::_generate()
 	if (this->image == nullptr || this->shader == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
 	}
-
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
+
 	glTexImage2D(GL_TEXTURE_2D,
 		0,
 		format.internal,
@@ -393,6 +400,21 @@ cppogl::Geometry3D::Geometry3D()
 
 cppogl::Geometry3D::~Geometry3D()
 {
+	if (!vertex.list.empty()) {
+		glDeleteBuffers(1, &vertex.buffer);
+	}
+	if (!color.list.empty()) {
+		glDeleteBuffers(1, &color.buffer);
+	}
+	if (!uv.list.empty()) {
+		glDeleteBuffers(1, &uv.buffer);
+	}
+	if (!index.list.empty()) {
+		glDeleteBuffers(1, &index.buffer);
+	}
+	if (vertexArray != 0) {
+		glDeleteVertexArrays(1, &vertexArray);
+	}
 }
 
 void cppogl::Geometry3D::update()
@@ -407,7 +429,6 @@ void cppogl::Geometry3D::generate()
 {
 	glGenVertexArrays(1, &vertexArray);
 	glBindVertexArray(vertexArray);
-	checkGLErrors(__LINE__);
 
 	if (!vertex.list.empty()) {
 		glGenBuffers(1, &vertex.buffer);
@@ -429,7 +450,6 @@ void cppogl::Geometry3D::generate()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.list.size() * sizeof(unsigned short), &index.list[0], GL_STATIC_DRAW);
 	}
-	
 }
 
 cppogl::ImageRect::ImageRect()

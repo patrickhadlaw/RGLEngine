@@ -139,3 +139,17 @@ cppogl::sShaderProgram cppogl::ShaderManager::operator[](std::string name)
 	}
 	return nullptr;
 }
+
+void cppogl::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
+{
+	std::cerr << (type == GL_DEBUG_TYPE_ERROR ? "[GL ERROR]" : "[CALLBACK]")
+		<< " type = "
+		<< type
+		<< ", severity = "
+		<< severity
+		<< ", message = "
+		<< message
+		<< ", params = "
+		<< userParam
+		<< "\n";
+}

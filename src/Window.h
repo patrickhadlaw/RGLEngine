@@ -99,6 +99,9 @@ namespace cppogl {
 		float parseUnit(float value, Unit unit);
 		float parseUnit(std::string value);
 
+		float normalizeX(float value);
+		float normalizeY(float value);
+
 		int getKey(int key);
 		int getMouseButton(int key);
 

@@ -15,10 +15,12 @@ namespace cppogl {
 
 	struct Glyph {
 		Glyph();
-		Glyph(FT_Glyph& glyph);
+		Glyph(FT_Glyph& glyph, FT_Glyph_Metrics& metrics);
 		~Glyph();
 		char c;
 		FT_Glyph glyph;
+		FT_Glyph_Metrics metrics;
+		FT_BBox bbox;
 		sImage image;
 		unsigned size;
 		struct {
@@ -32,10 +34,17 @@ namespace cppogl {
 
 	class Grid {
 	public:
-
+		Grid();
+		virtual ~Grid();
 
 	private:
 
+	};
+
+	class TextBox : public Grid {
+	public:
+		TextBox();
+		virtual ~TextBox();
 	};
 	
 	class Font
@@ -78,11 +87,13 @@ namespace cppogl {
 		sWindow window;
 	};
 
-	class Text {
+	class Text : public EventListener {
 	public:
 		Text();
 		Text(sWindow window, sShaderProgram shader, sFont font, std::string text, int fontsize, glm::vec3 position = glm::vec3(0.0, 0.0, 0.0));
 		virtual ~Text();
+
+		void onMessage(std::string eventname, EventMessage* message);
 
 		void generate(std::string text, int fontsize);
 

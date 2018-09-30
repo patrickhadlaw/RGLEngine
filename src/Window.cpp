@@ -47,6 +47,12 @@ cppogl::Window::Window(const int width, const int height, const char* title)
 		message->keyboard.mode = mode;
 		Window::handleEvent(window, "keyboard", message);
 	});
+	glfwSetWindowSizeCallback(_window, [](GLFWwindow* window, int width, int height) -> void {
+		WindowResizeMessage* message = new WindowResizeMessage;
+		message->window.width = width;
+		message->window.height = height;
+		Window::handleEvent(window, "resize", message);
+	});
 }
 
 cppogl::Window::Window(const Window & other)
@@ -154,6 +160,16 @@ float cppogl::Window::parseUnit(float value, Unit unit)
 	default:
 		return value;
 	}
+}
+
+float cppogl::Window::normalizeX(float value)
+{
+	return value / this->width();
+}
+
+float cppogl::Window::normalizeY(float value)
+{
+	return value / this->height();
 }
 
 int cppogl::Window::getKey(int key)

@@ -29,13 +29,14 @@ namespace cppogl {
 		};
 
 		Sampler2D();
-		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA, GL_RGBA });
+		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		Sampler2D(const Sampler2D& other);
 		Sampler2D(Sampler2D&& rvalue);
-		Sampler2D(sShaderProgram shader, const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA, GL_RGBA });
+		Sampler2D(sShaderProgram shader, const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
+		void operator=(Sampler2D&& rvalue);
 
 		void use();
 		void disable();
