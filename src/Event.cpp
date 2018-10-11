@@ -51,6 +51,7 @@ void cppogl::EventHost::broadcastEvent(std::string eventname, EventMessage * mes
 		for (int i = 0; i < _listeners[eventname].size(); i++) {
 			_listeners[eventname][i]->onMessage(eventname, message);
 		}
+		delete message;
 	}
 }
 

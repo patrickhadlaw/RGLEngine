@@ -3,6 +3,56 @@
 
 std::map<GLFWwindow*, cppogl::Window*> cppogl::Window::_handles = std::map<GLFWwindow*, cppogl::Window*>();
 
+cppogl::Unit cppogl::unitFromPostfix(std::string string)
+{
+	if (string == "px")
+		return Unit::PX;
+	else if (string == "nd")
+		return Unit::ND;
+	else if (string == "pt")
+		return Unit::PT;
+	else if (string == "vw")
+		return Unit::VW;
+	else if (string == "vh")
+		return Unit::VH;
+	else if (string == "ww")
+		return Unit::WW;
+	else if (string == "wh")
+		return Unit::WH;
+	else if (string == "in")
+		return Unit::IN;
+	else if (string == "cm")
+		return Unit::CM;
+	else
+		return Unit::ERROR;
+}
+
+std::string cppogl::postfixFromUnit(Unit unit)
+{
+	switch (unit) {
+	case Unit::PX:
+		return "px";
+	case Unit::ND:
+		return "nd";
+	case Unit::PT:
+		return "pt";
+	case Unit::VW:
+		return "vw";
+	case Unit::VH:
+		return "vh";
+	case Unit::WW:
+		return "ww";
+	case Unit::WH:
+		return "wh";
+	case Unit::IN:
+		return "in";
+	case Unit::CM:
+		return "cm";
+	default:
+		return "";
+	}
+}
+
 cppogl::Window::Window()
 {
 }
@@ -126,7 +176,7 @@ float cppogl::Window::physicalHeight()
 	return (float)heightMM / 1000.0f;
 }
 
-float cppogl::Window::parseUnit(float value, Unit unit)
+float cppogl::Window::pixelValue(float value, Unit unit)
 {
 	int widthMM, heightMM;
 	GLFWmonitor* monitor = glfwGetWindowMonitor(_window);
@@ -143,23 +193,100 @@ float cppogl::Window::parseUnit(float value, Unit unit)
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	switch (unit)
 	{
-	case cppogl::Window::Unit::PT:
+	case cppogl::Unit::PT:
 		return (pixelsPerInchX / 72) * value;
-	case cppogl::Window::Unit::VW:
+	case cppogl::Unit::ND:
+		return value * this->width() / 2;
+	case cppogl::Unit::VW:
 		return (value / 100.0f) * (float) viewport[2];
-	case cppogl::Window::Unit::VH:
+	case cppogl::Unit::VH:
 		return (value / 100.0f) * (float) viewport[3];
-	case cppogl::Window::Unit::WW:
+	case cppogl::Unit::WW:
 		return (value / 100.0f) * (float) this->width();
-	case cppogl::Window::Unit::WH:
+	case cppogl::Unit::WH:
 		return (value / 100.0f) * (float) this->height();
-	case cppogl::Window::Unit::IN:
+	case cppogl::Unit::IN:
 		return pixelsPerInchX * value;
-	case cppogl::Window::Unit::CM:
+	case cppogl::Unit::CM:
 		return pixelsPerInchX * (1.0f / (Conversions::IN_PER_M * 100.0f))  * value;
+	case cppogl::Unit::ERROR:
+		throw Exception("invalid unit conversion", EXCEPT_DETAIL_DEFAULT);
 	default:
 		return value;
 	}
+}
+
+float cppogl::Window::pixelValue(UnitValue value)
+{
+	return pixelValue(value.value, value.unit);
+}
+
+float cppogl::Window::parse(UnitValue value, Direction direction)
+{
+	float divisor = direction == X ? this->width() : this->height();
+	switch (value.unit) {
+	case Unit::PT:
+	case Unit::CM:
+	case Unit::IN:
+	case Unit::PX:
+		return this->pixelValue(value.value, value.unit) / divisor;
+		break;
+	default:
+		return value.value;
+		break;
+	}
+}
+
+glm::vec2 cppogl::Window::parse(UnitVector2D vector, Direction direction)
+{
+	float divisor = direction == X ? this->width() : this->height();
+	switch (vector.unit) {
+	case Unit::PT:
+	case Unit::CM:
+	case Unit::IN:
+	case Unit::PX:
+		return glm::vec2(this->pixelValue(vector.x, vector.unit) / divisor, this->pixelValue(vector.y, vector.unit) / divisor);
+		break;
+	default:
+		return glm::vec2(vector.x, vector.y);
+		break;
+	}
+}
+
+glm::vec3 cppogl::Window::parse(UnitVector3D vector, Direction direction)
+{
+	float divisor = direction == X ? this->width() : this->height();
+	switch (vector.unit) {
+	case Unit::PT:
+	case Unit::CM:
+	case Unit::IN:
+	case Unit::PX:
+		return glm::vec3(this->pixelValue(vector.x, vector.unit) / divisor, this->pixelValue(vector.y, vector.unit) / divisor, this->pixelValue(vector.z, vector.unit) / divisor);
+		break;
+	default:
+		return glm::vec3(vector.x, vector.y, vector.z);
+		break;
+	}
+}
+
+float cppogl::Window::convert(float value, Unit from, Unit to)
+{
+	return 0.0f;
+}
+
+cppogl::UnitValue cppogl::Window::convert(UnitValue value, Unit to)
+{
+	return UnitValue();
+}
+
+cppogl::UnitVector2D cppogl::Window::convert(UnitVector2D vector, Unit to)
+{
+	return UnitVector2D();
+}
+
+cppogl::UnitVector3D cppogl::Window::convert(UnitVector3D vector, Unit to)
+{
+	return UnitVector3D();
 }
 
 float cppogl::Window::normalizeX(float value)
@@ -265,4 +392,127 @@ cppogl::KeyboardMessage::KeyboardMessage()
 
 cppogl::KeyboardMessage::~KeyboardMessage()
 {
+}
+
+cppogl::UnitValue& cppogl::UnitValue::parse(std::string parse)
+{
+	enum ParseState {
+		VALUE_SIGN,
+		INTEGRAL,
+		DECIMAL,
+		EXPONENT_SIGN,
+		EXPONENT,
+		POSTFIX,
+		TRAILING
+	};
+	ParseState currentState = INTEGRAL;
+	bool negateValue = false;
+	bool negateExponent = false;
+	int value = 0;
+	float decimal = 0.0f;
+	int exponent = 0;
+	std::string postfix = "";
+	for (int i = 0; i < parse.length(); i++) {
+		char& c = parse[i];
+		switch (currentState) {
+		case VALUE_SIGN:
+			if (c == '+') {
+			}
+			else if (c == '-') {
+				negateValue = true;
+			}
+			currentState = INTEGRAL;
+		case INTEGRAL:
+			if (c >= '0' && c <= '9') {
+				value *= 10;
+				value += (float)(c - '0');
+			}
+			else if (c == '.') {
+				currentState = DECIMAL;
+			}
+			else if (tolower(c) >= 'a' && tolower(c) <= 'z' && i > 0) {
+				postfix.push_back(c);
+				currentState = POSTFIX;
+			}
+			else if (c == ' ') {
+
+			}
+			else {
+				return UnitValue{ 0.0f, Unit::ERROR };
+			}
+			break;
+		case DECIMAL:
+			if (c >= '0' && c <= '9') {
+				decimal += (float)(c - '0');
+				decimal /= 10;
+			}
+			else if (c == 'e') {
+				currentState = EXPONENT;
+			}
+			else if (tolower(c) >= 'a' && tolower(c) <= 'z') {
+				postfix.push_back(c);
+				currentState = POSTFIX;
+			}
+			else if (c == ' ') {
+
+			}
+			else {
+				return UnitValue{ 0.0f, Unit::ERROR };
+			}
+			break;
+		case EXPONENT_SIGN:
+			if (c == '+') {
+
+			}
+			else if (c == '-') {
+				negateExponent = true;
+			}
+			currentState = EXPONENT;
+		case EXPONENT:
+			if (c >= '0' && c <= '9') {
+				exponent *= 10;
+				exponent += (float)(c - '0');
+			}
+			else if (tolower(c) >= 'a' && tolower(c) <= 'z') {
+				postfix.push_back(c);
+				currentState = POSTFIX;
+			}
+			else if (c == ' ') {
+
+			}
+			else {
+				return UnitValue{ 0.0f, Unit::ERROR };
+			}
+			break;
+		case POSTFIX:
+			if (tolower(c) >= 'a' && tolower(c) <= 'z') {
+				postfix.push_back(c);
+			}
+			else if (c == ' ') {
+				currentState = TRAILING;
+			}
+			else {
+				return UnitValue{ 0.0f, Unit::ERROR };
+			}
+			break;
+		case TRAILING:
+			if (c == ' ') {
+
+			}
+			else {
+				return UnitValue{ 0.0f, Unit::ERROR };
+			}
+		}
+	}
+	UnitValue unitvalue;
+	unitvalue.unit = unitFromPostfix(postfix);
+	unitvalue.value = (float)value + decimal;
+	if (negateValue) {
+		unitvalue.value = -unitvalue.value;
+	}
+	if (negateExponent) {
+		exponent = -exponent;
+	}
+	unitvalue.value = unitvalue.value * powf(10, exponent);
+	return unitvalue;
 }

@@ -45,7 +45,13 @@ int main(const int argc, const char* const argv[]) {
 		cppogl::sShaderProgram textured3D = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
 		cppogl::sShaderProgram text = std::make_shared<cppogl::ShaderProgram>(cppogl::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
 
-		cppogl::sFont consolas = std::make_shared<cppogl::Font>(cppogl::Font(window, "res/Consolas.ttf"));
+		cppogl::sFontFamily roboto = std::make_shared<cppogl::FontFamily>(cppogl::FontFamily("roboto", {
+			{ cppogl::FontFamily::REGULAR, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
+			{ cppogl::FontFamily::BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Bold.ttf")) },
+			{ cppogl::FontFamily::ITALIC, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Italic.ttf")) },
+			{ cppogl::FontFamily::ITALIC_BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-BoldItalic.ttf")) },
+			{ cppogl::FontFamily::LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Light.ttf")) },
+			{ cppogl::FontFamily::ITALIC_LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-LightItalic.ttf")) } }));
 
 		// ShaderManager will be used for shader lookup when materials are incorporated
 		cppogl::ShaderManager shaderManager = {
@@ -79,7 +85,14 @@ int main(const int argc, const char* const argv[]) {
 		triangleB.rotate(0.0, 0.0, glm::radians(60.0f));
 		triangleB.translate(0.0, 0.0, 1.0);
 
-		cppogl::Text fpsText = cppogl::Text(window, text, consolas, "Framerate: ", 32);
+		cppogl::TextAttributes attrib{ cppogl::FontFamily::BOLD, cppogl::UnitValue::parse("16pt"), 300.0f, 300.0f, cppogl::UnitVector3D{-1.0, 1.0, 0.0} };
+		cppogl::Text fpsText = cppogl::Text(window, text, roboto, "Framerate: ", attrib);
+		cppogl::Text wrapTest = cppogl::Text(window,
+			text,
+			roboto,
+			"Hello world! This is a test of word wrapping, will it wrap, mabye.",
+			cppogl::TextAttributes{ cppogl::FontFamily::REGULAR, cppogl::UnitValue::parse("24pt"), 300.0f, 0.0f, cppogl::UnitVector3D{-1.0, 0.95, 0.0}}
+		);
 
 		glClearColor(1.0, 1.0, 1.0, 1.0);
 		glEnable(GL_DEPTH_TEST);
@@ -124,6 +137,7 @@ int main(const int argc, const char* const argv[]) {
 				uiTime = 0.0f;
 			}
 			fpsText.render();
+			wrapTest.render();
 			
 			window->update();
 		}

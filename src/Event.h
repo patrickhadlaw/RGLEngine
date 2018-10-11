@@ -95,8 +95,6 @@ namespace cppogl {
 		std::map<std::string, std::vector<EventListener*>> _listeners;
 	};
 
-	typedef std::function<void(std::string, EventMessage*) > EventCallback;
-
 	class EventListener {
 		friend class EventHost;
 	public:

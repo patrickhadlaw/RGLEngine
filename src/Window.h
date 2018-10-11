@@ -68,18 +68,32 @@ namespace cppogl {
 		} keyboard;
 	};
 
+	struct UnitValue;
+	struct UnitVector2D;
+	struct UnitVector3D;
+
+	enum class Unit {
+		PX,		// Pixel
+		ND,		// Normalized device coordinate
+		PT,		// Point -- 1/72 of inch
+		VW,		// Percent of viewport width
+		VH,		// Percetn of viewport height
+		WW,		// Percent of window width
+		WH,		// Percent of window height
+		IN,		// Inch of screen
+		CM,		// Centimetre of screen
+		ERROR	// Error unit, failed to parse unit
+	};
+	static Unit unitFromPostfix(std::string string);
+	static std::string postfixFromUnit(Unit unit);
+
 	class Window : public EventHost {
 		friend class Context;
 	public:
 
-		enum class Unit {
-			PT,		// Point -- 1/72 of inch
-			VW,		// Percent of viewport width
-			VH,		// Percetn of viewport height
-			WW,		// Percent of window width
-			WH,		// Percent of window height
-			IN,		// Inch of screen
-			CM		// Centimetre of screen
+		enum Direction {
+			X,
+			Y
 		};
 
 		Window();
@@ -96,8 +110,17 @@ namespace cppogl {
 		float physicalWidth();
 		float physicalHeight();
 
-		float parseUnit(float value, Unit unit);
-		float parseUnit(std::string value);
+		float pixelValue(float value, Unit unit);
+		float pixelValue(UnitValue value);
+
+		float parse(UnitValue value, Direction direction = X);
+		glm::vec2 parse(UnitVector2D vector, Direction direction = X);
+		glm::vec3 parse(UnitVector3D vector, Direction direction = X);
+
+		float convert(float value, Unit from, Unit to);
+		UnitValue convert(UnitValue value, Unit to);
+		UnitVector2D convert(UnitVector2D vector, Unit to);
+		UnitVector3D convert(UnitVector3D vector, Unit to);
 
 		float normalizeX(float value);
 		float normalizeY(float value);
@@ -126,4 +149,22 @@ namespace cppogl {
 		static std::map<GLFWwindow*, Window*> _handles;
 	};
 	typedef std::shared_ptr<Window> sWindow;
+
+	struct UnitValue {
+		static UnitValue& parse(std::string parse);
+		float value = 0.0f;
+		Unit unit = Unit::ND;
+	};
+
+	struct UnitVector2D {
+		float x;
+		float y;
+		Unit unit = Unit::ND;
+	};
+	struct UnitVector3D {
+		float x = 0.0f;
+		float y = 0.0f;
+		float z = 0.0f;
+		Unit unit = Unit::ND;
+	};
 }

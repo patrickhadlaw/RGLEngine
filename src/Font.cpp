@@ -43,9 +43,18 @@ void cppogl::Font::generate(int size)
 		if (FT_Get_Glyph(_face->glyph, &ft_glyph)) {
 			throw Exception("failed to get glyph", EXCEPT_DETAIL_DEFAULT);
 		}
-		glyphs[c] = std::make_shared<Glyph>(Glyph(ft_glyph, _face->glyph->metrics));
+		glyphs[c] = std::make_shared<Glyph>(Glyph(c, ft_glyph, _face->glyph->metrics));
 	}
 	this->_generated[size] = glyphs;
+}
+
+int cppogl::Font::lineHeight(int size)
+{
+	if (this->_window == nullptr) {
+		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+	}
+	FT_Set_Pixel_Sizes(_face, 0, size);
+	return _face->height / 64;
 }
 
 cppogl::CharRect::CharRect()
@@ -54,11 +63,15 @@ cppogl::CharRect::CharRect()
 	this->window = nullptr;
 }
 
-cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, glm::vec3 offset)
+int cppogl::CharRect::counter = 0;
+
+cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, glm::vec3 offset, float baselineOffset, Unit unit)
 {
 	this->shader = shader;
 	this->window = window;
 	this->offset = offset;
+	this->baselineOffset = baselineOffset;
+	this->unit = unit;
 	this->color.location = glGetAttribLocation(shader->id(), "vertex_color");
 	if (this->color.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
@@ -71,11 +84,11 @@ cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, 
 	if (this->uv.location < 0) {
 		throw Exception("failed to locate shader attribute: texture coordinates", EXCEPT_DETAIL_DEFAULT);
 	}
-	float width = window->parseUnit((float)glyph->border.width, Window::Unit::PT) / window->width();
-	float height = window->parseUnit((float)glyph->border.height, Window::Unit::PT) / window->height();
+	float width = window->parse(UnitValue{ (float)glyph->border.width, unit }, Window::X);
+	float height = window->parse(UnitValue{ (float)glyph->border.height, unit }, Window::Y);
 	glm::vec3 scaled = glm::vec3(
-		window->normalizeX(window->parseUnit(offset.x, Window::Unit::PT)),
-		window->normalizeY(window->parseUnit(offset.y, Window::Unit::PT)),
+		window->parse(UnitValue{ offset.x, unit }, Window::X),
+		window->parse(UnitValue{ offset.y + baselineOffset, unit }, Window::Y),
 		offset.z
 	);
 	this->vertex.list = {
@@ -101,15 +114,19 @@ cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, 
 		3
 	};
 	this->glyph = glyph;
-	this->samplers = { Sampler2D(shader, glyph->image, GL_TEXTURE0, Sampler2D::Format{ GL_R8, GL_RED }) };
+	this->samplers = { Sampler2D(shader, glyph->texture) };
 	this->generate();
+	counter++;
 }
 
 cppogl::CharRect::CharRect(const CharRect & other)
 {
+	_cleanup();
 	width = other.width;
 	height = other.height;
 	offset = other.offset;
+	baselineOffset = other.baselineOffset;
+	unit = other.unit;
 	shader = other.shader;
 	window = other.window;
 	glyph = other.glyph;
@@ -123,17 +140,21 @@ cppogl::CharRect::CharRect(const CharRect & other)
 
 cppogl::CharRect::CharRect(CharRect && rvalue)
 {
+	_cleanup();
 	width = rvalue.width;
 	height = rvalue.height;
 	offset = rvalue.offset;
+	baselineOffset = rvalue.baselineOffset;
+	unit = rvalue.unit;
 	shader = rvalue.shader;
 	window = rvalue.window;
 	glyph = rvalue.glyph;
-	color = rvalue.color;
+	color = std::move(rvalue.color);
 	samplers = rvalue.samplers;
-	vertex = rvalue.vertex;
-	index = rvalue.index;
-	uv = rvalue.uv;
+	vertex = std::move(rvalue.vertex);
+	index = std::move(rvalue.index);
+	uv = std::move(rvalue.uv);
+	model = std::move(rvalue.model);
 	vertexArray = rvalue.vertexArray;
 	rvalue.vertexArray = 0;
 	rvalue.vertex = {};
@@ -143,22 +164,45 @@ cppogl::CharRect::CharRect(CharRect && rvalue)
 
 cppogl::CharRect::~CharRect()
 {
+}
 
+void cppogl::CharRect::operator=(const CharRect & other)
+{
+	_cleanup();
+	width = other.width;
+	height = other.height;
+	offset = other.offset;
+	baselineOffset = other.baselineOffset;
+	unit = other.unit;
+	shader = other.shader;
+	window = other.window;
+	glyph = other.glyph;
+	color = other.color;
+	samplers = other.samplers;
+	vertexArray = other.vertexArray;
+	vertex = other.vertex;
+	index = other.index;
+	uv = other.uv;
+	this->generate();
 }
 
 void cppogl::CharRect::operator=(CharRect && rvalue)
 {
+	this->_cleanup();
 	width = rvalue.width;
 	height = rvalue.height;
 	offset = rvalue.offset;
+	baselineOffset = rvalue.baselineOffset;
+	unit = rvalue.unit;
 	shader = rvalue.shader;
 	window = rvalue.window;
 	glyph = rvalue.glyph;
-	color = rvalue.color;
+	color = std::move(rvalue.color);
 	samplers = rvalue.samplers;
-	vertex = rvalue.vertex;
-	index = rvalue.index;
-	uv = rvalue.uv;
+	vertex = std::move(rvalue.vertex);
+	index = std::move(rvalue.index);
+	uv = std::move(rvalue.uv);
+	model = std::move(rvalue.model);
 	vertexArray = rvalue.vertexArray;
 	rvalue.vertexArray = 0;
 	rvalue.vertex = {};
@@ -168,11 +212,11 @@ void cppogl::CharRect::operator=(CharRect && rvalue)
 
 void cppogl::CharRect::recalculate()
 {
-	float width = window->parseUnit((float)glyph->border.width, Window::Unit::PT) / window->width();
-	float height = window->parseUnit((float)glyph->border.height, Window::Unit::PT) / window->height();
+	float width = window->parse(UnitValue{ (float)glyph->border.width, unit }, Window::X);
+	float height = window->parse(UnitValue{ (float)glyph->border.height, unit }, Window::Y);
 	glm::vec3 scaled = glm::vec3(
-		window->normalizeX(window->parseUnit(offset.x, Window::Unit::PT)),
-		window->normalizeY(window->parseUnit(offset.y, Window::Unit::PT)),
+		window->parse(UnitValue{ offset.x, unit }, Window::X),
+		window->parse(UnitValue{ offset.y + baselineOffset, unit }, Window::Y),
 		offset.z
 	);
 	this->vertex.list = {
@@ -208,11 +252,12 @@ cppogl::Glyph::Glyph()
 	this->image = nullptr;
 }
 
-cppogl::Glyph::Glyph(FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
+cppogl::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 {
 	FT_Glyph_To_Bitmap(&glyph, ft_render_mode_normal, 0, 1);
 	FT_BitmapGlyph bitmap_glyph = (FT_BitmapGlyph)glyph;
 	FT_Bitmap& bitmap = bitmap_glyph->bitmap;
+	this->charecter = charecter;
 	this->glyph = glyph;
 	this->metrics = metrics;
 	FT_Glyph_Get_CBox(this->glyph, FT_GLYPH_BBOX_UNSCALED, &this->bbox);
@@ -234,6 +279,7 @@ cppogl::Glyph::Glyph(FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 			}
 		}
 	}
+	this->texture = std::make_shared<Texture>(Texture(this->image, GL_TEXTURE0, Texture::Format{ GL_R8, GL_RED }));
 }
 
 cppogl::Glyph::~Glyph()
@@ -244,16 +290,17 @@ cppogl::Text::Text()
 {
 	this->_shader = nullptr;
 	this->_window = nullptr;
-	this->_font = nullptr;
+	this->_fontFamily = nullptr;
 }
 
-cppogl::Text::Text(sWindow window, sShaderProgram shader, sFont font, std::string text, int fontsize, glm::vec3 position)
+cppogl::Text::Text(sWindow window, sShaderProgram shader, sFontFamily fontfamily, std::string text, TextAttributes attributes)
 {
 	this->_shader = shader;
-	this->_font = font;
+	this->_attributes = attributes;
+	this->_fontFamily = fontfamily;
 	this->_text = text;
 	this->_window = window;
-	this->_fontSize = fontsize;
+	this->_maxSize = _fontFamily->get(attributes.face)->lineHeight(_window->pixelValue(_attributes.fontSize));
 	this->_model.location = glGetUniformLocation(this->_shader->id(), "model");
 	if (this->_model.location < 0) {
 		throw Exception("failed to locate shader uniform: model", EXCEPT_DETAIL_DEFAULT);
@@ -262,10 +309,11 @@ cppogl::Text::Text(sWindow window, sShaderProgram shader, sFont font, std::strin
 	this->_window->registerListener("resize", this);
 
 	this->_model.matrix = glm::mat4(1.0f);
-	this->_model.matrix[0][3] = position.x;
-	this->_model.matrix[1][3] = position.y;
-	this->_model.matrix[2][3] = position.z;
-	this->generate(text, fontsize);
+	this->_model.matrix[3][0] = _attributes.position.x;
+	this->_model.matrix[3][1] = _attributes.position.y;
+	this->_model.matrix[3][2] = _attributes.position.z;
+
+	this->generate(text, attributes);
 }
 
 cppogl::Text::~Text()
@@ -281,56 +329,208 @@ void cppogl::Text::onMessage(std::string eventname, EventMessage * message)
 	}
 }
 
-void cppogl::Text::generate(std::string text, int fontsize)
+void cppogl::Text::generate(std::string text, TextAttributes attributes)
 {
-	if (_font == nullptr || _window == nullptr || _shader == nullptr) {
+	_attributes = attributes;
+	if (_fontFamily == nullptr || _window == nullptr || _shader == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
 	}
-	if (_font->_generated.find(fontsize) == _font->_generated.end()) {
-		_font->generate(fontsize);
+	sFont font = _fontFamily->get(attributes.face);
+	if (font->_generated.find(attributes.fontSize.value) == font->_generated.end()) {
+		font->generate(attributes.fontSize.value);
 	}
+	_charecters.clear();
 	this->_charecters.reserve(text.length());
-	float horizontalOffset = 0.0f;
+	glm::vec2 offset = glm::vec2(0.0f, _maxSize);
+	int wordIndex = 0;
+	bool firstWord = true;
 	for (int i = 0; i < text.length(); i++) {
-		sGlyph& glyph = _font->_generated[fontsize][text[i]];
-		float verticalOffset = ((float)glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height;
+		sGlyph& glyph = font->_generated[attributes.fontSize.value][text[i]];
+		float baselineOffset = ((float)glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height;
 		this->_charecters.push_back(CharRect(
 			_window,
 			_shader,
 			glyph,
-			glm::vec3(horizontalOffset, verticalOffset, 0.0)
+			glm::vec3(offset.x, -offset.y, 0.0),
+			baselineOffset,
+			_attributes.fontSize.unit
 		));
-		horizontalOffset += glyph->glyph->advance.x >> 16;
+		if (_attributes.wrapWord) {
+			_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
+		}
+		else {
+			_getOffsetWrapWidth(offset, glyph);
+		}
 	}
-	_fontSize = fontsize;
 }
 
 void cppogl::Text::update(std::string text)
 {
-	_charecters.reserve(text.length());
-	float horizontalOffset = 0.0f;
+	_maxSize = _attributes.fontSize.value;
+	sFont font = _fontFamily->get(_attributes.face);
+	glm::vec2 offset = glm::vec2(0.0f, _maxSize);
+	int wordIndex = 0;
+	bool firstWord = true;
 	for (int i = 0; i < text.length(); i++) {
-		sGlyph glyph = _font->_generated[_fontSize][text[i]];
+		sGlyph glyph = font->_generated[_attributes.fontSize.value][text[i]];
 		if (i < _text.length()) {
-			if (text[i] != _text[i]) {
-				_charecters[i] = CharRect(_window, _shader, glyph, glm::vec3(horizontalOffset, -(glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height, _charecters.back().offset.z));
+			if (text[i] != _text[i] || _charecters[i].glyph->size != _attributes.fontSize.value) {
+				_charecters[i] = CharRect(_window, _shader, glyph, glm::vec3(offset.x, -offset.y, _charecters.back().offset.z), -(glyph->border.height - glyph->metrics.horiBearingY / 64), _attributes.fontSize.unit);
 			}
 		}
 		else {
-			_charecters.push_back(CharRect(_window, _shader, glyph, glm::vec3(horizontalOffset, -(glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height, _charecters.back().offset.z)));
+			_charecters.push_back(CharRect(_window, _shader, glyph, glm::vec3(offset.x, -offset.y, _charecters.back().offset.z), -(glyph->border.height - glyph->metrics.horiBearingY / 64), _attributes.fontSize.unit));
 		}
-		horizontalOffset += _charecters[i].glyph->glyph->advance.x >> 16;
+		if (_attributes.wrapWord) {
+			_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
+		}
+		else {
+			_getOffsetWrapWidth(offset, glyph);
+		}
 	}
+	_charecters.resize(text.length());
 	_text = text;
+}
+
+void cppogl::Text::append(std::string text, TextAttributes attributes)
+{
+	size_t len = _text.length() + text.length();
+	_charecters.reserve(len);
+	sFont font = _fontFamily->get(attributes.face);
+	_maxSize = std::max(font->lineHeight(_window->pixelValue(_attributes.fontSize)), _maxSize);
+	glm::vec2 offset = glm::vec2(0.0f, _maxSize);
+	int wordIndex = 0;
+	bool firstWord = true;
+	for (int i = 0; i < len; i++) {
+		sGlyph glyph = font->_generated[_attributes.fontSize.value][text[i]];
+		_charecters.push_back(CharRect(
+			_window,
+			_shader,
+			glyph,
+			glm::vec3(offset.x, -offset.y, _charecters.back().offset.z),
+			-(glyph->border.height - glyph->metrics.horiBearingY / 64),
+			_attributes.fontSize.unit
+		));
+		if (_attributes.wrapWord) {
+			_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
+		}
+		else {
+			_getOffsetWrapWidth(offset, glyph);
+		}
+	}
+	_text = _text + text;
+}
+
+void cppogl::Text::append(std::string text)
+{
+	this->append(text, _attributes);
 }
 
 void cppogl::Text::render()
 {
-	if (_font == nullptr || _window == nullptr || _shader == nullptr) {
+	if (_fontFamily == nullptr || _window == nullptr || _shader == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
 	}
 	glUniformMatrix4fv(this->_model.location, 1, GL_FALSE, &this->_model.matrix[0][0]);
 	for (int i = 0; i < _charecters.size(); i++) {
 		_charecters[i].render();
+	}
+}
+
+void cppogl::Text::_getOffsetWrapWidth(glm::vec2 & offset, sGlyph& glyph)
+{
+	if (glyph->charecter == '\n') {
+		offset.x = 0.0f;
+		offset.y += this->_fontFamily->get(_attributes.face)->lineHeight(_maxSize);
+	}
+	else if (_attributes.width == 0.0f) {
+		offset.x += (glyph->glyph->advance.x >> 16);
+	}
+	else if (offset.x + (glyph->glyph->advance.x >> 16) < _attributes.width) {
+		offset.x += (glyph->glyph->advance.x >> 16);
+	}
+	else {
+		offset.x = 0.0f;
+		offset.y += this->_fontFamily->get(_attributes.face)->lineHeight(_maxSize);
+	}
+}
+
+void cppogl::Text::_getOffsetWrapWord(glm::vec2 & offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord)
+{
+	if (glyph->charecter == '\n') {
+		offset.x = 0.0f;
+		wordIndex = index + 1;
+		offset.y += this->_fontFamily->get(_attributes.face)->lineHeight(_maxSize);
+		firstWord = true;
+	}
+	else if (_attributes.width == 0.0f) {
+		offset.x += (glyph->glyph->advance.x >> 16);
+	}
+	else if (glyph->charecter == ' ' || glyph->charecter == '\t') {
+		if (!firstWord) {
+			offset.x += (glyph->glyph->advance.x >> 16);
+		}
+		else if (wordIndex == index) {
+			
+		}
+		else {
+			firstWord = false;
+			offset.x += (glyph->glyph->advance.x >> 16);
+		}
+		wordIndex = index + 1;
+	}
+	else if (offset.x + (glyph->glyph->advance.x >> 16) < _attributes.width) {
+		offset.x += (glyph->glyph->advance.x >> 16);
+	}
+	else {
+		if (firstWord) {
+			offset.x = 0.0f;
+			offset.y += this->_fontFamily->get(_attributes.face)->lineHeight(_maxSize);
+		}
+		else {
+			offset.x = 0.0f;
+			offset.y += this->_fontFamily->get(_attributes.face)->lineHeight(_maxSize);
+			for (int i = wordIndex; i <= index; i++) {
+				_charecters[i].offset = glm::vec3(offset.x, -offset.y, _charecters[i].offset.z);
+				_charecters[i].recalculate();
+				_getOffsetWrapWidth(offset, _charecters[i].glyph);
+			}
+		}
+	}
+}
+
+const std::string cppogl::FontFamily::REGULAR = std::string("regular");
+const std::string cppogl::FontFamily::BOLD = std::string("bold");
+const std::string cppogl::FontFamily::ITALIC = std::string("italic");
+const std::string cppogl::FontFamily::ITALIC_BOLD = std::string("italic_bold");
+const std::string cppogl::FontFamily::LIGHT = std::string("light");
+const std::string cppogl::FontFamily::ITALIC_LIGHT = std::string("italic_light");
+
+
+cppogl::FontFamily::FontFamily()
+{
+}
+
+cppogl::FontFamily::FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts)
+{
+	_family = family;
+	for (int i = 0; i < fonts.size(); i++) {
+		_fonts[fonts[i].first] = fonts[i].second;
+	}
+}
+
+cppogl::FontFamily::~FontFamily()
+{
+}
+
+cppogl::sFont cppogl::FontFamily::get(const std::string& fontface) {
+	if (_fonts.find(fontface) == _fonts.end()) {
+		if (fontface == REGULAR) {
+			throw Exception(std::string("could not find default font face in family: ") + _family, EXCEPT_DETAIL_DEFAULT);
+		}
+		return this->get(REGULAR);
+	}
+	else {
+		return _fonts[fontface];
 	}
 }

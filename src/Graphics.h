@@ -18,35 +18,57 @@ namespace cppogl {
 		int height;
 		int bpp;
 	};
-
+	
 	typedef std::shared_ptr<Image> sImage;
 
-	struct Sampler2D {
+	class Texture {
+	public:
 
 		struct Format {
 			GLint internal;
 			GLint target;
 		};
 
+		Texture();
+		Texture(std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
+		Texture(const Texture& other);
+		Texture(Texture&& rvalue);
+		Texture(const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
+		virtual ~Texture();
+
+		void operator=(const Texture& other);
+		void operator=(Texture&& rvalue);
+
+		sImage image;
+
+		GLuint textureID;
+		GLenum texture;
+
+		Format format;
+
+	private:
+		void _generate();
+	};
+
+	typedef std::shared_ptr<Texture> sTexture;
+
+	struct Sampler2D {
 		Sampler2D();
-		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		Sampler2D(const Sampler2D& other);
-		Sampler2D(Sampler2D&& rvalue);
-		Sampler2D(sShaderProgram shader, const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
+		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
+		Sampler2D(sShaderProgram shader, const sTexture& texture);
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
-		void operator=(Sampler2D&& rvalue);
 
 		void use();
-		void disable();
 
-		sImage image;
-		GLuint textureID;
-		GLenum texture;
 		GLint samplerLocation;
 		GLint enableLocation;
-		Format format;
+
+		bool enabled;
+
+		sTexture texture;
 
 		sShaderProgram shader;
 	protected:
@@ -66,7 +88,12 @@ namespace cppogl {
 			unsigned short& i3;
 		};
 		Geometry3D();
+		Geometry3D(const Geometry3D& other);
+		Geometry3D(Geometry3D&& rvalue);
 		virtual ~Geometry3D();
+
+		void operator=(const Geometry3D& other);
+		void operator=(Geometry3D&& rvalue);
 
 		virtual void update();
 		virtual void render();
@@ -101,6 +128,9 @@ namespace cppogl {
 			GLuint buffer;
 		} uv;
 		std::vector<Sampler2D> samplers;
+
+	protected:
+		virtual void _cleanup();
 	};
 
 	typedef Geometry3D Material;
@@ -189,6 +219,9 @@ namespace cppogl {
 
 	};
 
+	class RenderLayer {
+		// TODO: render layer with viewport per layer
+	};
 
 	// TODO: use ASSIMP to load common 3D formats
 	std::vector<Material> loadModel(std::string file);
