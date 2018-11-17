@@ -114,8 +114,8 @@ int main(const int argc, const char* const argv[]) {
 		uiLayer->addElement(wrapTest);
 
 		cppogl::UI::sLinearAligner textAligner = cppogl::UI::sLinearAligner(new cppogl::UI::LinearAligner({
-			wrapTest,
-			fpsText
+			fpsText,
+			wrapTest
 		}));
 		textAligner->id = "textAligner";
 		uiLayer->addLogicNode(textAligner);
