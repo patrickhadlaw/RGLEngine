@@ -12,5 +12,5 @@ out vec2 uv_coords;
 void main() {
 	color = vertex_color;
 	uv_coords = texture_coords;
-	gl_Position = model*vec4(vertex_position, 1.0);
+	gl_Position = model*vec4((vertex_position.x - 1), (vertex_position.y + 1), vertex_position.z, 1.0);
 }

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "Window.h"
+#include "Graphics.h"
+#include "Interface.h"
 
 namespace cppogl {
 
@@ -34,8 +35,7 @@ namespace cppogl {
 	typedef std::shared_ptr<Glyph> sGlyph;
 	typedef std::vector<sGlyph> sGlyphv;
 	
-	class Font
-	{
+	class Font : public Resource {
 		friend class Text;
 	public:
 		Font();
@@ -44,7 +44,9 @@ namespace cppogl {
 
 		void generate(int size);
 
-		int lineHeight(int size);
+		float lineHeight(int size);
+
+		virtual std::string& typeName();
 
 	private:
 		sWindow _window;
@@ -55,7 +57,7 @@ namespace cppogl {
 
 	typedef std::shared_ptr<Font> sFont;
 
-	class FontFamily {
+	class FontFamily : public Resource {
 	public:
 		static const std::string REGULAR;
 		static const std::string BOLD;
@@ -64,15 +66,15 @@ namespace cppogl {
 		static const std::string LIGHT;
 		static const std::string ITALIC_LIGHT;
 
-
 		FontFamily();
 		FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts);
 		virtual ~FontFamily();
 
 		sFont get(const std::string& fontface);
 
+		virtual std::string& typeName();
+
 	private:
-		std::string _family;
 		std::map<std::string, sFont> _fonts;
 	};
 
@@ -81,9 +83,9 @@ namespace cppogl {
 	struct TextAttributes {
 		std::string face = FontFamily::REGULAR;
 		UnitValue fontSize = UnitValue{ 16.0f, Unit::PT };
-		float width = 0.0f;
-		float height = 0.0f;
-		UnitVector3D position = UnitVector3D{ 0.0f, 0.0f, 0.0f, Unit::ND };
+		UnitVector2D dimensions = UnitVector2D(0.0f, 0.0f, Unit::ND);
+		UnitVector2D topLeft = UnitVector2D(0.0f, 0.0f, Unit::ND);
+		float zIndex = 0.0f;
 		int tabstop = 4;
 		float lineSpacing = 2.0f;
 		bool underlined = false;
@@ -93,7 +95,7 @@ namespace cppogl {
 	class CharRect : public Shape {
 	public:
 		CharRect();
-		CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, glm::vec3 offset, float baselineOffset, Unit unit = Unit::PT);
+		CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, UnitVector2D offset, float zIndex, UnitValue baselineOffset, UnitVector2D dimensions);
 		CharRect(const CharRect& other);
 		CharRect(CharRect&& rvalue);
 		virtual ~CharRect();
@@ -105,21 +107,20 @@ namespace cppogl {
 
 		void render();
 
-		static int counter;
-
 		float width;
 		float height;
-		glm::vec3 offset;
-		float baselineOffset;
-		Unit unit;
+		float zIndex;
+		UnitVector2D offset;
+		UnitValue baselineOffset;
+		UnitVector2D dimensions;
 		sGlyph glyph;
 		sWindow window;
 	};
 
-	class Text : public EventListener {
+	class Text : public UI::Element, public EventListener {
 	public:
 		Text();
-		Text(sWindow window, sShaderProgram shader, sFontFamily fontfamily, std::string text, TextAttributes attributes = {});
+		Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes = {});
 		virtual ~Text();
 
 		void onMessage(std::string eventname, EventMessage* message);
@@ -131,12 +132,16 @@ namespace cppogl {
 		void append(std::string text, TextAttributes attributes);
 		void append(std::string text);
 
-		void render();
+		virtual void render();
+
+		virtual void onBoxUpdate();
+
+		virtual std::string& typeName();
 
 	protected:
-
-		void _getOffsetWrapWidth(glm::vec2& offset, sGlyph& glyph);
-		void _getOffsetWrapWord(glm::vec2& offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord);
+		float _scale(float value);
+		void _getOffsetWrapWidth(UnitVector2D& offset, sGlyph& glyph);
+		void _getOffsetWrapWord(UnitVector2D& offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord);
 
 		struct {
 			GLint location;
@@ -144,11 +149,9 @@ namespace cppogl {
 		} _model;
 		std::vector<CharRect> _charecters;
 		std::string _text;
-		int _maxSize;
-		glm::vec3 _topLeft;
+		float _pixelSize;
+		float _maxSize;
 		TextAttributes _attributes;
-		sShaderProgram _shader;
 		sFontFamily _fontFamily;
-		sWindow _window;
 	};
 }

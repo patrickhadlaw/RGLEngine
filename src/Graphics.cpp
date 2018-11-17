@@ -8,21 +8,23 @@ cppogl::Shape::Shape()
 	this->model.matrix = glm::mat4(1.0f);
 }
 
-cppogl::Shape::Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
+cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
 {
+	this->_context = context;
 	this->color.list = colors;
 	this->vertex.list = verticies;
+	this->shader = _context.manager.shader->operator[](shader);
 
 	model.matrix = glm::mat4(1.0f);
-	model.location = glGetUniformLocation(shader->id(), "model");
+	model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (model.location < 0) {
 		throw Exception("failed to locate shader uniform: model matrix", EXCEPT_DETAIL_DEFAULT);
 	}
-	color.location = glGetAttribLocation(shader->id(), "vertex_color");
+	color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (color.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
 	}
-	vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
+	vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (vertex.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
 	}
@@ -30,14 +32,14 @@ cppogl::Shape::Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, st
 	this->generate();
 }
 
-cppogl::Shape::Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, glm::vec4 color)
+cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.resize(verticies.size());
 	for (int i = 0; i < colors.size(); i++) {
 		colors[i] = color;
 	}
-	Shape(shader, verticies, colors);
+	Shape(context, shader, verticies, colors);
 }
 
 cppogl::Shape::~Shape()
@@ -48,15 +50,9 @@ cppogl::Shape::~Shape()
 void cppogl::Shape::render()
 {
 	glBindVertexArray(vertexArray);
-	glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
-	glEnableVertexAttribArray(vertex.location);
-	glVertexAttribPointer(vertex.location, 3, GL_FLOAT, GL_FALSE, 0, 0);
-
-	glBindBuffer(GL_ARRAY_BUFFER, color.buffer);
-	glEnableVertexAttribArray(color.location);
-	glVertexAttribPointer(color.location, 4, GL_FLOAT, GL_FALSE, 0, 0);
+	if (model.enabled) {
+		glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
+	}
 	if (index.list.empty()) {
 		glDrawArrays(GL_TRIANGLES, 0, vertex.list.size());
 	}
@@ -66,9 +62,9 @@ void cppogl::Shape::render()
 	}
 }
 
-const std::string & cppogl::Shape::typeName()
+std::string & cppogl::Shape::typeName()
 {
-	return "cppogl::Shape";
+	return std::string("cppogl::Shape");
 }
 
 void cppogl::Shape::translate(float x, float y, float z)
@@ -310,11 +306,11 @@ void cppogl::Sampler2D::use()
 
 void cppogl::Sampler2D::_generate()
 {
-	this->enableLocation = glGetUniformLocation(this->shader->id(), "enable_texture");
+	this->enableLocation = glGetUniformLocation(this->shader->programId(), "enable_texture");
 	if (this->enableLocation < 0) {
 		throw Exception("failed to get uniform location of: enable texture", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->samplerLocation = glGetUniformLocation(this->shader->id(), "texture_0");
+	this->samplerLocation = glGetUniformLocation(this->shader->programId(), "texture_0");
 	if (this->samplerLocation < 0) {
 		throw Exception("failed to get uniform location of: texture 0", EXCEPT_DETAIL_DEFAULT);
 	}
@@ -324,29 +320,30 @@ cppogl::Triangle::Triangle()
 {
 }
 
-cppogl::Triangle::Triangle(sShaderProgram shader, float a, float b, float theta, glm::vec4 color)
+cppogl::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color)
 {	
-	this->_construct(shader, a, b, theta, std::vector<glm::vec4>({ color, color, color }));
+	this->_construct(context, shader, a, b, theta, std::vector<glm::vec4>({ color, color, color }));
 }
 
-cppogl::Triangle::Triangle(sShaderProgram shader, float a, float b, float theta, std::vector<glm::vec4> colors)
+cppogl::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors)
 {
-	this->_construct(shader, a, b, theta, colors);
+	this->_construct(context, shader, a, b, theta, colors);
 }
 
-void cppogl::Triangle::_construct(sShaderProgram& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
+void cppogl::Triangle::_construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
 {
-	this->shader = shader;
+	this->_context = context;
+	this->shader = context.manager.shader->operator[](shader);
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(shader->id(), "model");
+	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw Exception("failed to locate shader uniform: model matrix", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->color.location = glGetAttribLocation(shader->id(), "vertex_color");
+	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
 	}
@@ -355,9 +352,8 @@ void cppogl::Triangle::_construct(sShaderProgram& shader, float& a, float& b, fl
 		glm::vec3(a, 0.0, 0.0),
 		glm::vec3(b * cosf(theta), b * sinf(theta), 0.0)
 	};
-	this->shader = shader;
 	if (colors.size() < 3) {
-		throw std::out_of_range("invalid vector size in Triangle::Triangle, expected size: 3");
+		throw Exception("invalid colors, expected 3 got " + std::to_string(colors.size()), EXCEPT_DETAIL_DEFAULT);
 	}
 	this->color.list = colors;
 	this->generate();
@@ -371,38 +367,38 @@ cppogl::Rect::Rect()
 {
 }
 
-cppogl::Rect::Rect(sShaderProgram shader, float width, float height, std::vector<glm::vec4> colors)
+cppogl::Rect::Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors)
 {
-	this->_construct(shader, width, height, colors);
+	this->_construct(context, shader, width, height, colors);
 }
 
-cppogl::Rect::Rect(sShaderProgram shader, float width, float height, glm::vec4 color)
+cppogl::Rect::Rect(Context context, std::string shader, float width, float height, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.reserve(6);
 	for (int i = 0; i < 6; i++) {
 		colors.push_back(color);
 	}
-	this->_construct(shader, width, height, colors);
+	this->_construct(context, shader, width, height, colors);
 }
 
 cppogl::Rect::~Rect()
 {
 }
 
-void cppogl::Rect::_construct(sShaderProgram & shader, float & width, float & height, std::vector<glm::vec4> colors)
+void cppogl::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
 {
-	this->shader = shader;
+	this->shader = context.manager.shader->operator[](shader);
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(shader->id(), "model");
+	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw Exception("failed to locate shader uniform: model matrix", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->color.location = glGetAttribLocation(shader->id(), "vertex_color");
+	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
 	}
@@ -421,7 +417,6 @@ void cppogl::Rect::_construct(sShaderProgram & shader, float & width, float & he
 		2,
 		3
 	};
-	this->shader = shader;
 	this->color.list = colors;
 	this->generate();
 }
@@ -453,6 +448,7 @@ cppogl::Geometry3D::Geometry3D(const Geometry3D & other)
 cppogl::Geometry3D::Geometry3D(Geometry3D && rvalue)
 {
 	_cleanup();
+	_context = rvalue._context;
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
 	index = std::move(rvalue.index);
@@ -470,6 +466,7 @@ cppogl::Geometry3D::~Geometry3D()
 void cppogl::Geometry3D::operator=(const Geometry3D & other)
 {
 	_cleanup();
+	_context = other._context;
 	vertex = other.vertex;
 	color = other.color;
 	index = other.index;
@@ -482,6 +479,7 @@ void cppogl::Geometry3D::operator=(const Geometry3D & other)
 void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
 {
 	_cleanup();
+	_context = rvalue._context;
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
 	index = std::move(rvalue.index);
@@ -489,10 +487,6 @@ void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
 	vertexArray = std::move(rvalue.vertexArray);
 	shader = rvalue.shader;
 	samplers = std::move(rvalue.samplers);
-}
-
-void cppogl::Geometry3D::update()
-{
 }
 
 void cppogl::Geometry3D::render()
@@ -508,11 +502,15 @@ void cppogl::Geometry3D::generate()
 		glGenBuffers(1, &vertex.buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data(), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(vertex.location);
+		glVertexAttribPointer(vertex.location, 3, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 	if (!color.list.empty()) {
 		glGenBuffers(1, &color.buffer);
 		glBindBuffer(GL_ARRAY_BUFFER, color.buffer);
 		glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat) * color.list.size() * 4, color.list.data(), GL_STATIC_DRAW);
+		glEnableVertexAttribArray(color.location);
+		glVertexAttribPointer(color.location, 4, GL_FLOAT, GL_FALSE, 0, 0);
 	}
 	if (!uv.list.empty()) {
 		glGenBuffers(1, &uv.buffer);
@@ -549,20 +547,21 @@ cppogl::ImageRect::ImageRect()
 {
 }
 
-cppogl::ImageRect::ImageRect(sShaderProgram shader, float width, float height, std::string image)
+cppogl::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image)
 {
-	this->shader = shader;
-	this->samplers.push_back(Sampler2D(shader, image));
+	this->_context = context;
+	this->shader = context.manager.shader->operator[](shader);
+	this->samplers.push_back(Sampler2D(this->shader, image));
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(shader->id(), "model");
+	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw Exception("failed to locate shader uniform: model matrix", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(shader->id(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->uv.location = glGetAttribLocation(shader->id(), "texture_coords");
+	this->uv.location = glGetAttribLocation(this->shader->programId(), "texture_coords");
 	if (this->uv.location < 0) {
 		throw Exception("failed to locate shader attribute: texture coordinates", EXCEPT_DETAIL_DEFAULT);
 	}
@@ -586,7 +585,6 @@ cppogl::ImageRect::ImageRect(sShaderProgram shader, float width, float height, s
 		2,
 		3
 	};
-	this->shader = shader;
 	
 	this->generate();
 }
@@ -598,7 +596,9 @@ cppogl::ImageRect::~ImageRect()
 void cppogl::ImageRect::render()
 {
 	glBindVertexArray(vertexArray);
-	glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
+	if (model.enabled) {
+		glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
+	}
 
 	this->samplers[0].use();
 
@@ -612,4 +612,17 @@ void cppogl::ImageRect::render()
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
 	glDrawElements(GL_TRIANGLES, index.list.size(), GL_UNSIGNED_SHORT, nullptr);
+}
+
+cppogl::SceneLayer::SceneLayer(std::string id) : RenderLayer(id)
+{
+}
+
+cppogl::SceneLayer::~SceneLayer()
+{
+}
+
+void cppogl::SceneLayer::add(sGeometry3D geometry)
+{
+	this->_renderables.push_back(geometry);
 }

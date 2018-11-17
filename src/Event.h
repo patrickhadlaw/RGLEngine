@@ -8,7 +8,7 @@
 
 namespace cppogl {
 
-	class EventException : Exception {
+	class EventException : public Exception {
 	public:
 		EventException();
 		EventException(std::string& except, Detail& detail);
@@ -74,17 +74,20 @@ namespace cppogl {
 	public:
 		EventMessage();
 		virtual ~EventMessage();
-
-		std::string eventName;
-
 	};
 
 	class EventListener;
 
 	class EventHost {
+		friend class EventListener;
 	public:
 		EventHost();
+		EventHost(const EventHost& other);
+		EventHost(const EventHost&& rvalue);
 		virtual ~EventHost();
+
+		void operator=(const EventHost& other);
+		void operator=(const EventHost&& rvalue);
 
 		void broadcastEvent(std::string eventname, EventMessage* message);
 
@@ -92,6 +95,10 @@ namespace cppogl {
 		void removeListener(std::string eventname, EventListener* listener);
 
 	private:
+		void _replaceListener(EventListener* previous, EventListener* replace);
+		void _changePointer(EventHost* previous);
+
+		EventHost* _self;
 		std::map<std::string, std::vector<EventListener*>> _listeners;
 	};
 
@@ -99,12 +106,21 @@ namespace cppogl {
 		friend class EventHost;
 	public:
 		EventListener();
+		EventListener(const EventListener& other);
+		EventListener(EventListener&& other);
 		virtual ~EventListener();
+
+		void operator=(const EventListener& other);
+		void operator=(const EventListener&& rvalue);
 
 		virtual void onMessage(std::string eventname, EventMessage* message);
 
 	private:
-		std::vector<std::string> _events;
-		EventHost* _host = nullptr;
+		void _removeHost(EventHost* host);
+		void _replaceHost(EventHost* previous, EventHost* replace);
+		void _changePointer(EventListener* previous);
+
+		EventListener* _self;
+		std::map<EventHost*, std::vector<std::string>> _hosts;
 	};
 }

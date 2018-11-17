@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Exception.h"
+#include "Node.h"
 
 #include <iostream>
 #include <fstream>
@@ -37,20 +37,18 @@ namespace cppogl {
 
 	void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 
-	class ShaderProgram
-	{
+	class ShaderProgram : public Node {
 	public:
 		ShaderProgram();
 		ShaderProgram(std::string name, const char* vertexShader, const char* fragmentShader);
 		~ShaderProgram();
 
-		GLuint id();
+		GLuint programId();
 		void use();
 
-		std::string name();
+		virtual std::string& typeName();
 
 	private:
-		std::string _name;
 		GLuint _programID;
 	};
 	typedef std::shared_ptr<ShaderProgram> sShaderProgram;
@@ -61,10 +59,13 @@ namespace cppogl {
 		ShaderManager(std::initializer_list<sShaderProgram> programs);
 		~ShaderManager();
 
-		void operator=(std::initializer_list<sShaderProgram> programs);
+		void addShader(sShaderProgram shader);
+
 		sShaderProgram operator[](std::string name);
 
 	private:
 		std::vector<sShaderProgram> _shaderPrograms;
 	};
+
+	typedef std::shared_ptr<ShaderManager> sShaderManager;
 }

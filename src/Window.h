@@ -1,7 +1,7 @@
 #pragma once
 
+#include "ShaderProgram.h"
 #include "Event.h"
-#include "Graphics.h"
 
 namespace cppogl {
 
@@ -9,7 +9,7 @@ namespace cppogl {
 		const float IN_PER_M = 39.3701f;
 	}
 
-	class Context;
+	struct Context;
 
 	class MouseMoveMessage : public EventMessage {
 	public:
@@ -69,8 +69,8 @@ namespace cppogl {
 	};
 
 	struct UnitValue;
-	struct UnitVector2D;
-	struct UnitVector3D;
+	class UnitVector2D;
+	class UnitVector3D;
 
 	enum class Unit {
 		PX,		// Pixel
@@ -88,7 +88,7 @@ namespace cppogl {
 	static std::string postfixFromUnit(Unit unit);
 
 	class Window : public EventHost {
-		friend class Context;
+		friend struct Context;
 	public:
 
 		enum Direction {
@@ -110,17 +110,19 @@ namespace cppogl {
 		float physicalWidth();
 		float physicalHeight();
 
-		float pixelValue(float value, Unit unit);
-		float pixelValue(UnitValue value);
+		float pixelValue(float value, Unit unit, Direction direction = X);
+		float pixelValue(UnitValue value, Direction direction = X);
 
-		float parse(UnitValue value, Direction direction = X);
-		glm::vec2 parse(UnitVector2D vector, Direction direction = X);
-		glm::vec3 parse(UnitVector3D vector, Direction direction = X);
+		float resolve(UnitValue value, Direction direction = X);
+		glm::vec2 resolve(UnitVector2D vector);
+		glm::vec3 resolve(UnitVector3D vector);
 
 		float convert(float value, Unit from, Unit to);
 		UnitValue convert(UnitValue value, Unit to);
 		UnitVector2D convert(UnitVector2D vector, Unit to);
 		UnitVector3D convert(UnitVector3D vector, Unit to);
+
+		float pointValue(float convert, Direction direction = X);
 
 		float normalizeX(float value);
 		float normalizeY(float value);
@@ -148,23 +150,91 @@ namespace cppogl {
 		GLFWwindow* _window;
 		static std::map<GLFWwindow*, Window*> _handles;
 	};
+
 	typedef std::shared_ptr<Window> sWindow;
 
 	struct UnitValue {
 		static UnitValue& parse(std::string parse);
 		float value = 0.0f;
 		Unit unit = Unit::ND;
-	};
 
-	struct UnitVector2D {
-		float x;
-		float y;
-		Unit unit = Unit::ND;
+		float resolvePixelValue(sWindow window, Window::Direction direction = Window::Direction::X);
+		float resolve(sWindow window, Window::Direction direction = Window::Direction::X);
 	};
-	struct UnitVector3D {
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-		Unit unit = Unit::ND;
+	enum class Operation {
+		VALUE,
+		ADDITION,
+		SUBTRACTION,
+		MULTIPLICATION,
+		DIVISION
+	};
+	class UnitExpression {
+	public:
+		UnitExpression();
+		UnitExpression(UnitValue value);
+		UnitExpression(UnitValue left, char op, UnitValue right);
+		UnitExpression(UnitValue left, char op, UnitExpression right);
+		UnitExpression(const UnitExpression& other);
+		UnitExpression(UnitExpression&& rvalue);
+		virtual ~UnitExpression();
+
+		void operator=(const UnitExpression& other);
+		void operator=(UnitExpression&& rvalue);
+
+		void operator=(UnitValue& value);
+		UnitExpression operator+(UnitValue& value);
+		UnitExpression operator+(UnitExpression& value);
+		UnitExpression operator-(UnitValue& value);
+		UnitExpression operator-(UnitExpression& value);
+		UnitExpression operator/(UnitValue& value);
+		UnitExpression operator/(UnitExpression& value);
+		UnitExpression operator*(UnitValue& value);
+		UnitExpression operator*(UnitExpression& value);
+		void operator+=(UnitValue& value);
+		void operator+=(UnitExpression& value);
+		void operator-=(UnitValue& value);
+		void operator-=(UnitExpression& value);
+		void operator/=(UnitValue& value);
+		void operator/=(UnitExpression& value);
+		void operator*=(UnitValue& value);
+		void operator*=(UnitExpression& value);
+
+		bool lessThan(UnitExpression& other, sWindow window);
+		bool greaterThan(UnitExpression& other, sWindow window);
+		bool isZero();
+
+		float resolvePixelValue(sWindow window, Window::Direction direction = Window::Direction::X);
+		float resolve(sWindow window, Window::Direction direction = Window::Direction::X);
+
+		UnitValue left;
+		Operation operation = Operation::VALUE;
+		UnitExpression* right = nullptr;
+
+	private:
+		void _extend(UnitValue& value, Operation op);
+		void _extend(UnitExpression& value, Operation op);
+		void _deepCopy(const UnitExpression& value);
+	};
+	class UnitVector2D {
+	public:
+		UnitVector2D();
+		UnitVector2D(float x, float y, Unit unit = Unit::ND);
+		static UnitVector2D& parse(std::string parse);
+
+		void operator+=(UnitVector2D& other);
+
+		UnitExpression x;
+		UnitExpression y;
+		glm::vec2 resolve(sWindow window);
+	};
+	class UnitVector3D {
+	public:
+		UnitVector3D();
+		UnitVector3D(float x, float y, float z, Unit unit = Unit::ND);
+		static UnitVector3D& parse(std::string parse);
+		UnitExpression x;
+		UnitExpression y;
+		UnitExpression z;
+		glm::vec3 resolve(sWindow window);
 	};
 }
