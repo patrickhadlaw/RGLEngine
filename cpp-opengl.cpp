@@ -18,6 +18,44 @@ glm::vec4 randomColor() {
 
 const float UI_TICK = 20.0f / 1000.0f;
 
+template<size_t N, typename Type>
+class Stack {
+public:
+	Stack() : Stack(Type{}) {
+
+	}
+	Stack(Type fill) {
+		for (int i = 0; i < N; i++) {
+			_stack[i] = fill;
+		}
+	}
+	virtual ~Stack() {
+
+	}
+
+	void push(Type value) {
+		for (int i = 0; i < N - 1; i++) {
+			_stack[i] = _stack[i + 1];
+		}
+		_stack[N - 1] = value;
+	}
+
+	Type sum() {
+		Type result = Type{};
+		for (int i = 0; i < N; i++) {
+			result += _stack[i];
+		}
+		return result;
+	}
+
+	size_t size() {
+		return N;
+	}
+
+private:
+	Type _stack[N];
+};
+
 int main(const int argc, const char* const argv[]) {
 	try {
 		if (!glfwInit()) {
@@ -120,17 +158,23 @@ int main(const int argc, const char* const argv[]) {
 		textAligner->id = "textAligner";
 		uiLayer->addLogicNode(textAligner);
 
-		int framerate = 0;
+		Stack<30, int> framerate;
+
 
 		while (!window->shouldClose()) {
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			app.render();
-			if (uiLayer->tick()) {
-				fpsText->update(std::string("Framerate: ") + std::to_string(framerate));
+			float period = mainLayer->getFrameDelay();
+			if (period != 0.0) {
+				int value = (int)(1 / mainLayer->getFrameDelay());
+				framerate.push(value);
 			}
-			framerate = (int)(1 / mainLayer->getFrameDelay());
+			
+			if (uiLayer->tick()) {
+				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
+			}
 
 			app.update();
 		}
