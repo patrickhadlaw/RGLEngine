@@ -308,7 +308,7 @@ cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, 
 	this->_dimensions.x = _attributes.dimensions.x;
 	this->_fontFamily = context.manager.resource->getResource<FontFamily>(fontFamily);
 	this->_text = text;
-	float resolvedSize = attributes.fontSize.resolve(this->_context.window);
+	float resolvedSize = attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 	sFont font = _fontFamily->get(attributes.face);
 	this->_maxSize = font->lineHeight(pointSize);
@@ -351,7 +351,7 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
 	}
 	sFont font = _fontFamily->get(attributes.face);
-	float resolvedSize = _attributes.fontSize.resolve(this->_context.window);
+	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 	if (font->_generated.find(pointSize) == font->_generated.end()) {
 		font->generate(pointSize);
@@ -381,9 +381,6 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 			_getOffsetWrapWidth(offset, glyph);
 		}
 	}
-	if (_attributes.dimensions.y.isZero()) {
-		this->_dimensions.y = offset.y + UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
-	}
 }
 
 void cppogl::Text::update(std::string text)
@@ -393,7 +390,7 @@ void cppogl::Text::update(std::string text)
 	offset += _attributes.topLeft;
 	int wordIndex = 0;
 	bool firstWord = true;
-	float resolvedSize = _attributes.fontSize.resolve(this->_context.window);
+	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 	if (font->_generated.find(pointSize) == font->_generated.end()) {
 		font->generate(pointSize);
@@ -429,9 +426,6 @@ void cppogl::Text::update(std::string text)
 			_getOffsetWrapWidth(offset, glyph);
 		}
 	}
-	if (_attributes.dimensions.y.isZero()) {
-		this->_dimensions.y = offset.y + UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
-	}
 	_charecters.resize(text.length());
 	_text = text;
 }
@@ -441,7 +435,7 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 	size_t len = _text.length() + text.length();
 	_charecters.reserve(len);
 	sFont font = _fontFamily->get(attributes.face);
-	float resolvedSize = attributes.fontSize.resolve(this->_context.window);
+	float resolvedSize = attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 	_maxSize = std::max(font->lineHeight(pointSize), _maxSize);
 	UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
@@ -465,9 +459,6 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 		else {
 			_getOffsetWrapWidth(offset, glyph);
 		}
-	}
-	if (_attributes.dimensions.y.isZero()) {
-		this->_dimensions.y = offset.y + UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
 	}
 	_text = _text + text;
 }
@@ -500,7 +491,7 @@ std::string & cppogl::Text::typeName()
 
 float cppogl::Text::_scale(float value)
 {
-	float resolvedSize = _attributes.fontSize.resolve(this->_context.window);
+	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 
 	return  (value / (float) pointSize) * _attributes.fontSize.value;
@@ -511,6 +502,9 @@ void cppogl::Text::_getOffsetWrapWidth(UnitVector2D & offset, sGlyph& glyph)
 	if (glyph->charecter == '\n') {
 		offset.x = this->_topLeft.x;
 		offset.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		if (_attributes.dimensions.y.isZero()) {
+			this->_dimensions.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		}
 	}
 	else if (_attributes.dimensions.x.isZero()) {
 		offset.x += UnitValue{ _scale(glyph->glyph->advance.x >> 16), _attributes.fontSize.unit };
@@ -521,6 +515,9 @@ void cppogl::Text::_getOffsetWrapWidth(UnitVector2D & offset, sGlyph& glyph)
 	else {
 		offset.x = this->_topLeft.x;
 		offset.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		if (_attributes.dimensions.y.isZero()) {
+			this->_dimensions.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		}
 	}
 }
 
@@ -531,6 +528,9 @@ void cppogl::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int&
 		offset.x = this->_topLeft.x;
 		wordIndex = index + 1;
 		offset.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		if (_attributes.dimensions.y.isZero()) {
+			this->_dimensions.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
+		}
 		firstWord = true;
 	}
 	else if (_attributes.dimensions.x.isZero()) {
@@ -565,6 +565,9 @@ void cppogl::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int&
 				_charecters[i].recalculate();
 				_getOffsetWrapWidth(offset, _charecters[i].glyph);
 			}
+		}
+		if (_attributes.dimensions.y.isZero()) {
+			this->_dimensions.y += UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
 		}
 	}
 }
