@@ -3,7 +3,7 @@ project(cpp-opengl)
 
 set(CPPOGL_VERSION_MAJOR 0)
 set(CPPOGL_VERSION_MINOR 1)
-set(CPPOGL_VERSION_REVISION 1)
+set(CPPOGL_VERSION_REVISION 2)
 
 set(GLEW_LOCATION lib/glew)
 set(GLFW_LOCATION lib/glfw)
@@ -23,16 +23,19 @@ file(GLOB shaders shader/*)
 add_executable(cpp-opengl cpp-opengl.cpp ${sources})
 target_compile_options(cpp-opengl PUBLIC -std=c++11)
 
-add_custom_target(copy)
+add_custom_target(copy-shader)
 foreach(shader ${shaders})
-	add_custom_command(TARGET copy PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${shader} ${PROJECT_BINARY_DIR}/shader/${shader})
+	file(RELATIVE_PATH shaderfile ${PROJECT_SOURCE_DIR} ${shader})
+	configure_file(${shader} ${PROJECT_BINARY_DIR}/${shaderfile} COPYONLY)
 endforeach()
 
-add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_SOURCE_DIR}/shader ${PROJECT_BINARY_DIR}/shader)
+add_custom_target(copy-resources)
+foreach(resource ${resources})
+	file(RELATIVE_PATH resourcefile ${PROJECT_SOURCE_DIR} ${resource})
+	configure_file(${resource} ${PROJECT_BINARY_DIR}/${resourcefile} COPYONLY)
+endforeach()
+
 add_custom_command(TARGET cpp-opengl POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_BINARY_DIR}/bin ${PROJECT_BINARY_DIR})
-
-file(COPY ${resources} DESTINATION res)
-
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)

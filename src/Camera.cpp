@@ -37,8 +37,8 @@ void cppogl::Camera::update(float deltaT)
 
 void cppogl::Camera::bind(sShaderProgram shader)
 {
-	glUniformMatrix4fv(glGetUniformLocation(shader->id(), "projection"), 1, GL_FALSE, &projection[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(shader->id(), "view"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &view[0][0]);
 }
 
 void cppogl::Camera::generate(CameraType type)
@@ -86,57 +86,63 @@ cppogl::NoClipCamera::NoClipCamera(CameraType type, sWindow window) : Camera(typ
 {
 	isGrabbed = false;
 	this->window = window;
+	this->window->registerListener("mousemove", this);
 }
 
 cppogl::NoClipCamera::~NoClipCamera()
 {
 }
 
+void cppogl::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
+{
+	if (eventname == "mousemove") {
+		MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
+		_mouse.deltaX = mousemove->mouse.x;
+		_mouse.deltaY = mousemove->mouse.y;
+	}
+}
+
 void cppogl::NoClipCamera::update(float deltaT)
 {
-	if (isGrabbed) {
-		int state = glfwGetKey(window->window, GLFW_KEY_ESCAPE);
+	if (window->grabbed()) {
+		int state = window->getKey(GLFW_KEY_ESCAPE);
 		if (state == GLFW_PRESS) {
-			isGrabbed = false;
-			glfwSetInputMode(window->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-			glfwSetCursorPos(window->window, 0, 0);
+			window->ungrabCursor();
 		}
 		else {
-			double deltaX, deltaY;
-			glfwGetCursorPos(window->window, &deltaX, &deltaY);
-			this->rotate(deltaX / window->height(), deltaY / window->width(), 0.0);
-			glfwSetCursorPos(window->window, 0, 0);
-			if (glfwGetKey(window->window, GLFW_KEY_W) == GLFW_PRESS) {
+			this->rotate(_mouse.deltaX / window->height(), _mouse.deltaY / window->width(), 0.0);
+			_mouse.deltaX = 0.0;
+			_mouse.deltaY = 0.0;
+			if (window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
 				moveRelative(deltaT, 0.0, 0.0);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_A) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_A) == GLFW_PRESS) {
 				moveRelative(0.0, -deltaT, 0.0);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_S) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_S) == GLFW_PRESS) {
 				moveRelative(-deltaT, 0.0, 0.0);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_D) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_D) == GLFW_PRESS) {
 				moveRelative(0.0, deltaT, 0.0);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_SPACE) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_SPACE) == GLFW_PRESS) {
 				moveRelative(0.0, 0.0, deltaT);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
 				moveRelative(0.0, 0.0, -deltaT);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_E) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
 				rotate(0.0, 0.0, -deltaT);
 			}
-			if (glfwGetKey(window->window, GLFW_KEY_Q) == GLFW_PRESS) {
+			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
 				rotate(0.0, 0.0, deltaT);
 			}
 		}
 	}
 	else {
-		int state = glfwGetMouseButton(window->window, GLFW_MOUSE_BUTTON_LEFT);
+		int state = window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
 		if (state == GLFW_PRESS) {
-			isGrabbed = true;
-			glfwSetInputMode(window->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			window->grabCursor();
 		}
 	}
 	view = glm::lookAt(position, position + direction, up);
@@ -146,4 +152,32 @@ void cppogl::NoClipCamera::moveRelative(float forward, float horizontal, float v
 {
 	glm::vec3 right = glm::cross(direction, up);
 	position += direction * forward + right * horizontal + up * vertical;
+}
+
+cppogl::ViewTransformer::ViewTransformer()
+{
+}
+
+cppogl::ViewTransformer::~ViewTransformer()
+{
+}
+
+void cppogl::ViewTransformer::update(float deltaT)
+{
+}
+
+void cppogl::ViewTransformer::bind(sShaderProgram program)
+{
+}
+
+cppogl::Viewport::Viewport()
+{
+}
+
+cppogl::Viewport::~Viewport()
+{
+}
+
+void cppogl::Viewport::use()
+{
 }

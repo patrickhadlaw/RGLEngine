@@ -8,7 +8,7 @@ cppogl::ShaderProgram::ShaderProgram()
 
 cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader)
 {
-	this->_name = name;
+	this->id = name;
 	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -22,7 +22,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 		vertexFile.close();
 	}
 	else {
-		throw std::runtime_error("Error: could not open file: " + std::string(vertexShader));
+		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
 	}
 	std::string fragCode;
 	std::ifstream fragFile(fragmentShader, std::ios::in);
@@ -34,7 +34,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 		fragFile.close();
 	}
 	else {
-		throw std::runtime_error("Error: could not open file: " + std::string(vertexShader));
+		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	GLint result = GL_FALSE;
@@ -48,7 +48,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(vertexShaderID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to compile vertex shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	logLength = 0;
@@ -61,7 +61,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(fragmentShaderID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to compile fragment shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	_programID = glCreateProgram();
@@ -74,7 +74,7 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetProgramInfoLog(_programID, logLength, nullptr, &errorMessage[0]);
-		std::cout << errorMessage.data() << std::endl;
+		throw Exception(std::string("failed to create shader program: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
 	}
 
 	glDetachShader(_programID, vertexShaderID);
@@ -89,7 +89,7 @@ cppogl::ShaderProgram::~ShaderProgram()
 {
 }
 
-GLuint cppogl::ShaderProgram::id()
+GLuint cppogl::ShaderProgram::programId()
 {
 	return _programID;
 }
@@ -99,9 +99,9 @@ void cppogl::ShaderProgram::use()
 	glUseProgram(_programID);
 }
 
-std::string cppogl::ShaderProgram::name()
+std::string & cppogl::ShaderProgram::typeName()
 {
-	return _name;
+	return std::string("cppogl::ShaderProgram");
 }
 
 void checkGLErrors(int line)
@@ -114,28 +114,51 @@ void checkGLErrors(int line)
 
 cppogl::ShaderManager::ShaderManager()
 {
+	this->_shaderPrograms = std::vector<sShaderProgram>();
 }
 
 cppogl::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> programs)
 {
-	this->_shaderPrograms = std::vector<cppogl::sShaderProgram>(programs);
+	this->_shaderPrograms = std::vector<sShaderProgram>();
+	for (const sShaderProgram& program : programs) {
+		_shaderPrograms.push_back(program);
+	}
 }
 
 cppogl::ShaderManager::~ShaderManager()
 {
 }
 
-void cppogl::ShaderManager::operator=(std::initializer_list<sShaderProgram> programs)
+void cppogl::ShaderManager::addShader(sShaderProgram shader)
 {
-	this->_shaderPrograms = std::vector<cppogl::sShaderProgram>(programs);
+	for (int i = 0; i < _shaderPrograms.size(); i++) {
+		if (shader->id == _shaderPrograms[i]->id) {
+			throw IdentifierException("shader program already exists", shader->id, EXCEPT_DETAIL_DEFAULT);
+		}
+	}
+	_shaderPrograms.push_back(shader);
 }
 
 cppogl::sShaderProgram cppogl::ShaderManager::operator[](std::string name)
 {
 	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
-		if (this->_shaderPrograms[i]->name() == name) {
+		if (this->_shaderPrograms[i]->id == name) {
 			return this->_shaderPrograms[i];
 		}
 	}
 	return nullptr;
+}
+
+void cppogl::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
+{
+	std::cerr << (type == GL_DEBUG_TYPE_ERROR ? "[GL ERROR]" : "[CALLBACK]")
+		<< " type = "
+		<< type
+		<< ", severity = "
+		<< severity
+		<< ", message = "
+		<< message
+		<< ", params = "
+		<< userParam
+		<< "\n";
 }

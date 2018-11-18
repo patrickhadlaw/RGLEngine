@@ -1,11 +1,22 @@
 # cpp-opengl
 
-Simple OpenGL renderer, currently only draws triangles, rectangles and images and transforms perspective camera on WASD keys and mouse movement.
+Simple OpenGL renderer.
+Features:
+* Render simple shapes
+* Render images and textures
+* Load vector font formats and render
+* Physically based coordinate systems (ex. pt, ww, wh, vw, vh, ...)
+* Physical quantity expressions, to allow simple operations (+, -, *, /) between different physical quantities (i.e. 3pt * 5cm + 10vw)
+* Noclip camera transformation based on mouse and keyboard input
+* Host-listener event system for capturing events such as window resize, keyboard key press, bounding box change, ...
+* More to come...
+
 Controls are:
 * Click window to grab cursor.
 * Press WASD, LCTRL, SPACE keys to move camera.
 * Move mouse to rotate camera in relative x-plane and relative y-plane
 * Press Q and E to rotate camera in relative z-plane
+* Press Escape to ungrab cursor
 
 ## Prerequisites
 
