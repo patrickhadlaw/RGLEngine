@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ShaderProgram.h"
+#include "Renderable.h"
 
 namespace cppogl {
 
@@ -77,7 +77,7 @@ namespace cppogl {
 
 	typedef std::shared_ptr<Sampler2D> sSampler2D;
 
-	class Geometry3D {
+	class Geometry3D : public Renderable {
 	public:
 		struct Face {
 			glm::vec3& p1;
@@ -95,23 +95,21 @@ namespace cppogl {
 		void operator=(const Geometry3D& other);
 		void operator=(Geometry3D&& rvalue);
 
-		virtual void update();
 		virtual void render();
 
 		void generate();
-
-		sShaderProgram shader;
 
 		GLuint vertexArray;
 
 		struct {
 			std::vector<glm::vec3> list;
-			GLint location;
+			GLint location = 0;
 			GLuint buffer;
 		} vertex;
 		struct {
 			glm::mat4 matrix;
-			GLint location;
+			GLint location = 0;
+			bool enabled = true;
 		} model;
 		struct {
 			std::vector<unsigned short> list;
@@ -119,12 +117,12 @@ namespace cppogl {
 		} index;
 		struct {
 			std::vector<glm::vec4> list;
-			GLint location;
+			GLint location = 0;
 			GLuint buffer;
 		} color;
 		struct {
 			std::vector<glm::vec2> list;
-			GLint location;
+			GLint location = 0;
 			GLuint buffer;
 		} uv;
 		std::vector<Sampler2D> samplers;
@@ -134,17 +132,18 @@ namespace cppogl {
 	};
 
 	typedef Geometry3D Material;
+	typedef std::shared_ptr<Geometry3D> sGeometry3D;
 
-	// TODO: organize all geometry in Scene class allowing for operations on a scene, such as triangle sorting
-	class Scene {
+	class SceneLayer : public RenderLayer {
 	public:
-		Scene();
-		virtual ~Scene();
+		SceneLayer(std::string id);
+		virtual ~SceneLayer();
 
-		virtual void add(Geometry3D* geometry);
+		virtual void add(sGeometry3D geometry);
 	private:
-		std::vector<Geometry3D*> geometry;
+		std::vector<sGeometry3D> _renderables;
 	};
+	typedef std::shared_ptr<SceneLayer> sSceneLayer;
 
 	// TODO: implement binary-space-partition with triangle sort and potential use for collision detection
 	struct BSPNode {
@@ -165,13 +164,13 @@ namespace cppogl {
 	class Shape : public Geometry3D {
 	public:
 		Shape();
-		Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
-		Shape(sShaderProgram shader, std::vector<glm::vec3> verticies, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
+		Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Shape();
 
 		virtual void render();
 
-		virtual const std::string& typeName();
+		virtual std::string& typeName();
 
 		void translate(float x, float y, float z);
 		void rotate(float x, float y, float z);
@@ -181,46 +180,42 @@ namespace cppogl {
 	class Triangle : public Shape {
 	public:
 		Triangle();
-		Triangle(sShaderProgram shader, float a, float b, float theta, std::vector<glm::vec4> colors);
-		Triangle(sShaderProgram shader, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors);
+		Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Triangle();
 
 	protected:
-		void _construct(sShaderProgram& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
+		void _construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
 	};
 
 	class Rect : public Shape {
 	public:
 		Rect();
-		Rect(sShaderProgram shader, float width, float height, std::vector<glm::vec4> colors);
-		Rect(sShaderProgram shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors);
+		Rect(Context context, std::string shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Rect();
 
 	protected:
-		void _construct(sShaderProgram& shader, float& width, float& height, std::vector<glm::vec4> colors);
+		void _construct(Context& context, std::string& shader, float& width, float& height, std::vector<glm::vec4> colors);
 	};
 
 	class Torus : public Shape {
 	public:
-		Torus(sShaderProgram shader, float& a, float& b);
+		Torus(Context context, std::string shader, float& a, float& b);
 
 
 	protected:
-		void _construct(sShaderProgram shader, float& a, float& b, std::vector<glm::vec4> colors);
+		void _construct(Context context, std::string shader, float& a, float& b, std::vector<glm::vec4> colors);
 	};
 
 	class ImageRect : public Shape {
 	public:
 		ImageRect();
-		ImageRect(sShaderProgram shader, float width, float height, std::string image);
+		ImageRect(Context context, std::string shader, float width, float height, std::string image);
 		virtual ~ImageRect();
 
 		void render();
 
-	};
-
-	class RenderLayer {
-		// TODO: render layer with viewport per layer
 	};
 
 	// TODO: use ASSIMP to load common 3D formats

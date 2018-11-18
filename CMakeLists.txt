@@ -3,7 +3,7 @@ project(cpp-opengl)
 
 set(CPPOGL_VERSION_MAJOR 0)
 set(CPPOGL_VERSION_MINOR 1)
-set(CPPOGL_VERSION_REVISION 1)
+set(CPPOGL_VERSION_REVISION 2)
 
 set(GLEW_LOCATION lib/glew)
 set(GLFW_LOCATION lib/glfw)

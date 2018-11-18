@@ -32,6 +32,10 @@ namespace cppogl {
 	public:
 		ViewTransformer();
 		virtual ~ViewTransformer();
+
+		virtual void update(float deltaT);
+
+		virtual void bind(sShaderProgram program);
 	};
 
 	typedef std::shared_ptr<ViewTransformer> sViewTransformer;
@@ -79,8 +83,8 @@ namespace cppogl {
 
 	protected:
 		struct {
-			double deltaX;
-			double deltaY;
+			double deltaX = 0.0f;
+			double deltaY = 0.0f;
 		} _mouse;
 		bool isGrabbed;
 	};

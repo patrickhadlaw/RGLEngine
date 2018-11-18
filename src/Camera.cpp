@@ -37,8 +37,8 @@ void cppogl::Camera::update(float deltaT)
 
 void cppogl::Camera::bind(sShaderProgram shader)
 {
-	glUniformMatrix4fv(glGetUniformLocation(shader->id(), "projection"), 1, GL_FALSE, &projection[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(shader->id(), "view"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &view[0][0]);
 }
 
 void cppogl::Camera::generate(CameraType type)
@@ -95,9 +95,11 @@ cppogl::NoClipCamera::~NoClipCamera()
 
 void cppogl::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
 {
-	MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
-	_mouse.deltaX = mousemove->mouse.x;
-	_mouse.deltaY = mousemove->mouse.y;
+	if (eventname == "mousemove") {
+		MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
+		_mouse.deltaX = mousemove->mouse.x;
+		_mouse.deltaY = mousemove->mouse.y;
+	}
 }
 
 void cppogl::NoClipCamera::update(float deltaT)
@@ -157,5 +159,25 @@ cppogl::ViewTransformer::ViewTransformer()
 }
 
 cppogl::ViewTransformer::~ViewTransformer()
+{
+}
+
+void cppogl::ViewTransformer::update(float deltaT)
+{
+}
+
+void cppogl::ViewTransformer::bind(sShaderProgram program)
+{
+}
+
+cppogl::Viewport::Viewport()
+{
+}
+
+cppogl::Viewport::~Viewport()
+{
+}
+
+void cppogl::Viewport::use()
 {
 }

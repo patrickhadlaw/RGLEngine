@@ -8,7 +8,7 @@ cppogl::ShaderProgram::ShaderProgram()
 
 cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader)
 {
-	this->_name = name;
+	this->id = name;
 	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
 
@@ -89,7 +89,7 @@ cppogl::ShaderProgram::~ShaderProgram()
 {
 }
 
-GLuint cppogl::ShaderProgram::id()
+GLuint cppogl::ShaderProgram::programId()
 {
 	return _programID;
 }
@@ -99,9 +99,9 @@ void cppogl::ShaderProgram::use()
 	glUseProgram(_programID);
 }
 
-std::string cppogl::ShaderProgram::name()
+std::string & cppogl::ShaderProgram::typeName()
 {
-	return _name;
+	return std::string("cppogl::ShaderProgram");
 }
 
 void checkGLErrors(int line)
@@ -114,26 +114,35 @@ void checkGLErrors(int line)
 
 cppogl::ShaderManager::ShaderManager()
 {
+	this->_shaderPrograms = std::vector<sShaderProgram>();
 }
 
 cppogl::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> programs)
 {
-	this->_shaderPrograms = std::vector<cppogl::sShaderProgram>(programs);
+	this->_shaderPrograms = std::vector<sShaderProgram>();
+	for (const sShaderProgram& program : programs) {
+		_shaderPrograms.push_back(program);
+	}
 }
 
 cppogl::ShaderManager::~ShaderManager()
 {
 }
 
-void cppogl::ShaderManager::operator=(std::initializer_list<sShaderProgram> programs)
+void cppogl::ShaderManager::addShader(sShaderProgram shader)
 {
-	this->_shaderPrograms = std::vector<cppogl::sShaderProgram>(programs);
+	for (int i = 0; i < _shaderPrograms.size(); i++) {
+		if (shader->id == _shaderPrograms[i]->id) {
+			throw IdentifierException("shader program already exists", shader->id, EXCEPT_DETAIL_DEFAULT);
+		}
+	}
+	_shaderPrograms.push_back(shader);
 }
 
 cppogl::sShaderProgram cppogl::ShaderManager::operator[](std::string name)
 {
 	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
-		if (this->_shaderPrograms[i]->name() == name) {
+		if (this->_shaderPrograms[i]->id == name) {
 			return this->_shaderPrograms[i];
 		}
 	}
