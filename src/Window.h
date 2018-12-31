@@ -129,6 +129,7 @@ namespace cppogl {
 
 		int getKey(int key);
 		int getMouseButton(int key);
+		glm::vec2 getCursorPosition();
 
 		void grabCursor();
 		void ungrabCursor();

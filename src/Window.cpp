@@ -329,6 +329,13 @@ int cppogl::Window::getMouseButton(int key)
 	return glfwGetMouseButton(_window, key);
 }
 
+glm::vec2 cppogl::Window::getCursorPosition()
+{
+	double x, y = 0.0f;
+	glfwGetCursorPos(this->_window, &x, &y);
+	return glm::vec2(x, y);
+}
+
 void cppogl::Window::grabCursor()
 {
 	glfwGetCursorPos(_window, &_initial.x, &_initial.y);

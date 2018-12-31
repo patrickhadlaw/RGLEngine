@@ -79,7 +79,10 @@ namespace cppogl {
 
 	class Geometry3D : public Renderable {
 	public:
-		struct Face {
+		class Face {
+		public:
+			Face(glm::vec3& p1, unsigned short& i1, glm::vec3& p2, unsigned short& i2, glm::vec3& p3, unsigned short& i3);
+
 			glm::vec3& p1;
 			unsigned short& i1;
 			glm::vec3& p2;
@@ -96,6 +99,9 @@ namespace cppogl {
 		void operator=(Geometry3D&& rvalue);
 
 		virtual void render();
+
+		int numFaces();
+		Face getFace(int index);
 
 		void generate();
 

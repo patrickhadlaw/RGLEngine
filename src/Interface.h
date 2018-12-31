@@ -1,9 +1,13 @@
 #pragma once
 
-#include "Renderable.h"
+#include "Graphics.h"
+#include "Raycast.h"
 #include "Event.h"
 
 namespace cppogl {
+
+	class Text;
+
 	namespace UI {
 
 		class LayoutChangeMessage : public EventMessage {
@@ -47,13 +51,17 @@ namespace cppogl {
 			float zIndex = 0.0f;
 		};
 
-		class Element : public Renderable, public BoundingBox {
+		class Element : public Renderable, public Raycastable, public BoundingBox, public EventListener {
 		public:
 			Element();
 			Element(const Context& context, ElementAttributes attributes);
 			virtual ~Element();
 
-			virtual bool hover(glm::vec2 cursor);
+			virtual void onMessage(std::string eventname, EventMessage* message);
+
+			virtual bool raycast(Ray ray);
+
+			virtual void delegateMouseState(Ray clickray, bool inside);
 
 			glm::mat4 transform();
 
@@ -150,5 +158,44 @@ namespace cppogl {
 			std::vector<sLogicNode> _logicNodes;
 		};
 		typedef std::shared_ptr<Layer> sLayer;
+
+		class Button : public Element {
+		public:
+			Button();
+			virtual ~Button();
+
+			enum State {
+				DEFAULT,
+				HOVER,
+				ACTIVE
+			};
+
+			virtual void render();
+
+			virtual void renderState(State state);
+
+			virtual void delegateMouseState(Ray clickray, bool inside);
+
+			virtual void onStateChange(State state);
+
+		protected:
+			State _currentState = DEFAULT;
+		};
+
+		struct BasicButtonAttributes {
+			UnitExpression padding;
+		};
+
+		class BasicButton : public Button {
+		public:
+			BasicButton();
+			BasicButton(Context context, std::string text, std::string shader);
+			virtual ~BasicButton();
+
+			virtual void renderState(Button::State state);
+		protected:
+			Rect _default;
+			Rect _active;
+		};
 	}
 }

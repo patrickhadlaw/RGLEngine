@@ -323,6 +323,10 @@ cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, 
 		_dimensions.y = _attributes.dimensions.y;
 	}
 
+	if (!_attributes.dimensions.x.isZero()) {
+		_dimensions.x = _attributes.dimensions.x;
+	}
+
 	this->_context.window->registerListener("resize", this);
 
 	this->_model.matrix = this->transform();
@@ -380,6 +384,11 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 		else {
 			_getOffsetWrapWidth(offset, glyph);
 		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
+		}
 	}
 }
 
@@ -425,6 +434,11 @@ void cppogl::Text::update(std::string text)
 		else {
 			_getOffsetWrapWidth(offset, glyph);
 		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
+		}
 	}
 	_charecters.resize(text.length());
 	_text = text;
@@ -458,6 +472,11 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 		}
 		else {
 			_getOffsetWrapWidth(offset, glyph);
+		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
 		}
 	}
 	_text = _text + text;

@@ -14,6 +14,9 @@ cppogl::Camera::Camera(CameraType type, sWindow window)
 		throw std::runtime_error("Error: null window handle passed");
 	}
 	this->window = window;
+	this->type = type;
+
+	this->window->registerListener("resize", this);
 
 	this->position = glm::vec3(0.0, 0.0, 0.0);
 	this->direction = glm::vec3(0.0, 0.0, 1.0);
@@ -26,6 +29,13 @@ cppogl::Camera::Camera(CameraType type, sWindow window)
 
 cppogl::Camera::~Camera()
 {
+}
+
+void cppogl::Camera::onMessage(std::string eventname, EventMessage * message)
+{
+	if (eventname == "resize") {
+		this->generate(this->type);
+	}
 }
 
 void cppogl::Camera::update(float deltaT)
@@ -95,6 +105,7 @@ cppogl::NoClipCamera::~NoClipCamera()
 
 void cppogl::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
 {
+	Camera::onMessage(eventname, message);
 	if (eventname == "mousemove") {
 		MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
 		_mouse.deltaX = mousemove->mouse.x;

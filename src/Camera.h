@@ -40,11 +40,13 @@ namespace cppogl {
 
 	typedef std::shared_ptr<ViewTransformer> sViewTransformer;
 
-	class Camera : public ViewTransformer {
+	class Camera : public ViewTransformer, public EventListener {
 	public:
 		Camera();
 		Camera(CameraType type, sWindow window);
 		~Camera();
+
+		virtual void onMessage(std::string eventname, EventMessage* message);
 
 		virtual void update(float deltaT);
 
@@ -65,11 +67,12 @@ namespace cppogl {
 		glm::mat4 projection;
 		GLint viewLocation;
 		GLint projectionLocation;
+		CameraType type;
 
 		sWindow window;
 	};
 
-	class NoClipCamera : public Camera, EventListener {
+	class NoClipCamera : public Camera {
 	public:
 		NoClipCamera();
 		NoClipCamera(CameraType type, sWindow window);

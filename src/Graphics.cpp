@@ -403,10 +403,10 @@ void cppogl::Rect::_construct(Context& context, std::string& shader, float & wid
 		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
 	}
 	this->vertex.list = {
-		glm::vec3(-width / 2, height / 2, 0.0),
-		glm::vec3(-width / 2, -height / 2, 0.0),
-		glm::vec3(width / 2, height / 2, 0.0),
-		glm::vec3(width / 2, -height / 2, 0.0)
+		glm::vec3(0.0, 0.0, 0.0),
+		glm::vec3(0.0, -height, 0.0),
+		glm::vec3(width, 0.0, 0.0),
+		glm::vec3(width, -height, 0.0)
 	};
 
 	this->index.list = {
@@ -491,6 +491,31 @@ void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
 
 void cppogl::Geometry3D::render()
 {
+}
+
+int cppogl::Geometry3D::numFaces()
+{
+	if (!this->index.list.empty()) {
+		return static_cast<int>(this->index.list.size() / 3);
+	}
+}
+
+cppogl::Geometry3D::Face cppogl::Geometry3D::getFace(int index)
+{
+	if (index < 0 || index >= this->numFaces()) {
+		throw Exception("failed to get face: index out of bounds", EXCEPT_DETAIL_IDENTIFIER(this->id));
+	}
+	else {
+
+		Face face = Face(
+			this->vertex.list[this->index.list[index * 3]],
+			this->index.list[index * 3],
+			this->vertex.list[this->index.list[index * 3 + 1]],
+			this->index.list[index * 3 + 1],
+			this->vertex.list[this->index.list[index * 3 + 2]],
+			this->index.list[index * 3 + 2]
+		);
+	}
 }
 
 void cppogl::Geometry3D::generate()
@@ -625,4 +650,13 @@ cppogl::SceneLayer::~SceneLayer()
 void cppogl::SceneLayer::add(sGeometry3D geometry)
 {
 	this->_renderables.push_back(geometry);
+}
+
+cppogl::Geometry3D::Face::Face(glm::vec3 & p1,
+	unsigned short & i1,
+	glm::vec3 & p2,
+	unsigned short & i2,
+	glm::vec3 & p3,
+	unsigned short & i3) : p1(p1), i1(i1), p2(p2), i2(i2), p3(p3), i3(i3)
+{
 }

@@ -1,4 +1,5 @@
 #include "Interface.h"
+#include "Font.h"
 
 cppogl::UI::BoundingBox::BoundingBox()
 {
@@ -178,9 +179,37 @@ cppogl::UI::Element::~Element()
 {
 }
 
-bool cppogl::UI::Element::hover(glm::vec2 cursor)
+void cppogl::UI::Element::onMessage(std::string eventname, EventMessage * message)
 {
-	return false;
+	if (eventname == "mousemove" && !this->_context.window->grabbed()) {
+		glm::vec2 cursor = this->_context.window->getCursorPosition();
+		Ray mouseray = Ray(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3((cursor.x / this->_context.window->width())*2, (cursor.y / this->_context.window->height())*2, 0.0f));
+		if (this->raycast(mouseray)) {
+			this->delegateMouseState(mouseray, true);
+		}
+		else {
+			this->delegateMouseState(mouseray, false);
+		}
+	}
+}
+
+bool cppogl::UI::Element::raycast(Ray ray)
+{
+	glm::vec3 topleft = glm::vec3(_topLeft.resolve(_context.window), 0.0);
+	glm::vec2 dimensions = _dimensions.resolve(_context.window);
+	glm::vec3 topright = topleft;
+	topright.x += dimensions.x;
+	glm::vec3 bottomleft = topleft;
+	bottomleft.y += dimensions.y;
+	glm::vec3 bottomright = topleft;
+	bottomright.x += dimensions.x;
+	bottomright.y += dimensions.y;
+
+	return ray.intersect(topright, topleft, bottomleft) || ray.intersect(bottomleft, bottomright, topright);
+}
+
+void cppogl::UI::Element::delegateMouseState(Ray clickray, bool inside)
+{
 }
 
 glm::mat4 cppogl::UI::Element::transform()
@@ -280,4 +309,82 @@ void cppogl::UI::Layer::addElement(sElement element)
 		}
 	}
 	this->_elements.push_back(element);
+}
+
+cppogl::UI::Button::Button()
+{
+}
+
+cppogl::UI::Button::~Button()
+{
+}
+
+void cppogl::UI::Button::render()
+{
+	this->renderState(this->_currentState);
+}
+
+void cppogl::UI::Button::renderState(State state)
+{
+
+}
+
+void cppogl::UI::Button::delegateMouseState(Ray clickray, bool inside)
+{
+	int key = this->_context.window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
+	State next = DEFAULT;
+	if (!inside) {
+		next = DEFAULT;
+	}
+	else if (key == GLFW_PRESS) {
+		next = ACTIVE;
+	}
+	else {
+		next = HOVER;
+	}
+	if (next != this->_currentState) {
+		this->onStateChange(next);
+		this->_currentState = next;
+	}
+}
+
+void cppogl::UI::Button::onStateChange(State state)
+{
+
+}
+
+cppogl::UI::BasicButton::BasicButton()
+{
+}
+
+cppogl::UI::BasicButton::BasicButton(Context context, std::string shader, std::string text)
+{
+	this->_context = context;
+	this->shader = this->_context.manager.shader->operator[](shader);
+	this->_default = Rect(this->_context, shader, 0.5f, 0.25f, glm::vec4(1.0, 0.0, 0.0, 1.0));
+	this->_active = Rect(this->_context, shader, 0.5f, 0.25f, glm::vec4(0.0, 1.0, 0.0, 1.0));
+	this->_dimensions = UnitVector2D(0.5f, 0.25f);
+	this->_context.window->registerListener("mousemove", this);
+}
+
+cppogl::UI::BasicButton::~BasicButton()
+{
+}
+
+void cppogl::UI::BasicButton::renderState(Button::State state)
+{
+	switch (state) {
+	default:
+		this->_default.model.matrix = this->transform();
+		this->_default.render();
+		break;
+	case Button::HOVER:
+		this->_active.model.matrix = this->transform();
+		this->_active.render();
+		break;
+	case Button::ACTIVE:
+		this->_active.model.matrix = this->transform();
+		this->_active.render();
+		break;
+	}
 }
