@@ -118,7 +118,7 @@ void cppogl::NoClipCamera::update(float deltaT)
 	if (window->grabbed()) {
 		int state = window->getKey(GLFW_KEY_ESCAPE);
 		if (state == GLFW_PRESS) {
-			window->ungrabCursor();
+			this->unGrab();
 		}
 		else {
 			this->rotate(_mouse.deltaX / window->height(), _mouse.deltaY / window->width(), 0.0);
@@ -150,13 +150,19 @@ void cppogl::NoClipCamera::update(float deltaT)
 			}
 		}
 	}
-	else {
-		int state = window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
-		if (state == GLFW_PRESS) {
-			window->grabCursor();
-		}
-	}
 	view = glm::lookAt(position, position + direction, up);
+}
+
+void cppogl::NoClipCamera::grab()
+{
+	this->isGrabbed = true;
+	window->grabCursor();
+}
+
+void cppogl::NoClipCamera::unGrab()
+{
+	this->isGrabbed = false;
+	window->ungrabCursor();
 }
 
 void cppogl::NoClipCamera::moveRelative(float forward, float horizontal, float vertical)

@@ -82,6 +82,9 @@ namespace cppogl {
 
 		virtual void update(float deltaT);
 
+		virtual void grab();
+		virtual void unGrab();
+
 		void moveRelative(float forward, float horizontal, float vertical);
 
 	protected:

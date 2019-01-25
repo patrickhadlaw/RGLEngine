@@ -49,17 +49,7 @@ cppogl::Shape::~Shape()
 
 void cppogl::Shape::render()
 {
-	glBindVertexArray(vertexArray);
-	if (model.enabled) {
-		glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
-	}
-	if (index.list.empty()) {
-		glDrawArrays(GL_TRIANGLES, 0, vertex.list.size());
-	}
-	else {
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
-		glDrawElements(GL_TRIANGLES, index.list.size(), GL_UNSIGNED_SHORT, nullptr);
-	}
+	this->standardRender(this->shader);
 }
 
 std::string & cppogl::Shape::typeName()
@@ -386,6 +376,17 @@ cppogl::Rect::~Rect()
 {
 }
 
+void cppogl::Rect::changeDimensions(float width, float height)
+{
+	this->vertex.list = {
+		glm::vec3(0.0, 0.0, 0.0),
+		glm::vec3(0.0, -height, 0.0),
+		glm::vec3(width, 0.0, 0.0),
+		glm::vec3(width, -height, 0.0)
+	};
+	this->updateVertexBuffer();
+}
+
 void cppogl::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
 {
 	this->shader = context.manager.shader->operator[](shader);
@@ -424,7 +425,6 @@ void cppogl::Rect::_construct(Context& context, std::string& shader, float & wid
 
 cppogl::Geometry3D::Geometry3D()
 {
-	shader = nullptr;
 	vertex.list = {};
 	index.list = {};
 	color.list = {};
@@ -440,7 +440,6 @@ cppogl::Geometry3D::Geometry3D(const Geometry3D & other)
 	color = other.color;
 	index = other.index;
 	model = other.model;
-	shader = other.shader;
 	samplers = other.samplers;
 	generate();
 }
@@ -448,13 +447,11 @@ cppogl::Geometry3D::Geometry3D(const Geometry3D & other)
 cppogl::Geometry3D::Geometry3D(Geometry3D && rvalue)
 {
 	_cleanup();
-	_context = rvalue._context;
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
 	index = std::move(rvalue.index);
 	model = std::move(rvalue.model);
 	vertexArray = std::move(rvalue.vertexArray);
-	shader = rvalue.shader;
 	samplers = std::move(rvalue.samplers);
 }
 
@@ -466,12 +463,10 @@ cppogl::Geometry3D::~Geometry3D()
 void cppogl::Geometry3D::operator=(const Geometry3D & other)
 {
 	_cleanup();
-	_context = other._context;
 	vertex = other.vertex;
 	color = other.color;
 	index = other.index;
 	model = other.model;
-	shader = other.shader;
 	samplers = other.samplers;
 	generate();
 }
@@ -479,18 +474,12 @@ void cppogl::Geometry3D::operator=(const Geometry3D & other)
 void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
 {
 	_cleanup();
-	_context = rvalue._context;
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
 	index = std::move(rvalue.index);
 	model = std::move(rvalue.model);
 	vertexArray = std::move(rvalue.vertexArray);
-	shader = rvalue.shader;
 	samplers = std::move(rvalue.samplers);
-}
-
-void cppogl::Geometry3D::render()
-{
 }
 
 int cppogl::Geometry3D::numFaces()
@@ -503,7 +492,7 @@ int cppogl::Geometry3D::numFaces()
 cppogl::Geometry3D::Face cppogl::Geometry3D::getFace(int index)
 {
 	if (index < 0 || index >= this->numFaces()) {
-		throw Exception("failed to get face: index out of bounds", EXCEPT_DETAIL_IDENTIFIER(this->id));
+		throw Exception("failed to get face: index out of bounds", EXCEPT_DETAIL_DEFAULT);
 	}
 	else {
 
@@ -547,6 +536,85 @@ void cppogl::Geometry3D::generate()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
 		glBufferData(GL_ELEMENT_ARRAY_BUFFER, index.list.size() * sizeof(GLushort), &index.list[0], GL_STATIC_DRAW);
 	}
+}
+
+void cppogl::Geometry3D::standardRender(sShaderProgram shader)
+{
+	glBindVertexArray(vertexArray);
+	if (model.enabled) {
+		glUniformMatrix4fv(model.location, 1, GL_FALSE, &model.matrix[0][0]);
+	}
+	if (index.list.empty()) {
+		glDrawArrays(GL_TRIANGLES, 0, vertex.list.size());
+	}
+	else {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
+		glDrawElements(GL_TRIANGLES, index.list.size(), GL_UNSIGNED_SHORT, nullptr);
+	}
+}
+
+void cppogl::Geometry3D::standardFill(Fill colorFill)
+{
+	bool first = true;
+	glm::vec2 xrange = glm::vec2(0.0f, 0.0f);
+	glm::vec2 yrange = glm::vec2(0.0f, 0.0f);
+	for (int i = 0; i < this->vertex.list.size(); i++) {
+		if (first || this->vertex.list[i].x < xrange.x) {
+			xrange.x = this->vertex.list[i].x;
+		}
+		if (first || this->vertex.list[i].x > xrange.y) {
+			xrange.y = this->vertex.list[i].x;
+		}
+		if (first || this->vertex.list[i].y < yrange.x) {
+			yrange.x = this->vertex.list[i].y;
+		}
+		if (first || this->vertex.list[i].y > yrange.y) {
+			yrange.y = this->vertex.list[i].y;
+		}
+	}
+	this->color.list = {};
+	int len = this->index.list.empty() ? this->vertex.list.size() : this->index.list.size();
+	for (int i = 0; i < len; i++) {
+		if (!this->index.list.empty()) {
+			unsigned short index = this->index.list[i];
+			if (index < this->vertex.list.size()) {
+				glm::vec3& vertex = this->vertex.list[index];
+				this->color.list.push_back(colorFill.evaluate((vertex.x - xrange.x) / xrange.y, (vertex.y - yrange.x) / yrange.y));
+			}
+			else {
+				this->color.list.push_back(glm::vec4(0.0, 0.0, 0.0, 0.0));
+			}
+			
+		}
+		else {
+			glm::vec3& vertex = this->vertex.list[i];
+			this->color.list.push_back(colorFill.evaluate((vertex.x - xrange.x) / xrange.y, (vertex.y - yrange.x) / yrange.y));
+		}
+	}
+}
+
+void cppogl::Geometry3D::updateVertexBuffer()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
+}
+
+void cppogl::Geometry3D::updateIndexBuffer()
+{
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
+	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLushort) * index.list.size(), index.list.data());
+}
+
+void cppogl::Geometry3D::updateColorBuffer()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, color.buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * color.list.size() * 4, color.list.data());
+}
+
+void cppogl::Geometry3D::updateUVBuffer()
+{
+	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
+	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * uv.list.size() * 2, uv.list.data());
 }
 
 void cppogl::Geometry3D::_cleanup()

@@ -51,6 +51,12 @@ namespace cppogl {
 			float zIndex = 0.0f;
 		};
 
+		enum class DelegateMouseState {
+			UNCHANGED,
+			CURSOR_ARROW,
+			CURSOR_HAND
+		};
+
 		class Element : public Renderable, public Raycastable, public BoundingBox, public EventListener {
 		public:
 			Element();
@@ -61,7 +67,7 @@ namespace cppogl {
 
 			virtual bool raycast(Ray ray);
 
-			virtual void delegateMouseState(Ray clickray, bool inside);
+			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside);
 
 			glm::mat4 transform();
 
@@ -138,12 +144,15 @@ namespace cppogl {
 
 		typedef std::shared_ptr<LinearAligner> sLinearAligner;
 
-		class Layer : public RenderLayer {
+		class Layer : public RenderLayer, public EventListener {
 		public:
-			Layer(std::string id, clock_t ticktime = 30 / 1000);
+			Layer(Context context, std::string id, clock_t ticktime = 30 / 1000);
 			virtual ~Layer();
 
 			virtual bool tick();
+			virtual bool raycastHit();
+
+			virtual void onMessage(std::string eventname, EventMessage* message);
 
 			virtual void update();
 			virtual void render();
@@ -152,12 +161,42 @@ namespace cppogl {
 			void addElement(sElement element);
 
 		protected:
+			bool _raycastCheck;
+			bool _castHit;
 			clock_t _tickTime;
 			clock_t _lastTick;
 			std::vector<sElement> _elements;
 			std::vector<sLogicNode> _logicNodes;
+			Context _context;
 		};
 		typedef std::shared_ptr<Layer> sLayer;
+
+		struct RectAttributes {
+			UnitVector2D dimensions;
+			UnitVector2D topLeft;
+			float zIndex = 0.0f;
+			Fill color;
+		};
+
+		class RectElement : public Element, public Geometry3D {
+		public:
+			RectElement();
+			RectElement(Context& context, std::string& shader, RectAttributes& attribs);
+			virtual ~RectElement();
+
+			virtual void onMessage(std::string eventname, EventMessage* message);
+
+			virtual void onBoxUpdate();
+
+			virtual void render();
+
+			virtual void updateGeometry();
+
+			void changeColor(Fill color);
+
+		protected:
+			RectAttributes _attributes;
+		};
 
 		class Button : public Element {
 		public:
@@ -170,11 +209,11 @@ namespace cppogl {
 				ACTIVE
 			};
 
+
 			virtual void render();
+			virtual void update();
 
-			virtual void renderState(State state);
-
-			virtual void delegateMouseState(Ray clickray, bool inside);
+			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside);
 
 			virtual void onStateChange(State state);
 
@@ -183,19 +222,30 @@ namespace cppogl {
 		};
 
 		struct BasicButtonAttributes {
-			UnitExpression padding;
+			UnitVector2D paddingHorizontal = UnitVector2D(8.0, 8.0, Unit::PT);
+			UnitVector2D paddingVertical = UnitVector2D(2.0, 2.0, Unit::PT);
+			Fill defaultColor = Fill(glm::vec4(0.9, 0.9, 0.9, 1.0));
+			Fill hoverColor = Fill(glm::vec4(0.75, 0.75, 0.75, 1.0));
+			Fill activeColor = Fill(glm::vec4(0.5, 0.5, 0.5, 1.0));
+			Fill fontColor;
 		};
 
 		class BasicButton : public Button {
 		public:
 			BasicButton();
-			BasicButton(Context context, std::string text, std::string shader);
+			BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs = BasicButtonAttributes{});
 			virtual ~BasicButton();
 
-			virtual void renderState(Button::State state);
+			virtual void onBoxUpdate();
+
+			virtual void onStateChange(Button::State state);
+
+			virtual void render();
+
 		protected:
-			Rect _default;
-			Rect _active;
+			Rect _rect;
+			std::unique_ptr<Text> _text;
+			BasicButtonAttributes _basicButtonAttributes;
 		};
 	}
 }

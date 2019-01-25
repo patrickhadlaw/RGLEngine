@@ -53,11 +53,11 @@ std::string cppogl::postfixFromUnit(Unit unit)
 	}
 }
 
-cppogl::Window::Window()
+cppogl::Window::Window() : _cursor(nullptr)
 {
 }
 
-cppogl::Window::Window(const int width, const int height, const char* title)
+cppogl::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
@@ -114,6 +114,7 @@ cppogl::Window::Window(const Window & other)
 cppogl::Window::Window(Window && rvalue)
 {
 	this->_window = rvalue._window;
+	this->_cursor = rvalue._cursor;
 	rvalue._window = nullptr;
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
@@ -128,6 +129,9 @@ cppogl::Window::Window(Window && rvalue)
 cppogl::Window::~Window()
 {
 	if (_window != nullptr) {
+		if (this->_cursor != nullptr) {
+			glfwDestroyCursor(_cursor);
+		}
 		glfwDestroyWindow(_window);
 		auto it = _handles.find(_window);
 		_handles.erase(it);
@@ -137,7 +141,14 @@ cppogl::Window::~Window()
 
 void cppogl::Window::operator=(Window && rvalue)
 {
+	if (this->_window != nullptr) {
+		glfwDestroyWindow(this->_window);
+	}
 	this->_window = rvalue._window;
+	if (this->_cursor != nullptr) {
+		glfwDestroyCursor(this->_cursor);
+	}
+	this->_cursor = rvalue._cursor;
 	rvalue._window = nullptr;
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
@@ -336,6 +347,21 @@ glm::vec2 cppogl::Window::getCursorPosition()
 	return glm::vec2(x, y);
 }
 
+void cppogl::Window::setInputMode(int mode, int value)
+{
+	glfwSetInputMode(this->_window, mode, value);
+}
+
+void cppogl::Window::setCursor(int type)
+{
+	GLFWcursor* tmp = this->_cursor;
+	this->_cursor = glfwCreateStandardCursor(type);
+	glfwSetCursor(this->_window, this->_cursor);
+	if (tmp != nullptr) {
+		glfwDestroyCursor(tmp);
+	}
+}
+
 void cppogl::Window::grabCursor()
 {
 	glfwGetCursorPos(_window, &_initial.x, &_initial.y);
@@ -375,7 +401,7 @@ void cppogl::Window::handleEvent(GLFWwindow* handle, std::string eventname, Even
 	else {
 		Window* window = _handles[handle];
 		window->broadcastEvent(eventname, message);
-		if (window->_grabbed && eventname == "mousemove") {
+		if (eventname == "mousemove" && window->_grabbed) {
 			glfwSetCursorPos(window->_window, 0.0, 0.0);
 		}
 	}
@@ -394,14 +420,6 @@ cppogl::MouseClickMessage::MouseClickMessage()
 }
 
 cppogl::MouseClickMessage::~MouseClickMessage()
-{
-}
-
-cppogl::MouseRaycastMessage::MouseRaycastMessage()
-{
-}
-
-cppogl::MouseRaycastMessage::~MouseRaycastMessage()
 {
 }
 
@@ -554,212 +572,327 @@ float cppogl::UnitValue::resolve(sWindow window, Window::Direction direction)
 	return window->resolve(*this, direction);
 }
 
-cppogl::UnitExpression::UnitExpression()
+cppogl::UnitExpression::UnitExpression() : _value(UnitValue{}), _operation(Operation::VALUE), _left(nullptr), _right(nullptr)
 {
-	this->left = UnitValue{ 0.0f, Unit::ND };
-	this->operation = Operation::VALUE;
-	this->right = nullptr;
 }
 
 cppogl::UnitExpression::UnitExpression(UnitValue value)
 {
-	this->left = value;
-	this->operation = Operation::VALUE;
-	this->right = nullptr;
+	this->_value = value;
+	this->_left = nullptr;
+	this->_operation = Operation::VALUE;
+	this->_right = nullptr;
 }
 
 cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitValue right)
 {
-	this->left = left;
+	this->_left = new UnitExpression(left);
 	switch (op) {
 	case '+':
-		this->operation = Operation::ADDITION;
+		this->_operation = Operation::ADDITION;
 		break;
 	case '-':
-		this->operation = Operation::SUBTRACTION;
+		this->_operation = Operation::SUBTRACTION;
 		break;
 	case '*':
-		this->operation = Operation::MULTIPLICATION;
+		this->_operation = Operation::MULTIPLICATION;
 		break;
 	case '/':
-		this->operation = Operation::DIVISION;
+		this->_operation = Operation::DIVISION;
 		break;
 	default:
 		throw Exception("invalid unit expression", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->right = new UnitExpression(right);
+	this->_right = new UnitExpression(right);
 }
 
-cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitExpression right)
+cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitExpression right) : UnitExpression(UnitExpression(left), op, right)
 {
-	this->left = left;
+}
+
+cppogl::UnitExpression::UnitExpression(UnitExpression left, char op, UnitExpression right)
+{
+	this->_left = new UnitExpression(left);
 	switch (op) {
 	case '+':
-		this->operation = Operation::ADDITION;
+		this->_operation = Operation::ADDITION;
 		break;
 	case '-':
-		this->operation = Operation::SUBTRACTION;
+		this->_operation = Operation::SUBTRACTION;
 		break;
 	case '*':
-		this->operation = Operation::MULTIPLICATION;
+		this->_operation = Operation::MULTIPLICATION;
 		break;
 	case '/':
-		this->operation = Operation::DIVISION;
+		this->_operation = Operation::DIVISION;
 		break;
 	default:
 		throw Exception("invalid unit expression", EXCEPT_DETAIL_DEFAULT);
 	}
-	this->right = new UnitExpression(right);
+	this->_right = new UnitExpression(right);
 }
 
 cppogl::UnitExpression::UnitExpression(const UnitExpression & other)
 {
-	this->left = other.left;
-	this->operation = other.operation;
-	if (other.right != nullptr) {
-		this->right = new UnitExpression(*other.right);
+	this->_value = other._value;
+	this->_operation = other._operation;
+	if (other._left != nullptr) {
+		this->_left = new UnitExpression(*other._left);
 	}
 	else {
-		this->right = nullptr;
+		this->_left = nullptr;
+	}
+	if (other._right != nullptr) {
+		this->_right = new UnitExpression(*other._right);
+	}
+	else {
+		this->_right = nullptr;
 	}
 }
 
 cppogl::UnitExpression::UnitExpression(UnitExpression && rvalue)
 {
-	this->left = rvalue.left;
-	this->operation = rvalue.operation;
-	this->right = rvalue.right;
-	rvalue.right = nullptr;
+	this->_value = rvalue._value;
+	delete this->_left;
+	delete this->_right;
+	this->_left = rvalue._left;
+	rvalue._left = nullptr;
+	this->_operation = rvalue._operation;
+	this->_right = rvalue._right;
+	rvalue._right = nullptr;
 }
 
 cppogl::UnitExpression::~UnitExpression()
 {
-	delete this->right;
-	this->right = nullptr;
+	delete this->_left;
+	this->_left = nullptr;
+	delete this->_right;
+	this->_right = nullptr;
 }
 
 void cppogl::UnitExpression::operator=(const UnitExpression & other)
 {
-	this->left = other.left;
-	this->operation = other.operation;
-	if (other.right != nullptr) {
-		this->right = new UnitExpression(*other.right);
+	this->_value = other._value;
+	this->_operation = other._operation;
+	if (other._left != nullptr) {
+		this->_left = new UnitExpression(*other._left);
 	}
 	else {
-		this->right = nullptr;
+		this->_left = nullptr;
+	}
+	if (other._right != nullptr) {
+		this->_right = new UnitExpression(*other._right);
+	}
+	else {
+		this->_right = nullptr;
 	}
 }
 
 void cppogl::UnitExpression::operator=(UnitExpression && rvalue)
 {
-	delete this->right;
-	this->left = rvalue.left;
-	this->operation = rvalue.operation;
-	this->right = rvalue.right;
-	rvalue.right = nullptr;
+	this->_value = rvalue._value;
+	delete this->_left;
+	delete this->_right;
+	this->_value = rvalue._value;
+	this->_left = rvalue._left;
+	rvalue._left = nullptr;
+	this->_operation = rvalue._operation;
+	this->_right = rvalue._right;
+	rvalue._right = nullptr;
 }
 
 void cppogl::UnitExpression::operator=(UnitValue & value)
 {
-	this->left = value;
-	this->operation = Operation::VALUE;
-	this->right = nullptr;
+	this->_value = value;
+	this->_left = nullptr;
+	this->_operation = Operation::VALUE;
+	this->_right = nullptr;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitValue & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::ADDITION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::ADDITION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitExpression & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::ADDITION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::ADDITION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitValue & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::SUBTRACTION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::SUBTRACTION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitExpression & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::SUBTRACTION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::SUBTRACTION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitValue & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::DIVISION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::DIVISION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitExpression & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::DIVISION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::DIVISION;
+	exp._right = new UnitExpression(value);
 	return exp;
+}
+
+cppogl::UnitExpression cppogl::UnitExpression::operator/(float value)
+{
+	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitValue & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::MULTIPLICATION);
+	UnitExpression exp = UnitExpression();
+	exp._left = new UnitExpression(*this);
+	exp._operation = Operation::MULTIPLICATION;
+	exp._right = new UnitExpression(value);
 	return exp;
 }
 
 cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitExpression & value)
 {
-	UnitExpression exp = UnitExpression(*this);
-	exp._extend(value, Operation::MULTIPLICATION);
-	return exp;
+	UnitExpression mult = UnitExpression();
+	mult._left = new UnitExpression(*this);
+	mult._operation = Operation::MULTIPLICATION;
+	mult._right = new UnitExpression(value);
+	return mult;
+}
+
+cppogl::UnitExpression cppogl::UnitExpression::operator*(float value)
+{
+	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
 void cppogl::UnitExpression::operator+=(UnitValue & value)
 {
-	this->_extend(value, Operation::ADDITION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::ADDITION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator+=(UnitExpression & value)
 {
-	this->_extend(value, Operation::ADDITION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::ADDITION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator-=(UnitValue & value)
 {
-	this->_extend(value, Operation::SUBTRACTION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::SUBTRACTION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator-=(UnitExpression & value)
 {
-	this->_extend(value, Operation::SUBTRACTION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::SUBTRACTION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator/=(UnitValue & value)
 {
-	this->_extend(value, Operation::DIVISION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::DIVISION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator/=(UnitExpression & value)
 {
-	this->_extend(value, Operation::DIVISION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::DIVISION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator*=(UnitValue & value)
 {
-	this->_extend(value, Operation::MULTIPLICATION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::MULTIPLICATION;
+	this->_right = new UnitExpression(value);
 }
 
 void cppogl::UnitExpression::operator*=(UnitExpression & value)
 {
-	this->_extend(value, Operation::MULTIPLICATION);
+	UnitExpression* exp = new UnitExpression();
+	exp->_value = this->_value;
+	exp->_left = this->_left;
+	exp->_operation = this->_operation;
+	exp->_right = this->_right;
+	this->_value = UnitValue{};
+	this->_left = exp;
+	this->_operation = Operation::MULTIPLICATION;
+	this->_right = new UnitExpression(value);
 }
 
 bool cppogl::UnitExpression::lessThan(UnitExpression & other, sWindow window)
@@ -774,8 +907,8 @@ bool cppogl::UnitExpression::greaterThan(UnitExpression & other, sWindow window)
 
 bool cppogl::UnitExpression::isZero()
 {
-	if (this->operation == Operation::VALUE) {
-		if (this->left.value == 0.0f) {
+	if (this->_operation == Operation::VALUE) {
+		if (this->_value.value == 0.0f) {
 			return true;
 		}
 		else {
@@ -783,8 +916,24 @@ bool cppogl::UnitExpression::isZero()
 		}
 	}
 	else {
-		return this->right->isZero();
+		bool left = this->_left->isZero();
+		bool right = this->_right->isZero();
+		switch (this->_operation) {
+		default:
+		case Operation::ADDITION:
+		case Operation::SUBTRACTION:
+			return left && right;
+		case Operation::MULTIPLICATION:
+			return left || right;
+		case Operation::DIVISION:
+			return left;
+		}
 	}
+}
+
+bool cppogl::UnitExpression::isValue()
+{
+	return this->_operation == Operation::VALUE;
 }
 
 float cppogl::UnitExpression::resolvePixelValue(sWindow window, Window::Direction direction)
@@ -794,45 +943,27 @@ float cppogl::UnitExpression::resolvePixelValue(sWindow window, Window::Directio
 
 float cppogl::UnitExpression::resolve(sWindow window, Window::Direction direction)
 {
-	switch (this->operation) {
+	if (this->isValue()) {
+		return this->_value.resolve(window, direction);
+	}
+	switch (this->_operation) {
 	case Operation::ADDITION:
-		return this->left.resolve(window, direction) + this->right->resolve(window, direction);
+		return this->_left->resolve(window, direction) + this->_right->resolve(window, direction);
 		break;
 	case Operation::SUBTRACTION:
-		return this->left.resolve(window, direction) - this->right->resolve(window, direction);
+		return this->_left->resolve(window, direction) - this->_right->resolve(window, direction);
 		break;
 	case Operation::MULTIPLICATION:
-		return this->left.resolve(window, direction) * this->right->resolve(window, direction);
+		return this->_left->resolve(window, direction) * this->_right->resolve(window, direction);
 		break;
 	case Operation::DIVISION:
-		return this->left.resolve(window, direction) / this->right->resolve(window, direction);
+		return this->_left->resolve(window, direction) / this->_right->resolve(window, direction);
 		break;
 	case Operation::VALUE:
-		return this->left.resolve(window, direction);
+		return this->_left->resolve(window, direction);
 		break;
 	default:
 		throw Exception("invalid operation type", EXCEPT_DETAIL_DEFAULT);
-	}
-}
-
-void cppogl::UnitExpression::_extend(UnitValue & value, Operation op)
-{
-	this->_extend(UnitExpression(value), op);
-}
-
-void cppogl::UnitExpression::_extend(UnitExpression & value, Operation op)
-{
-	if (this->right == nullptr) {
-		this->operation = op;
-		this->right = new UnitExpression(value);
-	}
-	else {
-		UnitExpression* ptr = this->right;
-		while (ptr->right != nullptr) {
-			ptr = ptr->right;
-		}
-		ptr->operation = op;
-		ptr->right = new UnitExpression(value);
 	}
 }
 
@@ -844,6 +975,12 @@ cppogl::UnitVector2D::UnitVector2D(float x, float y, Unit unit)
 {
 	this->x = UnitValue{ x, unit };
 	this->y = UnitValue{ y, unit };
+}
+
+cppogl::UnitVector2D::UnitVector2D(UnitExpression & x, UnitExpression & y)
+{
+	this->x = x;
+	this->y = y;
 }
 
 cppogl::UnitVector2D & cppogl::UnitVector2D::parse(std::string parse)

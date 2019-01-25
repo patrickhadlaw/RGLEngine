@@ -108,7 +108,7 @@ int main(const int argc, const char* const argv[]) {
 		cppogl::sRenderableLayer mainLayer = cppogl::sRenderableLayer(new cppogl::RenderableLayer("main", camera));
 		app.addLayer(mainLayer);
 
-		cppogl::UI::sLayer uiLayer = cppogl::UI::sLayer(new cppogl::UI::Layer("ui", UI_TICK));
+		cppogl::UI::sLayer uiLayer = cppogl::UI::sLayer(new cppogl::UI::Layer(app.getContext(), "ui", UI_TICK));
 		app.addLayer(uiLayer);
 
 		srand(clock());
@@ -153,11 +153,14 @@ int main(const int argc, const char* const argv[]) {
 		));
 		wrapTest->id = "wrapTest";
 		uiLayer->addElement(wrapTest);
-		auto basicButton = std::shared_ptr<cppogl::UI::BasicButton>(new cppogl::UI::BasicButton(app.getContext(), "interface", "Test!"));
+
+		auto basicButton = std::shared_ptr<cppogl::UI::BasicButton>(new cppogl::UI::BasicButton(app.getContext(), "interface", "roboto", "Click Me!"));
 		basicButton->id = "basicButton";
 		uiLayer->addElement(basicButton);
+
 		auto alignerAttribs = cppogl::UI::LinearAlignerAttributes{};
-		alignerAttribs.spacing = cppogl::UnitValue{ 4.0, cppogl::Unit::PT };
+		alignerAttribs.spacing = cppogl::UnitValue{ 10.0, cppogl::Unit::PT };
+		alignerAttribs.topLeft.x = cppogl::UnitValue{ 10.0f, cppogl::Unit::PT };
 		auto aligner = cppogl::UI::sLinearAligner(new cppogl::UI::LinearAligner({
 			fpsText,
 			wrapTest,
@@ -167,6 +170,7 @@ int main(const int argc, const char* const argv[]) {
 		uiLayer->addLogicNode(aligner);
 
 		Stack<30, int> framerate;
+		bool clickedOut = false;
 
 		while (!window->shouldClose()) {
 
@@ -184,8 +188,11 @@ int main(const int argc, const char* const argv[]) {
 			}
 
 			checkGLErrors(0);
-
+			
 			app.update();
+			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+				camera->grab();
+			}
 		}
 	}
 	catch (cppogl::Exception& e) {

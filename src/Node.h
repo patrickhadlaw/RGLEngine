@@ -76,7 +76,7 @@ namespace cppogl {
 						return cast;
 					}
 					else {
-						throw BadCastException(std::string("failed to cast resource with identifier: ") + id, EXCEPT_DETAIL_DEFAULT);
+						throw BadCastException(std::string("failed to cast resource"), EXCEPT_DETAIL_IDENTIFIER(id));
 					}
 				}
 			}
