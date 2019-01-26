@@ -56,4 +56,4 @@ $ ./cpp-opengl [window-width] [window-height]
 ```
 
 ## Screenshot
-![screenshot1](/screenshot1.png?raw=true "Screenshot")
+![screenshot1](/screenshot1.PNG?raw=true "Screenshot")
