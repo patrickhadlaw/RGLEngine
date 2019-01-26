@@ -11,6 +11,23 @@ namespace cppogl {
 
 	struct Context;
 
+	struct MouseState {
+		double x = 0.0;
+		double y = 0.0;
+		int button;
+		int action;
+		int modifier;
+	};
+
+	class MouseStateMessage : public EventMessage {
+	public:
+		MouseStateMessage();
+		MouseStateMessage(MouseState state);
+		virtual ~MouseStateMessage();
+		
+		MouseState mouse;
+	};
+
 	class MouseMoveMessage : public EventMessage {
 	public:
 		MouseMoveMessage();
@@ -31,16 +48,6 @@ namespace cppogl {
 			int button;
 			int action;
 			int modifier;
-		} mouse;
-	};
-
-	class MouseRaycastMessage : public EventMessage {
-	public:
-		MouseRaycastMessage();
-		virtual ~MouseRaycastMessage();
-
-		struct {
-			bool hover;
 		} mouse;
 	};
 
@@ -129,11 +136,16 @@ namespace cppogl {
 
 		int getKey(int key);
 		int getMouseButton(int key);
+		glm::vec2 getCursorPosition();
+
+		void setInputMode(int mode, int value);
+		void setCursor(int type);
 
 		void grabCursor();
 		void ungrabCursor();
 
 		bool grabbed();
+		bool captured();
 
 		bool shouldClose();
 
@@ -148,6 +160,7 @@ namespace cppogl {
 			double y;
 		} _initial;
 		GLFWwindow* _window;
+		GLFWcursor* _cursor;
 		static std::map<GLFWwindow*, Window*> _handles;
 	};
 
@@ -174,6 +187,7 @@ namespace cppogl {
 		UnitExpression(UnitValue value);
 		UnitExpression(UnitValue left, char op, UnitValue right);
 		UnitExpression(UnitValue left, char op, UnitExpression right);
+		UnitExpression(UnitExpression left, char op, UnitExpression right);
 		UnitExpression(const UnitExpression& other);
 		UnitExpression(UnitExpression&& rvalue);
 		virtual ~UnitExpression();
@@ -188,8 +202,10 @@ namespace cppogl {
 		UnitExpression operator-(UnitExpression& value);
 		UnitExpression operator/(UnitValue& value);
 		UnitExpression operator/(UnitExpression& value);
+		UnitExpression operator/(float value);
 		UnitExpression operator*(UnitValue& value);
 		UnitExpression operator*(UnitExpression& value);
+		UnitExpression operator*(float value);
 		void operator+=(UnitValue& value);
 		void operator+=(UnitExpression& value);
 		void operator-=(UnitValue& value);
@@ -202,23 +218,25 @@ namespace cppogl {
 		bool lessThan(UnitExpression& other, sWindow window);
 		bool greaterThan(UnitExpression& other, sWindow window);
 		bool isZero();
+		bool isValue();
 
 		float resolvePixelValue(sWindow window, Window::Direction direction = Window::Direction::X);
 		float resolve(sWindow window, Window::Direction direction = Window::Direction::X);
 
-		UnitValue left;
-		Operation operation = Operation::VALUE;
-		UnitExpression* right = nullptr;
-
 	private:
-		void _extend(UnitValue& value, Operation op);
-		void _extend(UnitExpression& value, Operation op);
-		void _deepCopy(const UnitExpression& value);
+
+		UnitValue _value = UnitValue{};
+
+		UnitExpression* _left = nullptr;
+		Operation _operation = Operation::VALUE;
+		UnitExpression* _right = nullptr;
 	};
+
 	class UnitVector2D {
 	public:
 		UnitVector2D();
 		UnitVector2D(float x, float y, Unit unit = Unit::ND);
+		UnitVector2D(UnitExpression& x, UnitExpression& y);
 		static UnitVector2D& parse(std::string parse);
 
 		void operator+=(UnitVector2D& other);

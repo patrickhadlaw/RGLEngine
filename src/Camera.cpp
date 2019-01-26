@@ -14,6 +14,9 @@ cppogl::Camera::Camera(CameraType type, sWindow window)
 		throw std::runtime_error("Error: null window handle passed");
 	}
 	this->window = window;
+	this->type = type;
+
+	this->window->registerListener("resize", this);
 
 	this->position = glm::vec3(0.0, 0.0, 0.0);
 	this->direction = glm::vec3(0.0, 0.0, 1.0);
@@ -26,6 +29,13 @@ cppogl::Camera::Camera(CameraType type, sWindow window)
 
 cppogl::Camera::~Camera()
 {
+}
+
+void cppogl::Camera::onMessage(std::string eventname, EventMessage * message)
+{
+	if (eventname == "resize") {
+		this->generate(this->type);
+	}
 }
 
 void cppogl::Camera::update(float deltaT)
@@ -95,6 +105,7 @@ cppogl::NoClipCamera::~NoClipCamera()
 
 void cppogl::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
 {
+	Camera::onMessage(eventname, message);
 	if (eventname == "mousemove") {
 		MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
 		_mouse.deltaX = mousemove->mouse.x;
@@ -107,7 +118,7 @@ void cppogl::NoClipCamera::update(float deltaT)
 	if (window->grabbed()) {
 		int state = window->getKey(GLFW_KEY_ESCAPE);
 		if (state == GLFW_PRESS) {
-			window->ungrabCursor();
+			this->unGrab();
 		}
 		else {
 			this->rotate(_mouse.deltaX / window->height(), _mouse.deltaY / window->width(), 0.0);
@@ -139,13 +150,19 @@ void cppogl::NoClipCamera::update(float deltaT)
 			}
 		}
 	}
-	else {
-		int state = window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
-		if (state == GLFW_PRESS) {
-			window->grabCursor();
-		}
-	}
 	view = glm::lookAt(position, position + direction, up);
+}
+
+void cppogl::NoClipCamera::grab()
+{
+	this->isGrabbed = true;
+	window->grabCursor();
+}
+
+void cppogl::NoClipCamera::unGrab()
+{
+	this->isGrabbed = false;
+	window->ungrabCursor();
 }
 
 void cppogl::NoClipCamera::moveRelative(float forward, float horizontal, float vertical)

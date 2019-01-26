@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "Font.h"
+#include "Raycast.h"
 
 void cleanup() {
 	glfwTerminate();
@@ -88,6 +89,8 @@ int main(const int argc, const char* const argv[]) {
 		app.addShader(textured3D);
 		cppogl::sShaderProgram text = cppogl::sShaderProgram(new cppogl::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
 		app.addShader(text);
+		cppogl::sShaderProgram interface = cppogl::sShaderProgram(new cppogl::ShaderProgram("interface", "shader/interface.vert", "shader/interface.frag"));
+		app.addShader(interface);
 
 		cppogl::sFontFamily roboto = std::make_shared<cppogl::FontFamily>(cppogl::FontFamily("roboto", {
 			{ cppogl::FontFamily::REGULAR, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
@@ -105,7 +108,7 @@ int main(const int argc, const char* const argv[]) {
 		cppogl::sRenderableLayer mainLayer = cppogl::sRenderableLayer(new cppogl::RenderableLayer("main", camera));
 		app.addLayer(mainLayer);
 
-		cppogl::UI::sLayer uiLayer = cppogl::UI::sLayer(new cppogl::UI::Layer("ui", UI_TICK));
+		cppogl::UI::sLayer uiLayer = cppogl::UI::sLayer(new cppogl::UI::Layer(app.getContext(), "ui", UI_TICK));
 		app.addLayer(uiLayer);
 
 		srand(clock());
@@ -120,12 +123,12 @@ int main(const int argc, const char* const argv[]) {
 		triangleA->id = "triangleA";
 		mainLayer->addRenderable(triangleA);
 
-		std::shared_ptr<cppogl::ImageRect> rect = std::shared_ptr<cppogl::ImageRect>(new cppogl::ImageRect(app.getContext(), "textured3D", 1.0, 1.0, "res/sky.png"));
+		auto rect = std::shared_ptr<cppogl::ImageRect>(new cppogl::ImageRect(app.getContext(), "textured3D", 1.0, 1.0, "res/sky.png"));
 		rect->translate(0.0, 2.0, 0.0);
 		triangleA->id = "rect";
 		mainLayer->addRenderable(rect);
 
-		std::shared_ptr<cppogl::Triangle> triangleB = std::shared_ptr<cppogl::Triangle>(new cppogl::Triangle(
+		auto triangleB = std::shared_ptr<cppogl::Triangle>(new cppogl::Triangle(
 			app.getContext(),
 			"basic3D",
 			1.0,
@@ -139,10 +142,10 @@ int main(const int argc, const char* const argv[]) {
 		triangleB->translate(0.0, 0.0, 1.0);
 
 		cppogl::TextAttributes attrib{ cppogl::FontFamily::BOLD, cppogl::UnitValue::parse("16pt"), cppogl::UnitVector2D(300.0f, 0.0f, cppogl::Unit::PT), cppogl::UnitVector2D(0.0, 0.0) };
-		std::shared_ptr<cppogl::Text> fpsText = std::make_shared<cppogl::Text>(cppogl::Text(app.getContext(), "text", "roboto", "Framerate: ", attrib));
+		auto fpsText = std::shared_ptr<cppogl::Text>(new cppogl::Text(app.getContext(), "text", "roboto", "Framerate: ", attrib));
 		fpsText->id = "fpsText";
 		uiLayer->addElement(fpsText);
-		std::shared_ptr<cppogl::Text> wrapTest = std::make_shared<cppogl::Text>(cppogl::Text(app.getContext(),
+		auto wrapTest = std::shared_ptr<cppogl::Text>(new cppogl::Text(app.getContext(),
 			"text",
 			"roboto",
 			"Hello world! This is a test of word wrapping, will it wrap, mabye.",
@@ -150,16 +153,36 @@ int main(const int argc, const char* const argv[]) {
 		));
 		wrapTest->id = "wrapTest";
 		uiLayer->addElement(wrapTest);
+		auto clickText = std::shared_ptr<cppogl::Text>(new cppogl::Text(app.getContext(), "text", "roboto", "Clicked: 0", attrib));
+		clickText->id = "clickText";
+		uiLayer->addElement(clickText);
 
-		cppogl::UI::sLinearAligner textAligner = cppogl::UI::sLinearAligner(new cppogl::UI::LinearAligner({
+		auto basicButton = std::shared_ptr<cppogl::UI::BasicButton>(new cppogl::UI::BasicButton(app.getContext(), "interface", "roboto", "Click Me!"));
+		basicButton->id = "basicButton";
+		uiLayer->addElement(basicButton);
+
+		auto alignerAttribs = cppogl::UI::LinearAlignerAttributes{};
+		alignerAttribs.spacing = cppogl::UnitValue{ 10.0, cppogl::Unit::PT };
+		alignerAttribs.topLeft.x = cppogl::UnitValue{ 10.0f, cppogl::Unit::PT };
+		auto aligner = cppogl::UI::sLinearAligner(new cppogl::UI::LinearAligner({
 			fpsText,
-			wrapTest
-		}));
-		textAligner->id = "textAligner";
-		uiLayer->addLogicNode(textAligner);
+			wrapTest,
+			clickText,
+			basicButton
+		}, alignerAttribs));
+		aligner->id = "aligner";
+		uiLayer->addLogicNode(aligner);
 
 		Stack<30, int> framerate;
+		int numClicked = 0;
+		bool updateText = false;
 
+		cppogl::EventCallback<cppogl::MouseStateMessage> clickListener([&numClicked, &updateText](cppogl::MouseStateMessage* message) {
+			numClicked++;
+			updateText = true;
+		});
+
+		basicButton->registerListener("onclick", &clickListener);
 
 		while (!window->shouldClose()) {
 
@@ -175,8 +198,17 @@ int main(const int argc, const char* const argv[]) {
 			if (uiLayer->tick()) {
 				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
 			}
+			if (updateText) {
+				clickText->update(std::string("Clicked: ") + std::to_string(numClicked));
+				updateText = false;
+			}
 
+			checkGLErrors(0);
+			
 			app.update();
+			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+				camera->grab();
+			}
 		}
 	}
 	catch (cppogl::Exception& e) {

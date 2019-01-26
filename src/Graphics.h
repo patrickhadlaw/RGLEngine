@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Renderable.h"
+#include "Color.h"
 
 namespace cppogl {
 
@@ -77,9 +77,12 @@ namespace cppogl {
 
 	typedef std::shared_ptr<Sampler2D> sSampler2D;
 
-	class Geometry3D : public Renderable {
+	class Geometry3D {
 	public:
-		struct Face {
+		class Face {
+		public:
+			Face(glm::vec3& p1, unsigned short& i1, glm::vec3& p2, unsigned short& i2, glm::vec3& p3, unsigned short& i3);
+
 			glm::vec3& p1;
 			unsigned short& i1;
 			glm::vec3& p2;
@@ -95,9 +98,19 @@ namespace cppogl {
 		void operator=(const Geometry3D& other);
 		void operator=(Geometry3D&& rvalue);
 
-		virtual void render();
+		int numFaces();
+		Face getFace(int index);
 
-		void generate();
+		virtual void generate();
+
+		void standardRender(sShaderProgram shader);
+
+		void standardFill(Fill colorFill);
+
+		void updateVertexBuffer();
+		void updateIndexBuffer();
+		void updateColorBuffer();
+		void updateUVBuffer();
 
 		GLuint vertexArray;
 
@@ -161,7 +174,7 @@ namespace cppogl {
 		~BSPTree();
 	};
 
-	class Shape : public Geometry3D {
+	class Shape : public Geometry3D, public Renderable {
 	public:
 		Shape();
 		Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
@@ -194,6 +207,8 @@ namespace cppogl {
 		Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors);
 		Rect(Context context, std::string shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Rect();
+
+		void changeDimensions(float width, float height);
 
 	protected:
 		void _construct(Context& context, std::string& shader, float& width, float& height, std::vector<glm::vec4> colors);

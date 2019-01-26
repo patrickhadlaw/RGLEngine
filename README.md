@@ -1,12 +1,13 @@
 # cpp-opengl
 
-Simple OpenGL renderer.
+OpenGL real-time renderer.
 Features:
 * Render simple shapes
 * Render images and textures
 * Load vector font formats and render
 * Physically based coordinate systems (ex. pt, ww, wh, vw, vh, ...)
 * Physical quantity expressions, to allow simple operations (+, -, *, /) between different physical quantities (i.e. 3pt * 5cm + 10vw)
+* Clickable UI elements (using triangle-raycast)
 * Noclip camera transformation based on mouse and keyboard input
 * Host-listener event system for capturing events such as window resize, keyboard key press, bounding box change, ...
 * More to come...
@@ -55,4 +56,4 @@ $ ./cpp-opengl [window-width] [window-height]
 ```
 
 ## Screenshot
-![screenshot1](/screenshot1.PNG?raw=true "Screenshot")
+![screenshot1](/screenshot1.png?raw=true "Screenshot")

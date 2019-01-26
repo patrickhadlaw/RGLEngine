@@ -2,7 +2,6 @@
 #include "Graphics.h"
 
 
-
 cppogl::Font::Font()
 {
 	this->_window = nullptr;
@@ -301,7 +300,7 @@ cppogl::Text::Text()
 cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes)
 {
 	this->_context = context;
-	this->shader = context.manager.shader->operator[](shader);
+	this->shader = (*context.manager.shader)[shader];
 	this->_attributes = attributes;
 	this->_elementAttributes = UI::ElementAttributes{ _attributes.zIndex };
 	this->_topLeft = _attributes.topLeft;
@@ -321,6 +320,10 @@ cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, 
 	}
 	else {
 		_dimensions.y = _attributes.dimensions.y;
+	}
+
+	if (!_attributes.dimensions.x.isZero()) {
+		_dimensions.x = _attributes.dimensions.x;
 	}
 
 	this->_context.window->registerListener("resize", this);
@@ -359,7 +362,6 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 	_charecters.clear();
 	this->_charecters.reserve(text.length());
 	UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
-	offset += _attributes.topLeft;
 	int wordIndex = 0;
 	bool firstWord = true;
 	for (int i = 0; i < text.length(); i++) {
@@ -380,6 +382,11 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 		else {
 			_getOffsetWrapWidth(offset, glyph);
 		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
+		}
 	}
 }
 
@@ -387,7 +394,6 @@ void cppogl::Text::update(std::string text)
 {
 	sFont font = _fontFamily->get(_attributes.face);
 	UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
-	offset += _attributes.topLeft;
 	int wordIndex = 0;
 	bool firstWord = true;
 	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
@@ -425,6 +431,11 @@ void cppogl::Text::update(std::string text)
 		else {
 			_getOffsetWrapWidth(offset, glyph);
 		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
+		}
 	}
 	_charecters.resize(text.length());
 	_text = text;
@@ -439,7 +450,6 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
 	_maxSize = std::max(font->lineHeight(pointSize), _maxSize);
 	UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
-	offset += _attributes.topLeft;
 	int wordIndex = 0;
 	bool firstWord = true;
 	for (int i = 0; i < len; i++) {
@@ -458,6 +468,11 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 		}
 		else {
 			_getOffsetWrapWidth(offset, glyph);
+		}
+		if (_attributes.dimensions.x.isZero()) {
+			if (offset.x.greaterThan(_dimensions.x, _context.window)) {
+				_dimensions.x = offset.x;
+			}
 		}
 	}
 	_text = _text + text;

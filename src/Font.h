@@ -117,7 +117,7 @@ namespace cppogl {
 		sWindow window;
 	};
 
-	class Text : public UI::Element, public EventListener {
+	class Text : public UI::Element {
 	public:
 		Text();
 		Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes = {});
