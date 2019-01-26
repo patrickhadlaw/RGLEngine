@@ -153,6 +153,9 @@ int main(const int argc, const char* const argv[]) {
 		));
 		wrapTest->id = "wrapTest";
 		uiLayer->addElement(wrapTest);
+		auto clickText = std::shared_ptr<cppogl::Text>(new cppogl::Text(app.getContext(), "text", "roboto", "Clicked: 0", attrib));
+		clickText->id = "clickText";
+		uiLayer->addElement(clickText);
 
 		auto basicButton = std::shared_ptr<cppogl::UI::BasicButton>(new cppogl::UI::BasicButton(app.getContext(), "interface", "roboto", "Click Me!"));
 		basicButton->id = "basicButton";
@@ -164,13 +167,22 @@ int main(const int argc, const char* const argv[]) {
 		auto aligner = cppogl::UI::sLinearAligner(new cppogl::UI::LinearAligner({
 			fpsText,
 			wrapTest,
+			clickText,
 			basicButton
 		}, alignerAttribs));
 		aligner->id = "aligner";
 		uiLayer->addLogicNode(aligner);
 
 		Stack<30, int> framerate;
-		bool clickedOut = false;
+		int numClicked = 0;
+		bool updateText = false;
+
+		cppogl::EventCallback<cppogl::MouseStateMessage> clickListener([&numClicked, &updateText](cppogl::MouseStateMessage* message) {
+			numClicked++;
+			updateText = true;
+		});
+
+		basicButton->registerListener("onclick", &clickListener);
 
 		while (!window->shouldClose()) {
 
@@ -185,6 +197,10 @@ int main(const int argc, const char* const argv[]) {
 			
 			if (uiLayer->tick()) {
 				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
+			}
+			if (updateText) {
+				clickText->update(std::string("Clicked: ") + std::to_string(numClicked));
+				updateText = false;
 			}
 
 			checkGLErrors(0);

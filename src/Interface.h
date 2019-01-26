@@ -67,7 +67,7 @@ namespace cppogl {
 
 			virtual bool raycast(Ray ray);
 
-			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside);
+			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside, MouseState state);
 
 			glm::mat4 transform();
 
@@ -162,6 +162,7 @@ namespace cppogl {
 
 		protected:
 			bool _raycastCheck;
+			MouseState _mouseState;
 			bool _castHit;
 			clock_t _tickTime;
 			clock_t _lastTick;
@@ -213,9 +214,9 @@ namespace cppogl {
 			virtual void render();
 			virtual void update();
 
-			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside);
+			virtual DelegateMouseState delegateMouseState(Ray clickray, bool inside, MouseState state);
 
-			virtual void onStateChange(State state);
+			virtual void onStateChange(State state, bool inside, MouseState mouseState);
 
 		protected:
 			State _currentState = DEFAULT;
@@ -238,7 +239,7 @@ namespace cppogl {
 
 			virtual void onBoxUpdate();
 
-			virtual void onStateChange(Button::State state);
+			virtual void onStateChange(Button::State state, bool inside, MouseState mouseState);
 
 			virtual void render();
 

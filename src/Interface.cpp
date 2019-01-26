@@ -205,7 +205,7 @@ bool cppogl::UI::Element::raycast(Ray ray)
 	return ray.intersect(topright, topleft, bottomleft) || ray.intersect(bottomleft, bottomright, topright);
 }
 
-cppogl::UI::DelegateMouseState cppogl::UI::Element::delegateMouseState(Ray clickray, bool inside)
+cppogl::UI::DelegateMouseState cppogl::UI::Element::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
 	return DelegateMouseState::UNCHANGED;
 }
@@ -273,8 +273,18 @@ bool cppogl::UI::Layer::raycastHit()
 
 void cppogl::UI::Layer::onMessage(std::string eventname, EventMessage * message)
 {
-	if (eventname == "mousemove" || eventname == "mouseclick" && !this->_context.window->grabbed()) {
+	bool click = eventname == "mouseclick";
+	if (eventname == "mousemove" || click && !this->_context.window->grabbed()) {
 		this->_raycastCheck = true;
+		glm::vec2 cursor = this->_context.window->getCursorPosition();
+		this->_mouseState.x = cursor.x;
+		this->_mouseState.y = cursor.y;
+		if (click) {
+			MouseClickMessage* clickMessage = message->cast<MouseClickMessage>();
+			this->_mouseState.action = clickMessage->mouse.action;
+			this->_mouseState.button = clickMessage->mouse.button;
+			this->_mouseState.modifier = clickMessage->mouse.modifier;
+		}
 	}
 }
 
@@ -293,21 +303,21 @@ void cppogl::UI::Layer::update()
 					if (this->_elements[i]->raycast(mouseray)) {
 						if (closest == nullptr || this->_elements[i]->getElementAttribs().zIndex < closest->getElementAttribs().zIndex) {
 							if (closest != nullptr) {
-								closest->delegateMouseState(mouseray, false);
+								closest->delegateMouseState(mouseray, false, this->_mouseState);
 							}
 							closest = this->_elements[i];
 						}
 						else {
-							this->_elements[i]->delegateMouseState(mouseray, false);
+							this->_elements[i]->delegateMouseState(mouseray, false, this->_mouseState);
 						}
 						this->_castHit = true;
 					}
 					else {
-						this->_elements[i]->delegateMouseState(mouseray, false);
+						this->_elements[i]->delegateMouseState(mouseray, false, this->_mouseState);
 					}
 				}
 				if (this->_castHit) {
-					DelegateMouseState state = closest->delegateMouseState(mouseray, true);
+					DelegateMouseState state = closest->delegateMouseState(mouseray, true, this->_mouseState);
 					switch (state) {
 					case DelegateMouseState::CURSOR_ARROW:
 						this->_context.window->setCursor(GLFW_ARROW_CURSOR);
@@ -368,6 +378,7 @@ void cppogl::UI::Layer::addElement(sElement element)
 
 cppogl::UI::Button::Button()
 {
+
 }
 
 cppogl::UI::Button::~Button()
@@ -384,7 +395,7 @@ void cppogl::UI::Button::update()
 
 }
 
-cppogl::UI::DelegateMouseState cppogl::UI::Button::delegateMouseState(Ray clickray, bool inside)
+cppogl::UI::DelegateMouseState cppogl::UI::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
 	int key = this->_context.window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
 	State next = DEFAULT;
@@ -402,15 +413,17 @@ cppogl::UI::DelegateMouseState cppogl::UI::Button::delegateMouseState(Ray clickr
 		delegateState = DelegateMouseState::CURSOR_HAND;
 	}
 	if (next != this->_currentState) {
-		this->onStateChange(next);
+		this->onStateChange(next, inside, state);
 		this->_currentState = next;
 	}
 	return delegateState;
 }
 
-void cppogl::UI::Button::onStateChange(State state)
+void cppogl::UI::Button::onStateChange(State state, bool inside, MouseState mouseState)
 {
-
+	if (this->_currentState == ACTIVE && inside) {
+		this->broadcastEvent("onclick", new MouseStateMessage(mouseState));
+	}
 }
 
 cppogl::UI::BasicButton::BasicButton()
@@ -453,8 +466,9 @@ void cppogl::UI::BasicButton::onBoxUpdate()
 	this->_text->changeTopLeft(UnitVector2D(this->_topLeft.x + this->_basicButtonAttributes.paddingHorizontal.x, this->_topLeft.y));
 }
 
-void cppogl::UI::BasicButton::onStateChange(Button::State state)
+void cppogl::UI::BasicButton::onStateChange(Button::State state, bool inside, MouseState mouseState)
 {
+	Button::onStateChange(state, inside, mouseState);
 	switch (state) {
 	default:
 		this->_rect.standardFill(this->_basicButtonAttributes.defaultColor);

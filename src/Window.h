@@ -11,6 +11,23 @@ namespace cppogl {
 
 	struct Context;
 
+	struct MouseState {
+		double x = 0.0;
+		double y = 0.0;
+		int button;
+		int action;
+		int modifier;
+	};
+
+	class MouseStateMessage : public EventMessage {
+	public:
+		MouseStateMessage();
+		MouseStateMessage(MouseState state);
+		virtual ~MouseStateMessage();
+		
+		MouseState mouse;
+	};
+
 	class MouseMoveMessage : public EventMessage {
 	public:
 		MouseMoveMessage();

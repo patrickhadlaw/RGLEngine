@@ -1019,3 +1019,16 @@ glm::vec3 cppogl::UnitVector3D::resolve(sWindow window)
 {
 	return glm::vec3(this->x.resolve(window, Window::Direction::X), this->y.resolve(window, Window::Direction::Y), this->z.resolve(window, Window::Direction::Y));
 }
+
+cppogl::MouseStateMessage::MouseStateMessage()
+{
+}
+
+cppogl::MouseStateMessage::MouseStateMessage(MouseState state)
+{
+	this->mouse = state;
+}
+
+cppogl::MouseStateMessage::~MouseStateMessage()
+{
+}
