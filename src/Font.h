@@ -57,15 +57,17 @@ namespace cppogl {
 
 	typedef std::shared_ptr<Font> sFont;
 
+	namespace FontType {
+		const std::string REGULAR = std::string("regular");
+		const std::string BOLD = std::string("bold");
+		const std::string ITALIC = std::string("italic");
+		const std::string ITALIC_BOLD = std::string("italic_bold");
+		const std::string LIGHT = std::string("light");
+		const std::string ITALIC_LIGHT = std::string("italic_light");
+	}
+
 	class FontFamily : public Resource {
 	public:
-		static const std::string REGULAR;
-		static const std::string BOLD;
-		static const std::string ITALIC;
-		static const std::string ITALIC_BOLD;
-		static const std::string LIGHT;
-		static const std::string ITALIC_LIGHT;
-
 		FontFamily();
 		FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts);
 		virtual ~FontFamily();
@@ -81,7 +83,7 @@ namespace cppogl {
 	typedef std::shared_ptr<FontFamily> sFontFamily;
 
 	struct TextAttributes {
-		std::string face = FontFamily::REGULAR;
+		std::string face = FontType::REGULAR;
 		UnitValue fontSize = UnitValue{ 16.0f, Unit::PT };
 		UnitVector2D dimensions = UnitVector2D(0.0f, 0.0f, Unit::ND);
 		UnitVector2D topLeft = UnitVector2D(0.0f, 0.0f, Unit::ND);

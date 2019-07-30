@@ -2,11 +2,6 @@
 #include "Platform.h"
 
 
-void CPPOGL_AbortHandler(int signal_number)
-{
-	std::cout << "SIGABORT received: " + std::to_string(signal_number) << std::endl;
-}
-
 cppogl::Application::Application()
 {
 }
@@ -21,8 +16,7 @@ cppogl::Application::~Application()
 
 void cppogl::Application::initialize()
 {
-	CPPOGL_Initialize_Platform();
-	signal(SIGABRT, CPPOGL_AbortHandler);
+	cppogl::Platform::initialize();
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(cppogl::debugCallback, 0);
 	glClearColor(1.0, 1.0, 1.0, 1.0);

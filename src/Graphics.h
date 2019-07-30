@@ -216,7 +216,8 @@ namespace cppogl {
 
 	class Torus : public Shape {
 	public:
-		Torus(Context context, std::string shader, float& a, float& b);
+		Torus(Context context, std::string shader, float& c, float& a);
+		virtual ~Torus();
 
 
 	protected:

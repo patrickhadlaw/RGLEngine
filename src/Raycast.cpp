@@ -17,7 +17,6 @@ cppogl::Ray::~Ray()
 
 bool cppogl::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
 {
-
 	glm::vec3 n = glm::cross(p2 - p1, p3 - p2);
 	float denom = glm::dot(n, this->_p);
 	float r;

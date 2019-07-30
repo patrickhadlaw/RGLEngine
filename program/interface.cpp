@@ -1,8 +1,6 @@
 // cpp-opengl.cpp
 
-#include "Application.h"
-#include "Font.h"
-#include "Raycast.h"
+#include "cpp-opengl.h"
 
 void cleanup() {
 	glfwTerminate();
@@ -59,9 +57,6 @@ private:
 
 int main(const int argc, const char* const argv[]) {
 	try {
-		if (!glfwInit()) {
-			throw cppogl::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
-		}
 
 		int width = 800;
 		int height = 600;
@@ -76,7 +71,7 @@ int main(const int argc, const char* const argv[]) {
 		glewExperimental = true;
 		GLenum err = glewInit();
 		if (err != GLEW_OK) {
-			throw cppogl::Exception("Error: failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), EXCEPT_DETAIL_DEFAULT);
+			throw cppogl::Exception("failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), EXCEPT_DETAIL_DEFAULT);
 		}
 
 		cppogl::Application app = cppogl::Application("cppogl", window);
@@ -93,12 +88,12 @@ int main(const int argc, const char* const argv[]) {
 		app.addShader(interface);
 
 		cppogl::sFontFamily roboto = std::make_shared<cppogl::FontFamily>(cppogl::FontFamily("roboto", {
-			{ cppogl::FontFamily::REGULAR, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
-			{ cppogl::FontFamily::BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Bold.ttf")) },
-			{ cppogl::FontFamily::ITALIC, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Italic.ttf")) },
-			{ cppogl::FontFamily::ITALIC_BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-BoldItalic.ttf")) },
-			{ cppogl::FontFamily::LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Light.ttf")) },
-			{ cppogl::FontFamily::ITALIC_LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-LightItalic.ttf")) } }));
+			{ cppogl::FontType::REGULAR, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
+			{ cppogl::FontType::BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Bold.ttf")) },
+			{ cppogl::FontType::ITALIC, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Italic.ttf")) },
+			{ cppogl::FontType::ITALIC_BOLD, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-BoldItalic.ttf")) },
+			{ cppogl::FontType::LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-Light.ttf")) },
+			{ cppogl::FontType::ITALIC_LIGHT, std::make_shared<cppogl::Font>(cppogl::Font(window, "res/font/Roboto/Roboto-LightItalic.ttf")) } }));
 
 		app.addResource(roboto);
 
@@ -141,7 +136,7 @@ int main(const int argc, const char* const argv[]) {
 		triangleB->rotate(0.0, 0.0, glm::radians(60.0f));
 		triangleB->translate(0.0, 0.0, 1.0);
 
-		cppogl::TextAttributes attrib{ cppogl::FontFamily::BOLD, cppogl::UnitValue::parse("16pt"), cppogl::UnitVector2D(300.0f, 0.0f, cppogl::Unit::PT), cppogl::UnitVector2D(0.0, 0.0) };
+		cppogl::TextAttributes attrib{ cppogl::FontType::BOLD, cppogl::UnitValue::parse("16pt"), cppogl::UnitVector2D(300.0f, 0.0f, cppogl::Unit::PT), cppogl::UnitVector2D(0.0, 0.0) };
 		auto fpsText = std::shared_ptr<cppogl::Text>(new cppogl::Text(app.getContext(), "text", "roboto", "Framerate: ", attrib));
 		fpsText->id = "fpsText";
 		uiLayer->addElement(fpsText);
@@ -149,7 +144,7 @@ int main(const int argc, const char* const argv[]) {
 			"text",
 			"roboto",
 			"Hello world! This is a test of word wrapping, will it wrap, mabye.",
-			cppogl::TextAttributes{ cppogl::FontFamily::LIGHT, cppogl::UnitValue::parse("16pt"), cppogl::UnitVector2D(300.0f, 0.0f, cppogl::Unit::PT), cppogl::UnitVector2D(0.0, 0.0) }
+			cppogl::TextAttributes{ cppogl::FontType::LIGHT, cppogl::UnitValue::parse("16pt"), cppogl::UnitVector2D(300.0f, 0.0f, cppogl::Unit::PT), cppogl::UnitVector2D(0.0, 0.0) }
 		));
 		wrapTest->id = "wrapTest";
 		uiLayer->addElement(wrapTest);

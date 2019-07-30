@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Console.h"
+
 #include <iostream>
 #include <exception>
 #include <string>
 
-#define EXCEPT_DETAIL_DEFAULT cppogl::Exception::Detail{__FILE__, __func__, __LINE__, ""}
-#define EXCEPT_DETAIL_IDENTIFIER(id) cppogl::Exception::Detail{__FILE__, __func__, __LINE__, "", id}
+#define EXCEPT_DETAIL_DEFAULT cppogl::Exception::Detail{CPPOGL_FILENAME, __func__, __LINE__, ""}
+#define EXCEPT_DETAIL_IDENTIFIER(id) cppogl::Exception::Detail{CPPOGL_FILENAME, __func__, __LINE__, "", id}
 
 namespace cppogl {
 	class Exception : public std::runtime_error {

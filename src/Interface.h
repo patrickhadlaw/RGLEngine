@@ -248,5 +248,11 @@ namespace cppogl {
 			std::unique_ptr<Text> _text;
 			BasicButtonAttributes _basicButtonAttributes;
 		};
+
+		class TextField : public Element {
+		public:
+			TextField();
+			virtual ~TextField();
+		};
 	}
 }

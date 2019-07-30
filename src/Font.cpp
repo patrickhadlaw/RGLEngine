@@ -587,14 +587,6 @@ void cppogl::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int&
 	}
 }
 
-const std::string cppogl::FontFamily::REGULAR = std::string("regular");
-const std::string cppogl::FontFamily::BOLD = std::string("bold");
-const std::string cppogl::FontFamily::ITALIC = std::string("italic");
-const std::string cppogl::FontFamily::ITALIC_BOLD = std::string("italic_bold");
-const std::string cppogl::FontFamily::LIGHT = std::string("light");
-const std::string cppogl::FontFamily::ITALIC_LIGHT = std::string("italic_light");
-
-
 cppogl::FontFamily::FontFamily()
 {
 }
@@ -613,10 +605,10 @@ cppogl::FontFamily::~FontFamily()
 
 cppogl::sFont cppogl::FontFamily::get(const std::string& fontface) {
 	if (_fonts.find(fontface) == _fonts.end()) {
-		if (fontface == REGULAR) {
+		if (fontface == FontType::REGULAR) {
 			throw Exception(std::string("could not find default font face in family: ") + id, EXCEPT_DETAIL_DEFAULT);
 		}
-		return this->get(REGULAR);
+		return this->get(FontType::REGULAR);
 	}
 	else {
 		return _fonts[fontface];
