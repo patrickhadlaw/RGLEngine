@@ -58,19 +58,27 @@ namespace cppogl {
 		void rotate(float x, float y, float z);
 		void lookAt(glm::vec3 direction);
 
-	protected:
-		glm::vec3 position;
-		glm::vec3 direction;
-		glm::vec3 up;
-		glm::vec3 right;
-		glm::mat4 view;
-		glm::mat4 projection;
-		GLint viewLocation;
-		GLint projectionLocation;
-		CameraType type;
+		glm::vec3 position();
+		glm::vec3 direction();
+		glm::vec3 up();
+		glm::mat4 view();
+		glm::mat4 projection();
 
-		sWindow window;
+	protected:
+		glm::vec3 _position;
+		glm::vec3 _direction;
+		glm::vec3 _up;
+		glm::vec3 _right;
+		glm::mat4 _view;
+		glm::mat4 _projection;
+		GLint _viewLocation;
+		GLint _projectionLocation;
+		CameraType _type;
+
+		sWindow _window;
 	};
+
+	typedef std::shared_ptr<Camera> sCamera;
 
 	class NoClipCamera : public Camera {
 	public:
@@ -92,6 +100,6 @@ namespace cppogl {
 			double deltaX = 0.0f;
 			double deltaY = 0.0f;
 		} _mouse;
-		bool isGrabbed;
+		bool _isGrabbed;
 	};
 }

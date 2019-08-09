@@ -1,10 +1,9 @@
 #pragma once
 
-#include <signal.h>
-
 #include "Renderable.h"
-
-void CPPOGL_AbortHandler(int signal_number);
+#include "Font.h"
+#include "Raycast.h"
+#include "Thread.h"
 
 namespace cppogl {
 

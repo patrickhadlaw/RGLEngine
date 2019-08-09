@@ -145,7 +145,6 @@ namespace cppogl {
 		void ungrabCursor();
 
 		bool grabbed();
-		bool captured();
 
 		bool shouldClose();
 

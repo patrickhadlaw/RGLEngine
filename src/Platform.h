@@ -1,24 +1,34 @@
 #pragma once
 
-#if defined(_MSC_VER)
+#include <iostream>
+#include <string.h>
 
-#ifndef NDEBUG
-#include <crtdbg.h>
-void CPPOGL_Initialize_Platform() {
-	/*_CrtSetReportMode(_CRT_ASSERT, 0);
-	// ON assert, write to stderr.
-	_CrtSetReportMode( _CRT_ASSERT, _CRTDBG_MODE_FILE );
-	_CrtSetReportFile( _CRT_ASSERT, _CRTDBG_FILE_STDERR );
-
-	// Suppress the abort message
-	_set_abort_behavior(0, _WRITE_ABORT_MSG);*/
+namespace cppogl {
+	namespace Platform {
+		void initialize();
+	}
 }
+
+#if defined _MSC_VER
+
+#ifdef CPPOGL_DLL_BUILD_MODE
+#define CPPOGL_DLLEXPORTED  __declspec(dllexport)
 #else
-void CPPOGL_Initialize_Platform() {
-}
+#define CPPOGL_DLLEXPORTED  __declspec(dllimport)
 #endif
 
 #else
-void CPPOGL_Initialize_Platform() {
-}
+
+#define CPPOGL_DLLEXPORTED
+
+#endif
+
+#ifdef TARGET_OS_MAC
+#define CPPOGL_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#elif defined __linux__
+#define CPPOGL_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#elif defined _WIN32 || defined _WIN64
+#define CPPOGL_FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#else
+#error "Unknown platform..."
 #endif

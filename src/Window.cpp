@@ -59,6 +59,10 @@ cppogl::Window::Window() : _cursor(nullptr)
 
 cppogl::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
+	if (glfwInit() == GLFW_FALSE) {
+		throw cppogl::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
+	}
+
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -68,7 +72,7 @@ cppogl::Window::Window(const int width, const int height, const char* title) : _
 
 	_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
 	if (_window == nullptr) {
-		throw std::runtime_error("Error: failed to create GLFW window");
+		throw Exception("failed to create GLFW window", EXCEPT_DETAIL_DEFAULT);
 	}
 	glfwMakeContextCurrent(_window);
 

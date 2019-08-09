@@ -3,9 +3,9 @@
 
 cppogl::Camera::Camera()
 {
-	this->position = glm::vec3(0.0, 0.0, 0.0);
-	this->projection = glm::mat4(1.0f);
-	this->view = glm::mat4(1.0f);
+	this->_position = glm::vec3(0.0, 0.0, 0.0);
+	this->_projection = glm::mat4(1.0f);
+	this->_view = glm::mat4(1.0f);
 }
 
 cppogl::Camera::Camera(CameraType type, sWindow window)
@@ -13,15 +13,15 @@ cppogl::Camera::Camera(CameraType type, sWindow window)
 	if (window == nullptr) {
 		throw std::runtime_error("Error: null window handle passed");
 	}
-	this->window = window;
-	this->type = type;
+	this->_window = window;
+	this->_type = type;
 
-	this->window->registerListener("resize", this);
+	this->_window->registerListener("resize", this);
 
-	this->position = glm::vec3(0.0, 0.0, 0.0);
-	this->direction = glm::vec3(0.0, 0.0, 1.0);
-	this->up = glm::vec3(0.0, 1.0, 0.0);
-	this->right = glm::vec3(1.0, 0.0, 0.0);
+	this->_position = glm::vec3(0.0, 0.0, 0.0);
+	this->_direction = glm::vec3(0.0, 0.0, 1.0);
+	this->_up = glm::vec3(0.0, 1.0, 0.0);
+	this->_right = glm::vec3(1.0, 0.0, 0.0);
 
 	this->generate(type);
 }
@@ -34,21 +34,21 @@ cppogl::Camera::~Camera()
 void cppogl::Camera::onMessage(std::string eventname, EventMessage * message)
 {
 	if (eventname == "resize") {
-		this->generate(this->type);
+		this->generate(this->_type);
 	}
 }
 
 void cppogl::Camera::update(float deltaT)
 {
-	glUniformMatrix4fv(projectionLocation, 1, GL_FALSE, &projection[0][0]);
-	view = glm::lookAt(position, position + direction, up);
-	glUniformMatrix4fv(viewLocation, 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(_projectionLocation, 1, GL_FALSE, &_projection[0][0]);
+	_view = glm::lookAt(_position, _position + _direction, _up);
+	glUniformMatrix4fv(_viewLocation, 1, GL_FALSE, &_view[0][0]);
 }
 
 void cppogl::Camera::bind(sShaderProgram shader)
 {
-	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &projection[0][0]);
-	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &view[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &_projection[0][0]);
+	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &_view[0][0]);
 }
 
 void cppogl::Camera::generate(CameraType type)
@@ -56,19 +56,19 @@ void cppogl::Camera::generate(CameraType type)
 	switch (type) {
 	default:
 	case ORTHOGONAL_PROJECTION:
-		this->projection = glm::ortho(0.0f, (float)window->width(), (float)window->height(), 0.0f, 0.01f, 1000.0f);
+		this->_projection = glm::ortho(0.0f, (float)_window->width(), (float)_window->height(), 0.0f, 0.01f, 1000.0f);
 		break;
 	case PERSPECTIVE_PROJECTION:
-		this->projection = glm::perspective(glm::radians(60.0f), ((float)window->width() / (float)window->height()), 0.001f, 100.0f);
+		this->_projection = glm::perspective(glm::radians(60.0f), ((float)_window->width() / (float)_window->height()), 0.001f, 100.0f);
 		break;
 	}
 }
 
 void cppogl::Camera::translate(float x, float y, float z)
 {
-	position.x += x;
-	position.y += y;
-	position.z += z;
+	_position.x += x;
+	_position.y += y;
+	_position.z += z;
 }
 
 void cppogl::Camera::rotate(float x, float y, float z)
@@ -76,10 +76,10 @@ void cppogl::Camera::rotate(float x, float y, float z)
 	x = -x;
 	y = -y;
 	z = -z;
-	glm::vec3 tempDirection = direction;
-	direction = glm::normalize(glm::angleAxis(x, up) * glm::angleAxis(y, right) * glm::angleAxis(z, direction)) * direction;
-	up = glm::normalize(glm::angleAxis(x, up) * glm::angleAxis(y, right) * glm::angleAxis(z, tempDirection)) * up;
-	right = glm::cross(direction, up);
+	glm::vec3 tempDirection = _direction;
+	_direction = glm::normalize(glm::angleAxis(x, _up) * glm::angleAxis(y, _right) * glm::angleAxis(z, _direction)) * _direction;
+	_up = glm::normalize(glm::angleAxis(x, _up) * glm::angleAxis(y, _right) * glm::angleAxis(z, tempDirection)) * _up;
+	_right = glm::cross(_direction, _up);
 }
 
 void cppogl::Camera::lookAt(glm::vec3 direction)
@@ -87,16 +87,41 @@ void cppogl::Camera::lookAt(glm::vec3 direction)
 	
 }
 
+glm::vec3 cppogl::Camera::position()
+{
+	return _position;
+}
+
+glm::vec3 cppogl::Camera::direction()
+{
+	return _direction;
+}
+
+glm::vec3 cppogl::Camera::up()
+{
+	return _up;
+}
+
+glm::mat4 cppogl::Camera::view()
+{
+	return _view;
+}
+
+glm::mat4 cppogl::Camera::projection()
+{
+	return _projection;
+}
+
 cppogl::NoClipCamera::NoClipCamera() : Camera()
 {
-	isGrabbed = false;
+	_isGrabbed = false;
 }
 
 cppogl::NoClipCamera::NoClipCamera(CameraType type, sWindow window) : Camera(type, window)
 {
-	isGrabbed = false;
-	this->window = window;
-	this->window->registerListener("mousemove", this);
+	_isGrabbed = false;
+	this->_window = window;
+	this->_window->registerListener("mousemove", this);
 }
 
 cppogl::NoClipCamera::~NoClipCamera()
@@ -115,60 +140,60 @@ void cppogl::NoClipCamera::onMessage(std::string eventname, EventMessage * messa
 
 void cppogl::NoClipCamera::update(float deltaT)
 {
-	if (window->grabbed()) {
-		int state = window->getKey(GLFW_KEY_ESCAPE);
+	if (_window->grabbed()) {
+		int state = _window->getKey(GLFW_KEY_ESCAPE);
 		if (state == GLFW_PRESS) {
 			this->unGrab();
 		}
 		else {
-			this->rotate(_mouse.deltaX / window->height(), _mouse.deltaY / window->width(), 0.0);
+			this->rotate(_mouse.deltaX / _window->height(), _mouse.deltaY / _window->width(), 0.0);
 			_mouse.deltaX = 0.0;
 			_mouse.deltaY = 0.0;
-			if (window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
 				moveRelative(deltaT, 0.0, 0.0);
 			}
-			if (window->getKey(GLFW_KEY_A) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_A) == GLFW_PRESS) {
 				moveRelative(0.0, -deltaT, 0.0);
 			}
-			if (window->getKey(GLFW_KEY_S) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_S) == GLFW_PRESS) {
 				moveRelative(-deltaT, 0.0, 0.0);
 			}
-			if (window->getKey(GLFW_KEY_D) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_D) == GLFW_PRESS) {
 				moveRelative(0.0, deltaT, 0.0);
 			}
-			if (window->getKey(GLFW_KEY_SPACE) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_SPACE) == GLFW_PRESS) {
 				moveRelative(0.0, 0.0, deltaT);
 			}
-			if (window->getKey(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
 				moveRelative(0.0, 0.0, -deltaT);
 			}
-			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
 				rotate(0.0, 0.0, -deltaT);
 			}
-			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
+			if (_window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
 				rotate(0.0, 0.0, deltaT);
 			}
 		}
 	}
-	view = glm::lookAt(position, position + direction, up);
+	_view = glm::lookAt(_position, _position + _direction, _up);
 }
 
 void cppogl::NoClipCamera::grab()
 {
-	this->isGrabbed = true;
-	window->grabCursor();
+	this->_isGrabbed = true;
+	_window->grabCursor();
 }
 
 void cppogl::NoClipCamera::unGrab()
 {
-	this->isGrabbed = false;
-	window->ungrabCursor();
+	this->_isGrabbed = false;
+	_window->ungrabCursor();
 }
 
 void cppogl::NoClipCamera::moveRelative(float forward, float horizontal, float vertical)
 {
-	glm::vec3 right = glm::cross(direction, up);
-	position += direction * forward + right * horizontal + up * vertical;
+	glm::vec3 right = glm::cross(_direction, _up);
+	_position += _direction * forward + right * horizontal + _up * vertical;
 }
 
 cppogl::ViewTransformer::ViewTransformer()
