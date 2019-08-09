@@ -1,13 +1,13 @@
 #pragma once
 
-#include "cpp-opengl.h"
+#include "rgle.h"
 
 #include <iostream>
 #include <string>
 #include <vector>
 #include <functional>
 
-namespace cppogl {
+namespace rgle {
 
 	typedef std::function<bool()> ExpectationFunc;
 
@@ -20,20 +20,20 @@ namespace cppogl {
 			try {
 				test(testBed);
 			}
-			catch (cppogl::Exception& e) {
+			catch (rgle::Exception& e) {
 				std::cout << "TEST - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::RED, "FAILED");
+				rgle::Console::coloredPrint(rgle::Console::Color::RED, "FAILED");
 				return -1;
 			}
 			catch (std::exception& e) {
 				std::cout << "TEST - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::RED, "FAILED");
+				rgle::Console::coloredPrint(rgle::Console::Color::RED, "FAILED");
 				std::cout << " - Unhandled exception thrown:\n" << e.what() << std::endl;
 				return -1;
 			}
 			catch (...) {
 				std::cout << "TEST - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::RED, "FAILED");
+				rgle::Console::coloredPrint(rgle::Console::Color::RED, "FAILED");
 				std::cout << " - Unhandled exception thrown" << std::endl;
 				return -1;
 			}
@@ -45,13 +45,13 @@ namespace cppogl {
 			this->_total++;
 			if (expect()) {
 				std::cout << '[' << this->_total << "] - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::GREEN, "PASSED");
+				rgle::Console::coloredPrint(rgle::Console::Color::GREEN, "PASSED");
 				std::cout << " - " << description << std::endl;
 				this->_succeeded++;
 			}
 			else {
 				std::cout << '[' << this->_total << "] - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::RED, "FAILED");
+				rgle::Console::coloredPrint(rgle::Console::Color::RED, "FAILED");
 				std::cout << " - " << description << std::endl;
 			}
 		}
@@ -61,11 +61,11 @@ namespace cppogl {
 			std::cout << this->_succeeded << '/' << this->_total << " - PASSED" << std::endl;
 			if (this->_succeeded == this->_total) {
 				std::cout << "TEST - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::GREEN, "SUCCEEDED");
+				rgle::Console::coloredPrint(rgle::Console::Color::GREEN, "SUCCEEDED");
 			}
 			else {
 				std::cout << "TEST - ";
-				cppogl::Console::coloredPrint(cppogl::Console::Color::RED, "FAILED");
+				rgle::Console::coloredPrint(rgle::Console::Color::RED, "FAILED");
 			}
 		}
 

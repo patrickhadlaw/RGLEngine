@@ -3,7 +3,7 @@
 #include "Graphics.h"
 #include "Interface.h"
 
-namespace cppogl {
+namespace rgle {
 
 	template<unsigned N>
 	inline unsigned next_power_n(unsigned x) {

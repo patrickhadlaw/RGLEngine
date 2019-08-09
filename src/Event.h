@@ -6,7 +6,7 @@
 #include <map>
 #include <functional>
 
-namespace cppogl {
+namespace rgle {
 
 	class EventException : public Exception {
 	public:

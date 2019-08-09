@@ -2,12 +2,12 @@
 #include "Graphics.h"
 
 
-cppogl::Font::Font()
+rgle::Font::Font()
 {
 	this->_window = nullptr;
 }
 
-cppogl::Font::Font(sWindow window, std::string fontfile)
+rgle::Font::Font(sWindow window, std::string fontfile)
 {
 	this->_window = window;
 	int error = FT_Init_FreeType(&_library);
@@ -23,11 +23,11 @@ cppogl::Font::Font(sWindow window, std::string fontfile)
 	}
 }
 
-cppogl::Font::~Font()
+rgle::Font::~Font()
 {
 }
 
-void cppogl::Font::generate(int size)
+void rgle::Font::generate(int size)
 {
 	if (this->_window == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -47,24 +47,24 @@ void cppogl::Font::generate(int size)
 	this->_generated[size] = glyphs;
 }
 
-float cppogl::Font::lineHeight(int size)
+float rgle::Font::lineHeight(int size)
 {
 	FT_Set_Pixel_Sizes(_face, 0, size);
 	return (float) _face->size->metrics.height / 64;
 }
 
-std::string & cppogl::Font::typeName()
+std::string & rgle::Font::typeName()
 {
-	return std::string("cppogl::Font");
+	return std::string("rgle::Font");
 }
 
-cppogl::CharRect::CharRect()
+rgle::CharRect::CharRect()
 {
 	this->shader = nullptr;
 	this->window = nullptr;
 }
 
-cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, UnitVector2D offset, float zIndex, UnitValue baselineOffset, UnitVector2D dimensions)
+rgle::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, UnitVector2D offset, float zIndex, UnitValue baselineOffset, UnitVector2D dimensions)
 {
 	this->shader = shader;
 	this->window = window;
@@ -119,7 +119,7 @@ cppogl::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, 
 	this->generate();
 }
 
-cppogl::CharRect::CharRect(const CharRect & other)
+rgle::CharRect::CharRect(const CharRect & other)
 {
 	_cleanup();
 	width = other.width;
@@ -139,7 +139,7 @@ cppogl::CharRect::CharRect(const CharRect & other)
 	this->generate();
 }
 
-cppogl::CharRect::CharRect(CharRect && rvalue)
+rgle::CharRect::CharRect(CharRect && rvalue)
 {
 	_cleanup();
 	width = rvalue.width;
@@ -164,11 +164,11 @@ cppogl::CharRect::CharRect(CharRect && rvalue)
 	rvalue.uv = {};
 }
 
-cppogl::CharRect::~CharRect()
+rgle::CharRect::~CharRect()
 {
 }
 
-void cppogl::CharRect::operator=(const CharRect & other)
+void rgle::CharRect::operator=(const CharRect & other)
 {
 	_cleanup();
 	width = other.width;
@@ -189,7 +189,7 @@ void cppogl::CharRect::operator=(const CharRect & other)
 	this->generate();
 }
 
-void cppogl::CharRect::operator=(CharRect && rvalue)
+void rgle::CharRect::operator=(CharRect && rvalue)
 {
 	this->_cleanup();
 	width = rvalue.width;
@@ -214,7 +214,7 @@ void cppogl::CharRect::operator=(CharRect && rvalue)
 	rvalue.uv = {};
 }
 
-void cppogl::CharRect::recalculate()
+void rgle::CharRect::recalculate()
 {
 	float width = this->dimensions.x.resolve(this->window, Window::X);
 	float height = this->dimensions.y.resolve(this->window, Window::Y);
@@ -233,7 +233,7 @@ void cppogl::CharRect::recalculate()
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
-void cppogl::CharRect::render()
+void rgle::CharRect::render()
 {
 	glBindVertexArray(vertexArray);
 
@@ -251,12 +251,12 @@ void cppogl::CharRect::render()
 	glDrawElements(GL_TRIANGLES, static_cast<GLsizei>(index.list.size()), GL_UNSIGNED_SHORT, nullptr);
 }
 
-cppogl::Glyph::Glyph()
+rgle::Glyph::Glyph()
 {
 	this->image = nullptr;
 }
 
-cppogl::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
+rgle::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 {
 	FT_Glyph_To_Bitmap(&glyph, ft_render_mode_normal, 0, 1);
 	FT_BitmapGlyph bitmap_glyph = (FT_BitmapGlyph)glyph;
@@ -286,18 +286,18 @@ cppogl::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 	this->texture = std::make_shared<Texture>(Texture(this->image, GL_TEXTURE0, Texture::Format{ GL_R8, GL_RED }));
 }
 
-cppogl::Glyph::~Glyph()
+rgle::Glyph::~Glyph()
 {
 }
 
-cppogl::Text::Text()
+rgle::Text::Text()
 {
 	this->shader = nullptr;
 	this->_context.window = nullptr;
 	this->_fontFamily = nullptr;
 }
 
-cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes)
+rgle::Text::Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes)
 {
 	this->_context = context;
 	this->shader = (*context.manager.shader)[shader];
@@ -333,11 +333,11 @@ cppogl::Text::Text(Context context, std::string shader, std::string fontFamily, 
 	this->generate(text, attributes);
 }
 
-cppogl::Text::~Text()
+rgle::Text::~Text()
 {
 }
 
-void cppogl::Text::onMessage(std::string eventname, EventMessage * message)
+void rgle::Text::onMessage(std::string eventname, EventMessage * message)
 {
 	if (eventname == "resize") {
 		this->_model.matrix = this->transform();
@@ -347,7 +347,7 @@ void cppogl::Text::onMessage(std::string eventname, EventMessage * message)
 	}
 }
 
-void cppogl::Text::generate(std::string text, TextAttributes attributes)
+void rgle::Text::generate(std::string text, TextAttributes attributes)
 {
 	_attributes = attributes;
 	if (_fontFamily == nullptr || _context.window == nullptr || shader == nullptr) {
@@ -390,7 +390,7 @@ void cppogl::Text::generate(std::string text, TextAttributes attributes)
 	}
 }
 
-void cppogl::Text::update(std::string text)
+void rgle::Text::update(std::string text)
 {
 	sFont font = _fontFamily->get(_attributes.face);
 	UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
@@ -441,7 +441,7 @@ void cppogl::Text::update(std::string text)
 	_text = text;
 }
 
-void cppogl::Text::append(std::string text, TextAttributes attributes)
+void rgle::Text::append(std::string text, TextAttributes attributes)
 {
 	size_t len = _text.length() + text.length();
 	_charecters.reserve(len);
@@ -478,12 +478,12 @@ void cppogl::Text::append(std::string text, TextAttributes attributes)
 	_text = _text + text;
 }
 
-void cppogl::Text::append(std::string text)
+void rgle::Text::append(std::string text)
 {
 	this->append(text, _attributes);
 }
 
-void cppogl::Text::render()
+void rgle::Text::render()
 {
 	if (_fontFamily == nullptr || _context.window == nullptr || shader == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -494,17 +494,17 @@ void cppogl::Text::render()
 	}
 }
 
-void cppogl::Text::onBoxUpdate()
+void rgle::Text::onBoxUpdate()
 {
 	this->_model.matrix = this->transform();
 }
 
-std::string & cppogl::Text::typeName()
+std::string & rgle::Text::typeName()
 {
-	return std::string("cppogl::Text");
+	return std::string("rgle::Text");
 }
 
-float cppogl::Text::_scale(float value)
+float rgle::Text::_scale(float value)
 {
 	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
 	int pointSize = static_cast<int>(_context.window->pointValue(_context.window->height() * resolvedSize, Window::Y));
@@ -512,7 +512,7 @@ float cppogl::Text::_scale(float value)
 	return  (value / (float) pointSize) * _attributes.fontSize.value;
 }
 
-void cppogl::Text::_getOffsetWrapWidth(UnitVector2D & offset, sGlyph& glyph)
+void rgle::Text::_getOffsetWrapWidth(UnitVector2D & offset, sGlyph& glyph)
 {
 	if (glyph->charecter == '\n') {
 		offset.x = this->_topLeft.x;
@@ -536,7 +536,7 @@ void cppogl::Text::_getOffsetWrapWidth(UnitVector2D & offset, sGlyph& glyph)
 	}
 }
 
-void cppogl::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord)
+void rgle::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord)
 {
 	float resolved = offset.x.resolve(_context.window);
 	if (glyph->charecter == '\n') {
@@ -587,11 +587,11 @@ void cppogl::Text::_getOffsetWrapWord(UnitVector2D & offset, sGlyph& glyph, int&
 	}
 }
 
-cppogl::FontFamily::FontFamily()
+rgle::FontFamily::FontFamily()
 {
 }
 
-cppogl::FontFamily::FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts)
+rgle::FontFamily::FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts)
 {
 	id = family;
 	for (int i = 0; i < fonts.size(); i++) {
@@ -599,11 +599,11 @@ cppogl::FontFamily::FontFamily(std::string family, std::vector<std::pair<std::st
 	}
 }
 
-cppogl::FontFamily::~FontFamily()
+rgle::FontFamily::~FontFamily()
 {
 }
 
-cppogl::sFont cppogl::FontFamily::get(const std::string& fontface) {
+rgle::sFont rgle::FontFamily::get(const std::string& fontface) {
 	if (_fonts.find(fontface) == _fonts.end()) {
 		if (fontface == FontType::REGULAR) {
 			throw Exception(std::string("could not find default font face in family: ") + id, EXCEPT_DETAIL_DEFAULT);
@@ -615,7 +615,7 @@ cppogl::sFont cppogl::FontFamily::get(const std::string& fontface) {
 	}
 }
 
-std::string & cppogl::FontFamily::typeName()
+std::string & rgle::FontFamily::typeName()
 {
-	return std::string("cppogl::FontFamily");
+	return std::string("rgle::FontFamily");
 }

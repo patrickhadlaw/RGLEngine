@@ -1,21 +1,21 @@
 #include "Raycast.h"
 
 
-cppogl::Ray::Ray()
+rgle::Ray::Ray()
 {
 }
 
-cppogl::Ray::Ray(glm::vec3 u, glm::vec3 p)
+rgle::Ray::Ray(glm::vec3 u, glm::vec3 p)
 {
 	this->_u = u;
 	this->_p = p;
 }
 
-cppogl::Ray::~Ray()
+rgle::Ray::~Ray()
 {
 }
 
-bool cppogl::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
+bool rgle::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
 {
 	glm::vec3 n = glm::cross(p2 - p1, p3 - p2);
 	float denom = glm::dot(n, this->_p);
@@ -31,7 +31,7 @@ bool cppogl::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
 	return alpha.x <= 1.0 && alpha.x >= 0.0 && alpha.y <= 1.0 && alpha.y >= 0.0 && alpha.z <= 1.0 && alpha.z >= 0.0;
 }
 
-bool cppogl::Ray::intersect(Geometry3D * geometry)
+bool rgle::Ray::intersect(Geometry3D * geometry)
 {
 	if (geometry == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -44,12 +44,12 @@ bool cppogl::Ray::intersect(Geometry3D * geometry)
 	return false;
 }
 
-bool cppogl::Ray::intersect(Geometry3D::Face& face)
+bool rgle::Ray::intersect(Geometry3D::Face& face)
 {
 	return intersect(face.p1, face.p2, face.p3);
 }
 
-glm::vec3 cppogl::barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::vec3& point)
+glm::vec3 rgle::barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::vec3& point)
 {
 	glm::vec3 v0 = point - p3;
 	glm::vec3 v1 = p1 - p3;
@@ -63,15 +63,15 @@ glm::vec3 cppogl::barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::
 	return alpha;
 }
 
-cppogl::Raycastable::Raycastable()
+rgle::Raycastable::Raycastable()
 {
 }
 
-cppogl::Raycastable::~Raycastable()
+rgle::Raycastable::~Raycastable()
 {
 }
 
-bool cppogl::Raycastable::raycast(Ray ray)
+bool rgle::Raycastable::raycast(Ray ray)
 {
 	return false;
 }

@@ -2,7 +2,7 @@
 
 #include "Graphics.h"
 
-namespace cppogl {
+namespace rgle {
 
 	// Calculate barycentric coordinates using Cramer's rule to solve the system: p = a1p1 + a2p2 + a3p3, a1 + a2 + a3 = 1
 	glm::vec3 barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::vec3& point);

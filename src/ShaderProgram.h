@@ -33,9 +33,9 @@
 
 void checkGLErrors(int line);
 
-namespace cppogl {
+namespace rgle {
 
-	void debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+	void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
 
 	class ShaderProgram : public Node {
 	public:

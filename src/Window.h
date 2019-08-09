@@ -3,7 +3,7 @@
 #include "ShaderProgram.h"
 #include "Event.h"
 
-namespace cppogl {
+namespace rgle {
 
 	namespace Conversions {
 		const float IN_PER_M = 39.3701f;
@@ -104,7 +104,7 @@ namespace cppogl {
 		};
 
 		Window();
-		Window(const int width, const int height, const char* title = "cppogl");
+		Window(const int width, const int height, const char* title = "rgle");
 		Window(const Window& other);
 		Window(Window&& rvalue);
 		~Window();

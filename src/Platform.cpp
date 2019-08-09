@@ -1,6 +1,6 @@
 #include "Platform.h"
 
 
-void cppogl::Platform::initialize() {
+void rgle::Platform::initialize() {
 
 }

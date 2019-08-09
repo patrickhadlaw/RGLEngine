@@ -5,7 +5,7 @@
 #include "Camera.h"
 #include "Node.h"
 
-namespace cppogl {
+namespace rgle {
 
 	class RenderException : public Exception {
 	public:

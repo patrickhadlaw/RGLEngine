@@ -1,9 +1,9 @@
 #include "Window.h"
 
 
-std::map<GLFWwindow*, cppogl::Window*> cppogl::Window::_handles = std::map<GLFWwindow*, cppogl::Window*>();
+std::map<GLFWwindow*, rgle::Window*> rgle::Window::_handles = std::map<GLFWwindow*, rgle::Window*>();
 
-cppogl::Unit cppogl::unitFromPostfix(std::string string)
+rgle::Unit rgle::unitFromPostfix(std::string string)
 {
 	if (string == "px")
 		return Unit::PX;
@@ -27,7 +27,7 @@ cppogl::Unit cppogl::unitFromPostfix(std::string string)
 		return Unit::ERROR;
 }
 
-std::string cppogl::postfixFromUnit(Unit unit)
+std::string rgle::postfixFromUnit(Unit unit)
 {
 	switch (unit) {
 	case Unit::PX:
@@ -53,14 +53,14 @@ std::string cppogl::postfixFromUnit(Unit unit)
 	}
 }
 
-cppogl::Window::Window() : _cursor(nullptr)
+rgle::Window::Window() : _cursor(nullptr)
 {
 }
 
-cppogl::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
+rgle::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
 	if (glfwInit() == GLFW_FALSE) {
-		throw cppogl::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
+		throw rgle::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
 	}
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -110,12 +110,12 @@ cppogl::Window::Window(const int width, const int height, const char* title) : _
 	});
 }
 
-cppogl::Window::Window(const Window & other)
+rgle::Window::Window(const Window & other)
 {
 	throw Exception("invalid usage of Window class, copying not allowed", EXCEPT_DETAIL_DEFAULT);
 }
 
-cppogl::Window::Window(Window && rvalue)
+rgle::Window::Window(Window && rvalue)
 {
 	this->_window = rvalue._window;
 	this->_cursor = rvalue._cursor;
@@ -130,7 +130,7 @@ cppogl::Window::Window(Window && rvalue)
 	}
 }
 
-cppogl::Window::~Window()
+rgle::Window::~Window()
 {
 	if (_window != nullptr) {
 		if (this->_cursor != nullptr) {
@@ -143,7 +143,7 @@ cppogl::Window::~Window()
 	}
 }
 
-void cppogl::Window::operator=(Window && rvalue)
+void rgle::Window::operator=(Window && rvalue)
 {
 	if (this->_window != nullptr) {
 		glfwDestroyWindow(this->_window);
@@ -164,35 +164,35 @@ void cppogl::Window::operator=(Window && rvalue)
 	}
 }
 
-int cppogl::Window::width()
+int rgle::Window::width()
 {
 	int width;
 	glfwGetWindowSize(_window, &width, nullptr);
 	return width;
 }
 
-int cppogl::Window::height()
+int rgle::Window::height()
 {
 	int height;
 	glfwGetWindowSize(_window, nullptr, &height);
 	return height;
 }
 
-float cppogl::Window::physicalWidth()
+float rgle::Window::physicalWidth()
 {
 	int widthMM;
 	glfwGetMonitorPhysicalSize(glfwGetWindowMonitor(_window), &widthMM, nullptr);
 	return (float)widthMM / 1000.0f;
 }
 
-float cppogl::Window::physicalHeight()
+float rgle::Window::physicalHeight()
 {
 	int heightMM;
 	glfwGetMonitorPhysicalSize(glfwGetWindowMonitor(_window), nullptr, &heightMM);
 	return (float)heightMM / 1000.0f;
 }
 
-float cppogl::Window::pixelValue(float value, Unit unit, Direction direction)
+float rgle::Window::pixelValue(float value, Unit unit, Direction direction)
 {
 	int widthMM, heightMM;
 	GLFWmonitor* monitor = glfwGetWindowMonitor(_window);
@@ -207,35 +207,35 @@ float cppogl::Window::pixelValue(float value, Unit unit, Direction direction)
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	switch (unit)
 	{
-	case cppogl::Unit::PT:
+	case rgle::Unit::PT:
 		return (pixelsPerInch / 72) * value;
-	case cppogl::Unit::ND:
+	case rgle::Unit::ND:
 		return value * (direction == X ? viewport[2] : viewport[3]) / 2;
-	case cppogl::Unit::VW:
+	case rgle::Unit::VW:
 		return (value / 100.0f) * (float) viewport[2];
-	case cppogl::Unit::VH:
+	case rgle::Unit::VH:
 		return (value / 100.0f) * (float) viewport[3];
-	case cppogl::Unit::WW:
+	case rgle::Unit::WW:
 		return (value / 100.0f) * (float) this->width();
-	case cppogl::Unit::WH:
+	case rgle::Unit::WH:
 		return (value / 100.0f) * (float) this->height();
-	case cppogl::Unit::IN:
+	case rgle::Unit::IN:
 		return pixelsPerInch * value;
-	case cppogl::Unit::CM:
+	case rgle::Unit::CM:
 		return pixelsPerInch * (1.0f / (Conversions::IN_PER_M * 100.0f))  * value;
-	case cppogl::Unit::ERROR:
+	case rgle::Unit::ERROR:
 		throw Exception("invalid unit conversion", EXCEPT_DETAIL_DEFAULT);
 	default:
 		return value;
 	}
 }
 
-float cppogl::Window::pixelValue(UnitValue value, Direction direction)
+float rgle::Window::pixelValue(UnitValue value, Direction direction)
 {
 	return pixelValue(value.value, value.unit, direction);
 }
 
-float cppogl::Window::resolve(UnitValue value, Direction direction)
+float rgle::Window::resolve(UnitValue value, Direction direction)
 {
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
@@ -253,12 +253,12 @@ float cppogl::Window::resolve(UnitValue value, Direction direction)
 	}
 }
 
-float cppogl::Window::convert(float value, Unit from, Unit to)
+float rgle::Window::convert(float value, Unit from, Unit to)
 {
 	return convert(UnitValue{ value, from }, to).value;
 }
 
-cppogl::UnitValue cppogl::Window::convert(UnitValue value, Unit to)
+rgle::UnitValue rgle::Window::convert(UnitValue value, Unit to)
 {
 	float pixel = pixelValue(value);
 	int widthMM, heightMM;
@@ -276,31 +276,31 @@ cppogl::UnitValue cppogl::Window::convert(UnitValue value, Unit to)
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	switch (to)
 	{
-	case cppogl::Unit::PT:
+	case rgle::Unit::PT:
 		value.value = (72 / pixelsPerInchX) * pixel;
 		break;
-	case cppogl::Unit::ND:
+	case rgle::Unit::ND:
 		value.value = pixel * 2 / this->width();
 		break;
-	case cppogl::Unit::VW:
+	case rgle::Unit::VW:
 		value.value = (pixel / (float)viewport[2]) * 100.0f;
 		break;
-	case cppogl::Unit::VH:
+	case rgle::Unit::VH:
 		value.value = (pixel / (float)viewport[3]) * 100.0f;
 		break;
-	case cppogl::Unit::WW:
+	case rgle::Unit::WW:
 		value.value = (pixel / (float)this->width()) * 100.0f;
 		break;
-	case cppogl::Unit::WH:
+	case rgle::Unit::WH:
 		value.value = (pixel / (float)this->height()) * 100.0f;
 		break;
-	case cppogl::Unit::IN:
+	case rgle::Unit::IN:
 		value.value = pixel / pixelsPerInchX;
 		break;
-	case cppogl::Unit::CM:
+	case rgle::Unit::CM:
 		value.value = pixel / pixelsPerInchX * (1.0f / (Conversions::IN_PER_M * 100.0f));
 		break;
-	case cppogl::Unit::ERROR:
+	case rgle::Unit::ERROR:
 		throw Exception("invalid unit conversion", EXCEPT_DETAIL_DEFAULT);
 		break;
 	default:
@@ -310,7 +310,7 @@ cppogl::UnitValue cppogl::Window::convert(UnitValue value, Unit to)
 	return value;
 }
 
-float cppogl::Window::pointValue(float convert, Direction direction)
+float rgle::Window::pointValue(float convert, Direction direction)
 {
 	int widthMM, heightMM;
 	GLFWmonitor* monitor = glfwGetWindowMonitor(_window);
@@ -324,39 +324,39 @@ float cppogl::Window::pointValue(float convert, Direction direction)
 	return (convert / (pixelDim / dim)) * 72;
 }
 
-float cppogl::Window::normalizeX(float value)
+float rgle::Window::normalizeX(float value)
 {
 	return value / this->width();
 }
 
-float cppogl::Window::normalizeY(float value)
+float rgle::Window::normalizeY(float value)
 {
 	return value / this->height();
 }
 
-int cppogl::Window::getKey(int key)
+int rgle::Window::getKey(int key)
 {
 	return glfwGetKey(_window, key);
 }
 
-int cppogl::Window::getMouseButton(int key)
+int rgle::Window::getMouseButton(int key)
 {
 	return glfwGetMouseButton(_window, key);
 }
 
-glm::vec2 cppogl::Window::getCursorPosition()
+glm::vec2 rgle::Window::getCursorPosition()
 {
 	double x, y = 0.0f;
 	glfwGetCursorPos(this->_window, &x, &y);
 	return glm::vec2(x, y);
 }
 
-void cppogl::Window::setInputMode(int mode, int value)
+void rgle::Window::setInputMode(int mode, int value)
 {
 	glfwSetInputMode(this->_window, mode, value);
 }
 
-void cppogl::Window::setCursor(int type)
+void rgle::Window::setCursor(int type)
 {
 	GLFWcursor* tmp = this->_cursor;
 	this->_cursor = glfwCreateStandardCursor(type);
@@ -366,7 +366,7 @@ void cppogl::Window::setCursor(int type)
 	}
 }
 
-void cppogl::Window::grabCursor()
+void rgle::Window::grabCursor()
 {
 	glfwGetCursorPos(_window, &_initial.x, &_initial.y);
 	glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -374,30 +374,30 @@ void cppogl::Window::grabCursor()
 	_grabbed = true;
 }
 
-void cppogl::Window::ungrabCursor()
+void rgle::Window::ungrabCursor()
 {
 	glfwSetInputMode(_window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 	glfwSetCursorPos(_window, _initial.x, _initial.y);
 	_grabbed = false;
 }
 
-bool cppogl::Window::grabbed()
+bool rgle::Window::grabbed()
 {
 	return _grabbed;
 }
 
-bool cppogl::Window::shouldClose()
+bool rgle::Window::shouldClose()
 {
 	return glfwWindowShouldClose(_window);
 }
 
-void cppogl::Window::update()
+void rgle::Window::update()
 {
 	glfwSwapBuffers(_window);
 	glfwPollEvents();
 }
 
-void cppogl::Window::handleEvent(GLFWwindow* handle, std::string eventname, EventMessage * message)
+void rgle::Window::handleEvent(GLFWwindow* handle, std::string eventname, EventMessage * message)
 {
 	if (_handles.find(handle) == _handles.end()) {
 		throw EventException("invalid window handle for event broadcast", EXCEPT_DETAIL_DEFAULT);
@@ -411,39 +411,39 @@ void cppogl::Window::handleEvent(GLFWwindow* handle, std::string eventname, Even
 	}
 }
 
-cppogl::MouseMoveMessage::MouseMoveMessage()
+rgle::MouseMoveMessage::MouseMoveMessage()
 {
 }
 
-cppogl::MouseMoveMessage::~MouseMoveMessage()
+rgle::MouseMoveMessage::~MouseMoveMessage()
 {
 }
 
-cppogl::MouseClickMessage::MouseClickMessage()
+rgle::MouseClickMessage::MouseClickMessage()
 {
 }
 
-cppogl::MouseClickMessage::~MouseClickMessage()
+rgle::MouseClickMessage::~MouseClickMessage()
 {
 }
 
-cppogl::WindowResizeMessage::WindowResizeMessage()
+rgle::WindowResizeMessage::WindowResizeMessage()
 {
 }
 
-cppogl::WindowResizeMessage::~WindowResizeMessage()
+rgle::WindowResizeMessage::~WindowResizeMessage()
 {
 }
 
-cppogl::KeyboardMessage::KeyboardMessage()
+rgle::KeyboardMessage::KeyboardMessage()
 {
 }
 
-cppogl::KeyboardMessage::~KeyboardMessage()
+rgle::KeyboardMessage::~KeyboardMessage()
 {
 }
 
-cppogl::UnitValue& cppogl::UnitValue::parse(std::string parse)
+rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 {
 	enum ParseState {
 		VALUE_SIGN,
@@ -566,21 +566,21 @@ cppogl::UnitValue& cppogl::UnitValue::parse(std::string parse)
 	return unitvalue;
 }
 
-float cppogl::UnitValue::resolvePixelValue(sWindow window, Window::Direction direction)
+float rgle::UnitValue::resolvePixelValue(sWindow window, Window::Direction direction)
 {
 	return 0.0f;
 }
 
-float cppogl::UnitValue::resolve(sWindow window, Window::Direction direction)
+float rgle::UnitValue::resolve(sWindow window, Window::Direction direction)
 {
 	return window->resolve(*this, direction);
 }
 
-cppogl::UnitExpression::UnitExpression() : _value(UnitValue{}), _operation(Operation::VALUE), _left(nullptr), _right(nullptr)
+rgle::UnitExpression::UnitExpression() : _value(UnitValue{}), _operation(Operation::VALUE), _left(nullptr), _right(nullptr)
 {
 }
 
-cppogl::UnitExpression::UnitExpression(UnitValue value)
+rgle::UnitExpression::UnitExpression(UnitValue value)
 {
 	this->_value = value;
 	this->_left = nullptr;
@@ -588,7 +588,7 @@ cppogl::UnitExpression::UnitExpression(UnitValue value)
 	this->_right = nullptr;
 }
 
-cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitValue right)
+rgle::UnitExpression::UnitExpression(UnitValue left, char op, UnitValue right)
 {
 	this->_left = new UnitExpression(left);
 	switch (op) {
@@ -610,11 +610,11 @@ cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitValue right)
 	this->_right = new UnitExpression(right);
 }
 
-cppogl::UnitExpression::UnitExpression(UnitValue left, char op, UnitExpression right) : UnitExpression(UnitExpression(left), op, right)
+rgle::UnitExpression::UnitExpression(UnitValue left, char op, UnitExpression right) : UnitExpression(UnitExpression(left), op, right)
 {
 }
 
-cppogl::UnitExpression::UnitExpression(UnitExpression left, char op, UnitExpression right)
+rgle::UnitExpression::UnitExpression(UnitExpression left, char op, UnitExpression right)
 {
 	this->_left = new UnitExpression(left);
 	switch (op) {
@@ -636,7 +636,7 @@ cppogl::UnitExpression::UnitExpression(UnitExpression left, char op, UnitExpress
 	this->_right = new UnitExpression(right);
 }
 
-cppogl::UnitExpression::UnitExpression(const UnitExpression & other)
+rgle::UnitExpression::UnitExpression(const UnitExpression & other)
 {
 	this->_value = other._value;
 	this->_operation = other._operation;
@@ -654,7 +654,7 @@ cppogl::UnitExpression::UnitExpression(const UnitExpression & other)
 	}
 }
 
-cppogl::UnitExpression::UnitExpression(UnitExpression && rvalue)
+rgle::UnitExpression::UnitExpression(UnitExpression && rvalue)
 {
 	this->_value = rvalue._value;
 	delete this->_left;
@@ -666,7 +666,7 @@ cppogl::UnitExpression::UnitExpression(UnitExpression && rvalue)
 	rvalue._right = nullptr;
 }
 
-cppogl::UnitExpression::~UnitExpression()
+rgle::UnitExpression::~UnitExpression()
 {
 	delete this->_left;
 	this->_left = nullptr;
@@ -674,7 +674,7 @@ cppogl::UnitExpression::~UnitExpression()
 	this->_right = nullptr;
 }
 
-void cppogl::UnitExpression::operator=(const UnitExpression & other)
+void rgle::UnitExpression::operator=(const UnitExpression & other)
 {
 	this->_value = other._value;
 	this->_operation = other._operation;
@@ -692,7 +692,7 @@ void cppogl::UnitExpression::operator=(const UnitExpression & other)
 	}
 }
 
-void cppogl::UnitExpression::operator=(UnitExpression && rvalue)
+void rgle::UnitExpression::operator=(UnitExpression && rvalue)
 {
 	this->_value = rvalue._value;
 	delete this->_left;
@@ -705,7 +705,7 @@ void cppogl::UnitExpression::operator=(UnitExpression && rvalue)
 	rvalue._right = nullptr;
 }
 
-void cppogl::UnitExpression::operator=(UnitValue & value)
+void rgle::UnitExpression::operator=(UnitValue & value)
 {
 	this->_value = value;
 	this->_left = nullptr;
@@ -713,7 +713,7 @@ void cppogl::UnitExpression::operator=(UnitValue & value)
 	this->_right = nullptr;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator+(UnitValue & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -722,7 +722,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitValue & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator+(UnitExpression & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -731,7 +731,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator+(UnitExpression & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator-(UnitValue & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -740,7 +740,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitValue & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator-(UnitExpression & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -749,7 +749,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator-(UnitExpression & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator/(UnitValue & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -758,7 +758,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitValue & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator/(UnitExpression & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -767,12 +767,12 @@ cppogl::UnitExpression cppogl::UnitExpression::operator/(UnitExpression & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator/(float value)
+rgle::UnitExpression rgle::UnitExpression::operator/(float value)
 {
 	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator*(UnitValue & value)
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -781,7 +781,7 @@ cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitValue & value)
 	return exp;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator*(UnitExpression & value)
 {
 	UnitExpression mult = UnitExpression();
 	mult._left = new UnitExpression(*this);
@@ -790,12 +790,12 @@ cppogl::UnitExpression cppogl::UnitExpression::operator*(UnitExpression & value)
 	return mult;
 }
 
-cppogl::UnitExpression cppogl::UnitExpression::operator*(float value)
+rgle::UnitExpression rgle::UnitExpression::operator*(float value)
 {
 	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
-void cppogl::UnitExpression::operator+=(UnitValue & value)
+void rgle::UnitExpression::operator+=(UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -808,7 +808,7 @@ void cppogl::UnitExpression::operator+=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator+=(UnitExpression & value)
+void rgle::UnitExpression::operator+=(UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -821,7 +821,7 @@ void cppogl::UnitExpression::operator+=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator-=(UnitValue & value)
+void rgle::UnitExpression::operator-=(UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -834,7 +834,7 @@ void cppogl::UnitExpression::operator-=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator-=(UnitExpression & value)
+void rgle::UnitExpression::operator-=(UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -847,7 +847,7 @@ void cppogl::UnitExpression::operator-=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator/=(UnitValue & value)
+void rgle::UnitExpression::operator/=(UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -860,7 +860,7 @@ void cppogl::UnitExpression::operator/=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator/=(UnitExpression & value)
+void rgle::UnitExpression::operator/=(UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -873,7 +873,7 @@ void cppogl::UnitExpression::operator/=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator*=(UnitValue & value)
+void rgle::UnitExpression::operator*=(UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -886,7 +886,7 @@ void cppogl::UnitExpression::operator*=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void cppogl::UnitExpression::operator*=(UnitExpression & value)
+void rgle::UnitExpression::operator*=(UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -899,17 +899,17 @@ void cppogl::UnitExpression::operator*=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-bool cppogl::UnitExpression::lessThan(UnitExpression & other, sWindow window)
+bool rgle::UnitExpression::lessThan(UnitExpression & other, sWindow window)
 {
 	return this->resolve(window) <= other.resolve(window);
 }
 
-bool cppogl::UnitExpression::greaterThan(UnitExpression & other, sWindow window)
+bool rgle::UnitExpression::greaterThan(UnitExpression & other, sWindow window)
 {
 	return this->resolve(window) >= other.resolve(window);
 }
 
-bool cppogl::UnitExpression::isZero()
+bool rgle::UnitExpression::isZero()
 {
 	if (this->_operation == Operation::VALUE) {
 		if (this->_value.value == 0.0f) {
@@ -935,17 +935,17 @@ bool cppogl::UnitExpression::isZero()
 	}
 }
 
-bool cppogl::UnitExpression::isValue()
+bool rgle::UnitExpression::isValue()
 {
 	return this->_operation == Operation::VALUE;
 }
 
-float cppogl::UnitExpression::resolvePixelValue(sWindow window, Window::Direction direction)
+float rgle::UnitExpression::resolvePixelValue(sWindow window, Window::Direction direction)
 {
 	return 0.0f;
 }
 
-float cppogl::UnitExpression::resolve(sWindow window, Window::Direction direction)
+float rgle::UnitExpression::resolve(sWindow window, Window::Direction direction)
 {
 	if (this->isValue()) {
 		return this->_value.resolve(window, direction);
@@ -971,68 +971,68 @@ float cppogl::UnitExpression::resolve(sWindow window, Window::Direction directio
 	}
 }
 
-cppogl::UnitVector2D::UnitVector2D()
+rgle::UnitVector2D::UnitVector2D()
 {
 }
 
-cppogl::UnitVector2D::UnitVector2D(float x, float y, Unit unit)
+rgle::UnitVector2D::UnitVector2D(float x, float y, Unit unit)
 {
 	this->x = UnitValue{ x, unit };
 	this->y = UnitValue{ y, unit };
 }
 
-cppogl::UnitVector2D::UnitVector2D(UnitExpression & x, UnitExpression & y)
+rgle::UnitVector2D::UnitVector2D(UnitExpression & x, UnitExpression & y)
 {
 	this->x = x;
 	this->y = y;
 }
 
-cppogl::UnitVector2D & cppogl::UnitVector2D::parse(std::string parse)
+rgle::UnitVector2D & rgle::UnitVector2D::parse(std::string parse)
 {
 	return UnitVector2D();
 }
 
-void cppogl::UnitVector2D::operator+=(UnitVector2D & other)
+void rgle::UnitVector2D::operator+=(UnitVector2D & other)
 {
 	this->x += other.x;
 	this->x += other.y;
 }
 
-glm::vec2 cppogl::UnitVector2D::resolve(sWindow window)
+glm::vec2 rgle::UnitVector2D::resolve(sWindow window)
 {
 	return glm::vec2(this->x.resolve(window, Window::Direction::X), this->y.resolve(window, Window::Direction::Y));
 }
 
-cppogl::UnitVector3D::UnitVector3D()
+rgle::UnitVector3D::UnitVector3D()
 {
 }
 
-cppogl::UnitVector3D::UnitVector3D(float x, float y, float z, Unit unit)
+rgle::UnitVector3D::UnitVector3D(float x, float y, float z, Unit unit)
 {
 	this->x = UnitValue{ x, unit };
 	this->y = UnitValue{ y, unit };
 	this->z = UnitValue{ z, unit };
 }
 
-cppogl::UnitVector3D & cppogl::UnitVector3D::parse(std::string parse)
+rgle::UnitVector3D & rgle::UnitVector3D::parse(std::string parse)
 {
 	return UnitVector3D();
 }
 
-glm::vec3 cppogl::UnitVector3D::resolve(sWindow window)
+glm::vec3 rgle::UnitVector3D::resolve(sWindow window)
 {
 	return glm::vec3(this->x.resolve(window, Window::Direction::X), this->y.resolve(window, Window::Direction::Y), this->z.resolve(window, Window::Direction::Y));
 }
 
-cppogl::MouseStateMessage::MouseStateMessage()
+rgle::MouseStateMessage::MouseStateMessage()
 {
 }
 
-cppogl::MouseStateMessage::MouseStateMessage(MouseState state)
+rgle::MouseStateMessage::MouseStateMessage(MouseState state)
 {
 	this->mouse = state;
 }
 
-cppogl::MouseStateMessage::~MouseStateMessage()
+rgle::MouseStateMessage::~MouseStateMessage()
 {
 }

@@ -5,7 +5,7 @@
 
 #include "Exception.h"
 
-namespace cppogl {
+namespace rgle {
 
 	class IdentifierException : public Exception {
 	public:

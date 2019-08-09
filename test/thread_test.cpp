@@ -4,8 +4,8 @@
 #include <cassert>
 
 int main() {
-	return cppogl::TestBed::run([](cppogl::TestBed& testBed) {
-		cppogl::ThreadPool pool = cppogl::ThreadPool();
+	return rgle::TestBed::run([](rgle::TestBed& testBed) {
+		rgle::ThreadPool pool = rgle::ThreadPool();
 		std::atomic_int count = 0;
 		for (int i = 0; i < 100; i++) {
 			pool.startJob([&count]() {

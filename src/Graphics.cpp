@@ -3,12 +3,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-cppogl::Shape::Shape()
+rgle::Shape::Shape()
 {
 	this->model.matrix = glm::mat4(1.0f);
 }
 
-cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
+rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
 {
 	this->_context = context;
 	this->color.list = colors;
@@ -32,7 +32,7 @@ cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3>
 	this->generate();
 }
 
-cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color)
+rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.resize(verticies.size());
@@ -42,22 +42,22 @@ cppogl::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3>
 	Shape(context, shader, verticies, colors);
 }
 
-cppogl::Shape::~Shape()
+rgle::Shape::~Shape()
 {
 
 }
 
-void cppogl::Shape::render()
+void rgle::Shape::render()
 {
 	this->standardRender(this->shader);
 }
 
-std::string & cppogl::Shape::typeName()
+std::string & rgle::Shape::typeName()
 {
-	return std::string("cppogl::Shape");
+	return std::string("rgle::Shape");
 }
 
-void cppogl::Shape::translate(float x, float y, float z)
+void rgle::Shape::translate(float x, float y, float z)
 {
 	glm::mat4 translate(1.0f);
 	translate[3][0] = x;
@@ -66,7 +66,7 @@ void cppogl::Shape::translate(float x, float y, float z)
 	model.matrix = model.matrix*translate;
 }
 
-void cppogl::Shape::rotate(float x, float y, float z)
+void rgle::Shape::rotate(float x, float y, float z)
 {
 	glm::mat4 rotateX(1.0f);
 	rotateX[1][1] = cosf(x);
@@ -87,7 +87,7 @@ void cppogl::Shape::rotate(float x, float y, float z)
 	model.matrix = rotation*model.matrix;
 }
 
-cppogl::Image::Image()
+rgle::Image::Image()
 {
 	image = nullptr;
 	width = -1;
@@ -95,7 +95,7 @@ cppogl::Image::Image()
 	bpp = -1;
 }
 
-cppogl::Image::Image(std::string imagefile)
+rgle::Image::Image(std::string imagefile)
 {
 	image = stbi_load(imagefile.data(), &width, &height, &bpp, STBI_rgb_alpha);
 	if (this->image == nullptr) {
@@ -103,7 +103,7 @@ cppogl::Image::Image(std::string imagefile)
 	}
 }
 
-cppogl::Image::Image(const Image & other)
+rgle::Image::Image(const Image & other)
 {
 	if (other.image == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -117,7 +117,7 @@ cppogl::Image::Image(const Image & other)
 	}
 }
 
-cppogl::Image::Image(Image && rvalue)
+rgle::Image::Image(Image && rvalue)
 {
 	this->width = rvalue.width;
 	this->height = rvalue.height;
@@ -126,7 +126,7 @@ cppogl::Image::Image(Image && rvalue)
 	rvalue.image = nullptr;
 }
 
-void cppogl::Image::operator=(const Image& other)
+void rgle::Image::operator=(const Image& other)
 {
 	delete[] image;
 	image = nullptr;
@@ -140,13 +140,13 @@ void cppogl::Image::operator=(const Image& other)
 	}
 }
 
-cppogl::Image::~Image()
+rgle::Image::~Image()
 {
 	delete[] image;
 	image = nullptr;
 }
 
-cppogl::Texture::Texture()
+rgle::Texture::Texture()
 {
 	this->texture = GL_TEXTURE0;
 	this->format.internal = GL_RGBA8;
@@ -155,7 +155,7 @@ cppogl::Texture::Texture()
 	this->textureID = 0;
 }
 
-cppogl::Texture::Texture(std::string imagefile, GLenum texture, Format format)
+rgle::Texture::Texture(std::string imagefile, GLenum texture, Format format)
 {
 	this->format = format;
 	this->image = std::make_shared<Image>(Image(imagefile));
@@ -163,7 +163,7 @@ cppogl::Texture::Texture(std::string imagefile, GLenum texture, Format format)
 	this->_generate();
 }
 
-cppogl::Texture::Texture(const Texture & other)
+rgle::Texture::Texture(const Texture & other)
 {
 	this->image = other.image;
 	this->format = other.format;
@@ -171,7 +171,7 @@ cppogl::Texture::Texture(const Texture & other)
 	this->_generate();
 }
 
-cppogl::Texture::Texture(Texture && rvalue)
+rgle::Texture::Texture(Texture && rvalue)
 {
 	this->image = rvalue.image;
 	this->format = rvalue.format;
@@ -180,7 +180,7 @@ cppogl::Texture::Texture(Texture && rvalue)
 	rvalue.textureID = 0;
 }
 
-cppogl::Texture::Texture(const sImage & image, GLenum texture, Format format)
+rgle::Texture::Texture(const sImage & image, GLenum texture, Format format)
 {
 	this->format = format;
 	this->image = image;
@@ -188,13 +188,13 @@ cppogl::Texture::Texture(const sImage & image, GLenum texture, Format format)
 	this->_generate();
 }
 
-cppogl::Texture::~Texture()
+rgle::Texture::~Texture()
 {
 	glDeleteTextures(1, &textureID);
 	textureID = 0;
 }
 
-void cppogl::Texture::operator=(const Texture & other)
+void rgle::Texture::operator=(const Texture & other)
 {
 	glDeleteTextures(1, &textureID);
 	this->format = other.format;
@@ -203,7 +203,7 @@ void cppogl::Texture::operator=(const Texture & other)
 	this->_generate();
 }
 
-void cppogl::Texture::operator=(Texture && rvalue)
+void rgle::Texture::operator=(Texture && rvalue)
 {
 	glDeleteTextures(1, &textureID);
 	this->image = rvalue.image;
@@ -213,7 +213,7 @@ void cppogl::Texture::operator=(Texture && rvalue)
 	rvalue.textureID = 0;
 }
 
-void cppogl::Texture::_generate()
+void rgle::Texture::_generate()
 {
 	if (this->image == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -239,7 +239,7 @@ void cppogl::Texture::_generate()
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-cppogl::Sampler2D::Sampler2D()
+rgle::Sampler2D::Sampler2D()
 {
 	this->enabled = true;
 	this->shader = nullptr;
@@ -247,7 +247,7 @@ cppogl::Sampler2D::Sampler2D()
 	this->samplerLocation = 0;
 }
 
-cppogl::Sampler2D::Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture, Texture::Format format)
+rgle::Sampler2D::Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture, Texture::Format format)
 {
 	this->enabled = true;
 	this->shader = shader;
@@ -255,7 +255,7 @@ cppogl::Sampler2D::Sampler2D(sShaderProgram shader, std::string imagefile, GLenu
 	this->_generate();
 }
 
-cppogl::Sampler2D::Sampler2D(const Sampler2D & other)
+rgle::Sampler2D::Sampler2D(const Sampler2D & other)
 {
 	this->enabled = other.enabled;
 	this->shader = other.shader;
@@ -263,7 +263,7 @@ cppogl::Sampler2D::Sampler2D(const Sampler2D & other)
 	this->_generate();
 }
 
-cppogl::Sampler2D::Sampler2D(sShaderProgram shader, const sTexture& texture)
+rgle::Sampler2D::Sampler2D(sShaderProgram shader, const sTexture& texture)
 {
 	this->enabled = true;
 	this->shader = shader;
@@ -271,7 +271,7 @@ cppogl::Sampler2D::Sampler2D(sShaderProgram shader, const sTexture& texture)
 	this->_generate();
 }
 
-void cppogl::Sampler2D::operator=(const Sampler2D& other)
+void rgle::Sampler2D::operator=(const Sampler2D& other)
 {
 	this->enabled = other.enabled;
 	this->shader = other.shader;
@@ -279,11 +279,11 @@ void cppogl::Sampler2D::operator=(const Sampler2D& other)
 	this->_generate();
 }
 
-cppogl::Sampler2D::~Sampler2D()
+rgle::Sampler2D::~Sampler2D()
 {
 }
 
-void cppogl::Sampler2D::use()
+void rgle::Sampler2D::use()
 {
 	if (this->texture == nullptr || this->shader == nullptr) {
 		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
@@ -294,7 +294,7 @@ void cppogl::Sampler2D::use()
 	glBindTexture(GL_TEXTURE_2D, texture->textureID);
 }
 
-void cppogl::Sampler2D::_generate()
+void rgle::Sampler2D::_generate()
 {
 	this->enableLocation = glGetUniformLocation(this->shader->programId(), "enable_texture");
 	if (this->enableLocation < 0) {
@@ -306,21 +306,21 @@ void cppogl::Sampler2D::_generate()
 	}
 }
 
-cppogl::Triangle::Triangle()
+rgle::Triangle::Triangle()
 {
 }
 
-cppogl::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color)
+rgle::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color)
 {	
 	this->_construct(context, shader, a, b, theta, std::vector<glm::vec4>({ color, color, color }));
 }
 
-cppogl::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors)
+rgle::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors)
 {
 	this->_construct(context, shader, a, b, theta, colors);
 }
 
-void cppogl::Triangle::_construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
+void rgle::Triangle::_construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
 {
 	this->_context = context;
 	this->shader = context.manager.shader->operator[](shader);
@@ -349,20 +349,20 @@ void cppogl::Triangle::_construct(Context& context, std::string& shader, float& 
 	this->generate();
 }
 
-cppogl::Triangle::~Triangle()
+rgle::Triangle::~Triangle()
 {
 }
 
-cppogl::Rect::Rect()
+rgle::Rect::Rect()
 {
 }
 
-cppogl::Rect::Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors)
+rgle::Rect::Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors)
 {
 	this->_construct(context, shader, width, height, colors);
 }
 
-cppogl::Rect::Rect(Context context, std::string shader, float width, float height, glm::vec4 color)
+rgle::Rect::Rect(Context context, std::string shader, float width, float height, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.reserve(6);
@@ -372,11 +372,11 @@ cppogl::Rect::Rect(Context context, std::string shader, float width, float heigh
 	this->_construct(context, shader, width, height, colors);
 }
 
-cppogl::Rect::~Rect()
+rgle::Rect::~Rect()
 {
 }
 
-void cppogl::Rect::changeDimensions(float width, float height)
+void rgle::Rect::changeDimensions(float width, float height)
 {
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0),
@@ -387,7 +387,7 @@ void cppogl::Rect::changeDimensions(float width, float height)
 	this->updateVertexBuffer();
 }
 
-void cppogl::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
+void rgle::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
 {
 	this->shader = context.manager.shader->operator[](shader);
 	this->model.matrix = glm::mat4(1.0f);
@@ -423,7 +423,7 @@ void cppogl::Rect::_construct(Context& context, std::string& shader, float & wid
 }
 
 
-cppogl::Geometry3D::Geometry3D()
+rgle::Geometry3D::Geometry3D()
 {
 	vertex.list = {};
 	index.list = {};
@@ -433,7 +433,7 @@ cppogl::Geometry3D::Geometry3D()
 	samplers = {};
 }
 
-cppogl::Geometry3D::Geometry3D(const Geometry3D & other)
+rgle::Geometry3D::Geometry3D(const Geometry3D & other)
 {
 	_cleanup();
 	vertex = other.vertex;
@@ -444,7 +444,7 @@ cppogl::Geometry3D::Geometry3D(const Geometry3D & other)
 	generate();
 }
 
-cppogl::Geometry3D::Geometry3D(Geometry3D && rvalue)
+rgle::Geometry3D::Geometry3D(Geometry3D && rvalue)
 {
 	_cleanup();
 	vertex = std::move(rvalue.vertex);
@@ -455,12 +455,12 @@ cppogl::Geometry3D::Geometry3D(Geometry3D && rvalue)
 	samplers = std::move(rvalue.samplers);
 }
 
-cppogl::Geometry3D::~Geometry3D()
+rgle::Geometry3D::~Geometry3D()
 {
 	_cleanup();
 }
 
-void cppogl::Geometry3D::operator=(const Geometry3D & other)
+void rgle::Geometry3D::operator=(const Geometry3D & other)
 {
 	_cleanup();
 	vertex = other.vertex;
@@ -471,7 +471,7 @@ void cppogl::Geometry3D::operator=(const Geometry3D & other)
 	generate();
 }
 
-void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
+void rgle::Geometry3D::operator=(Geometry3D && rvalue)
 {
 	_cleanup();
 	vertex = std::move(rvalue.vertex);
@@ -482,14 +482,14 @@ void cppogl::Geometry3D::operator=(Geometry3D && rvalue)
 	samplers = std::move(rvalue.samplers);
 }
 
-int cppogl::Geometry3D::numFaces()
+int rgle::Geometry3D::numFaces()
 {
 	if (!this->index.list.empty()) {
 		return static_cast<int>(this->index.list.size() / 3);
 	}
 }
 
-cppogl::Geometry3D::Face cppogl::Geometry3D::getFace(int index)
+rgle::Geometry3D::Face rgle::Geometry3D::getFace(int index)
 {
 	if (index < 0 || index >= this->numFaces()) {
 		throw Exception("failed to get face: index out of bounds", EXCEPT_DETAIL_DEFAULT);
@@ -507,7 +507,7 @@ cppogl::Geometry3D::Face cppogl::Geometry3D::getFace(int index)
 	}
 }
 
-void cppogl::Geometry3D::generate()
+void rgle::Geometry3D::generate()
 {
 	glGenVertexArrays(1, &vertexArray);
 	glBindVertexArray(vertexArray);
@@ -538,7 +538,7 @@ void cppogl::Geometry3D::generate()
 	}
 }
 
-void cppogl::Geometry3D::standardRender(sShaderProgram shader)
+void rgle::Geometry3D::standardRender(sShaderProgram shader)
 {
 	glBindVertexArray(vertexArray);
 	if (model.enabled) {
@@ -553,7 +553,7 @@ void cppogl::Geometry3D::standardRender(sShaderProgram shader)
 	}
 }
 
-void cppogl::Geometry3D::standardFill(Fill colorFill)
+void rgle::Geometry3D::standardFill(Fill colorFill)
 {
 	bool first = true;
 	glm::vec2 xrange = glm::vec2(0.0f, 0.0f);
@@ -593,31 +593,31 @@ void cppogl::Geometry3D::standardFill(Fill colorFill)
 	}
 }
 
-void cppogl::Geometry3D::updateVertexBuffer()
+void rgle::Geometry3D::updateVertexBuffer()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
-void cppogl::Geometry3D::updateIndexBuffer()
+void rgle::Geometry3D::updateIndexBuffer()
 {
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
 	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLushort) * index.list.size(), index.list.data());
 }
 
-void cppogl::Geometry3D::updateColorBuffer()
+void rgle::Geometry3D::updateColorBuffer()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, color.buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * color.list.size() * 4, color.list.data());
 }
 
-void cppogl::Geometry3D::updateUVBuffer()
+void rgle::Geometry3D::updateUVBuffer()
 {
 	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * uv.list.size() * 2, uv.list.data());
 }
 
-void cppogl::Geometry3D::_cleanup()
+void rgle::Geometry3D::_cleanup()
 {
 	if (!vertex.list.empty()) {
 		glDeleteBuffers(1, &vertex.buffer);
@@ -636,11 +636,11 @@ void cppogl::Geometry3D::_cleanup()
 	}
 }
 
-cppogl::ImageRect::ImageRect()
+rgle::ImageRect::ImageRect()
 {
 }
 
-cppogl::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image)
+rgle::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image)
 {
 	this->_context = context;
 	this->shader = context.manager.shader->operator[](shader);
@@ -682,11 +682,11 @@ cppogl::ImageRect::ImageRect(Context context, std::string shader, float width, f
 	this->generate();
 }
 
-cppogl::ImageRect::~ImageRect()
+rgle::ImageRect::~ImageRect()
 {
 }
 
-void cppogl::ImageRect::render()
+void rgle::ImageRect::render()
 {
 	glBindVertexArray(vertexArray);
 	if (model.enabled) {
@@ -707,20 +707,20 @@ void cppogl::ImageRect::render()
 	glDrawElements(GL_TRIANGLES, index.list.size(), GL_UNSIGNED_SHORT, nullptr);
 }
 
-cppogl::SceneLayer::SceneLayer(std::string id) : RenderLayer(id)
+rgle::SceneLayer::SceneLayer(std::string id) : RenderLayer(id)
 {
 }
 
-cppogl::SceneLayer::~SceneLayer()
+rgle::SceneLayer::~SceneLayer()
 {
 }
 
-void cppogl::SceneLayer::add(sGeometry3D geometry)
+void rgle::SceneLayer::add(sGeometry3D geometry)
 {
 	this->_renderables.push_back(geometry);
 }
 
-cppogl::Geometry3D::Face::Face(glm::vec3 & p1,
+rgle::Geometry3D::Face::Face(glm::vec3 & p1,
 	unsigned short & i1,
 	glm::vec3 & p2,
 	unsigned short & i2,

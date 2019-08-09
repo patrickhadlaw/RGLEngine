@@ -6,10 +6,11 @@
 #include <exception>
 #include <string>
 
-#define EXCEPT_DETAIL_DEFAULT cppogl::Exception::Detail{CPPOGL_FILENAME, __func__, __LINE__, ""}
-#define EXCEPT_DETAIL_IDENTIFIER(id) cppogl::Exception::Detail{CPPOGL_FILENAME, __func__, __LINE__, "", id}
+#define EXCEPT_DETAIL_DEFAULT rgle::Exception::Detail{RGLE_FILENAME, __func__, __LINE__, ""}
+#define EXCEPT_DETAIL_IDENTIFIER(id) rgle::Exception::Detail{RGLE_FILENAME, __func__, __LINE__, "", id}
 
-namespace cppogl {
+namespace rgle {
+
 	class Exception : public std::runtime_error {
 	public:
 		struct Detail {

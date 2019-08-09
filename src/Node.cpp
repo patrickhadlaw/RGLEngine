@@ -1,62 +1,62 @@
 #include "Node.h"
 
 
-cppogl::IdentifierException::IdentifierException(std::string exception, std::string identifier, Exception::Detail detail)
+rgle::IdentifierException::IdentifierException(std::string exception, std::string identifier, Exception::Detail detail)
 {
 	detail.id = identifier;
 	Exception(exception, detail);
 }
 
-cppogl::IdentifierException::~IdentifierException()
+rgle::IdentifierException::~IdentifierException()
 {
 }
 
-std::string cppogl::IdentifierException::_type()
+std::string rgle::IdentifierException::_type()
 {
-	return std::string("cppogl::IdentifierException");
+	return std::string("rgle::IdentifierException");
 }
 
-cppogl::Node::Node()
-{
-}
-
-cppogl::Node::~Node()
+rgle::Node::Node()
 {
 }
 
-std::string & cppogl::Node::typeName()
-{
-	return std::string("cppogl::Node");
-}
-
-cppogl::Resource::Resource()
+rgle::Node::~Node()
 {
 }
 
-cppogl::Resource::~Resource()
+std::string & rgle::Node::typeName()
+{
+	return std::string("rgle::Node");
+}
+
+rgle::Resource::Resource()
 {
 }
 
-std::string & cppogl::Resource::typeName()
-{
-	return std::string("cppogl::Resource");
-}
-
-cppogl::ResourceManager::ResourceManager()
+rgle::Resource::~Resource()
 {
 }
 
-cppogl::ResourceManager::ResourceManager(const ResourceManager & other)
+std::string & rgle::Resource::typeName()
+{
+	return std::string("rgle::Resource");
+}
+
+rgle::ResourceManager::ResourceManager()
+{
+}
+
+rgle::ResourceManager::ResourceManager(const ResourceManager & other)
 {
 	this->id = other.id;
 	this->_resources = other._resources;
 }
 
-cppogl::ResourceManager::~ResourceManager()
+rgle::ResourceManager::~ResourceManager()
 {
 }
 
-void cppogl::ResourceManager::addResource(sResource resource)
+void rgle::ResourceManager::addResource(sResource resource)
 {
 	for (int i = 0; i < _resources.size(); i++) {
 		if (resource->id == _resources[i]->id) {
@@ -66,37 +66,37 @@ void cppogl::ResourceManager::addResource(sResource resource)
 	this->_resources.push_back(resource);
 }
 
-std::string & cppogl::ResourceManager::typeName()
+std::string & rgle::ResourceManager::typeName()
 {
-	return std::string("cppogl::ResourceManager");
+	return std::string("rgle::ResourceManager");
 }
 
-cppogl::LogicNode::LogicNode()
-{
-}
-
-cppogl::LogicNode::~LogicNode()
+rgle::LogicNode::LogicNode()
 {
 }
 
-void cppogl::LogicNode::update()
+rgle::LogicNode::~LogicNode()
 {
 }
 
-std::string & cppogl::LogicNode::typeName()
-{
-	return std::string("cppogl::LogicNode");
-}
-
-cppogl::LogicException::LogicException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
+void rgle::LogicNode::update()
 {
 }
 
-cppogl::LogicException::~LogicException()
+std::string & rgle::LogicNode::typeName()
+{
+	return std::string("rgle::LogicNode");
+}
+
+rgle::LogicException::LogicException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
 {
 }
 
-std::string cppogl::LogicException::_type()
+rgle::LogicException::~LogicException()
 {
-	return std::string("cppogl::LogicException");
+}
+
+std::string rgle::LogicException::_type()
+{
+	return std::string("rgle::LogicException");
 }

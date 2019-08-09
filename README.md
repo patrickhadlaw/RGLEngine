@@ -1,4 +1,4 @@
-# cpp-opengl
+# RGLEngine
 
 OpenGL real-time renderer.
 Features:
@@ -24,10 +24,6 @@ Controls are:
 * CMake 3.0.0+
 * OpenGL
 
-## Liscensing
-
-### This project is licensed under the provided license - see the [LICENSE](LICENSE) file for details
-
 ## Authors
 
 * **Patrick Hadlaw** - [patrickhadlaw](https://github.com/patrickhadlaw)
@@ -35,8 +31,8 @@ Controls are:
 ## Build instructions
 
 ```
-$ git clone https://github.com/patrickhadlaw/cpp-opengl
-$ cd cpp-opengl
+$ git clone https://github.com/patrickhadlaw/RGLEngine.git
+$ cd RGLEngine
 # NOTE: for Windows download the ZIP file from http://glew.sourceforge.net/ and extract as lib/glew, DO NOT clone the repository
 $ git clone https://github.com/nigels-com/glew.git lib/glew
 $ git clone https://github.com/glfw/glfw lib/glfw
@@ -51,8 +47,8 @@ $ cmake .. -G <CMake Generator>
 ## Run instructions: 
 
 ```
-$ cd <project-dir>/cpp-opengl/bin
-$ ./cpp-opengl [window-width] [window-height]
+$ cd <project-dir>/RGLEngine/bin
+$ ./interface [window-width] [window-height]
 ```
 
 ## Screenshot

@@ -2,11 +2,11 @@
 
 
 
-cppogl::ShaderProgram::ShaderProgram()
+rgle::ShaderProgram::ShaderProgram()
 {
 }
 
-cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader)
+rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader)
 {
 	this->id = name;
 	GLuint vertexShaderID = glCreateShader(GL_VERTEX_SHADER);
@@ -85,23 +85,23 @@ cppogl::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader
 }
 
 
-cppogl::ShaderProgram::~ShaderProgram()
+rgle::ShaderProgram::~ShaderProgram()
 {
 }
 
-GLuint cppogl::ShaderProgram::programId()
+GLuint rgle::ShaderProgram::programId()
 {
 	return _programID;
 }
 
-void cppogl::ShaderProgram::use()
+void rgle::ShaderProgram::use()
 {
 	glUseProgram(_programID);
 }
 
-std::string & cppogl::ShaderProgram::typeName()
+std::string & rgle::ShaderProgram::typeName()
 {
-	return std::string("cppogl::ShaderProgram");
+	return std::string("rgle::ShaderProgram");
 }
 
 void checkGLErrors(int line)
@@ -112,12 +112,12 @@ void checkGLErrors(int line)
 	}
 }
 
-cppogl::ShaderManager::ShaderManager()
+rgle::ShaderManager::ShaderManager()
 {
 	this->_shaderPrograms = std::vector<sShaderProgram>();
 }
 
-cppogl::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> programs)
+rgle::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> programs)
 {
 	this->_shaderPrograms = std::vector<sShaderProgram>();
 	for (const sShaderProgram& program : programs) {
@@ -125,11 +125,11 @@ cppogl::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> progr
 	}
 }
 
-cppogl::ShaderManager::~ShaderManager()
+rgle::ShaderManager::~ShaderManager()
 {
 }
 
-void cppogl::ShaderManager::addShader(sShaderProgram shader)
+void rgle::ShaderManager::addShader(sShaderProgram shader)
 {
 	for (int i = 0; i < _shaderPrograms.size(); i++) {
 		if (shader->id == _shaderPrograms[i]->id) {
@@ -139,7 +139,7 @@ void cppogl::ShaderManager::addShader(sShaderProgram shader)
 	_shaderPrograms.push_back(shader);
 }
 
-cppogl::sShaderProgram cppogl::ShaderManager::operator[](std::string name)
+rgle::sShaderProgram rgle::ShaderManager::operator[](std::string name)
 {
 	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {
@@ -149,7 +149,7 @@ cppogl::sShaderProgram cppogl::ShaderManager::operator[](std::string name)
 	return nullptr;
 }
 
-void cppogl::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
+void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
 {
 	std::cerr << (type == GL_DEBUG_TYPE_ERROR ? "[GL ERROR]" : "[CALLBACK]")
 		<< " type = "

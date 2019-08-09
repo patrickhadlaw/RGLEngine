@@ -2,53 +2,53 @@
 
 
 
-cppogl::EventException::EventException()
+rgle::EventException::EventException()
 {
 }
 
-cppogl::EventException::EventException(std::string & except, Detail & detail) : Exception(except, detail)
+rgle::EventException::EventException(std::string & except, Detail & detail) : Exception(except, detail)
 {
 }
 
-cppogl::EventException::EventException(const char * except, Detail & detail) : Exception(except, detail)
+rgle::EventException::EventException(const char * except, Detail & detail) : Exception(except, detail)
 {
 }
 
-cppogl::EventException::~EventException()
+rgle::EventException::~EventException()
 {
 }
 
-std::string cppogl::EventException::_type()
+std::string rgle::EventException::_type()
 {
-	return std::string("cppogl::EventException");
+	return std::string("rgle::EventException");
 }
 
-cppogl::EventMessage::EventMessage()
-{
-}
-
-cppogl::EventMessage::~EventMessage()
+rgle::EventMessage::EventMessage()
 {
 }
 
-cppogl::EventHost::EventHost()
+rgle::EventMessage::~EventMessage()
+{
+}
+
+rgle::EventHost::EventHost()
 {
 	_self = this;
 }
 
-cppogl::EventHost::EventHost(const EventHost & other)
+rgle::EventHost::EventHost(const EventHost & other)
 {
 	_changePointer(other._self);
 	this->_listeners = other._listeners;
 }
 
-cppogl::EventHost::EventHost(const EventHost && rvalue)
+rgle::EventHost::EventHost(const EventHost && rvalue)
 {
 	_changePointer(rvalue._self);
 	this->_listeners = std::move(rvalue._listeners);
 }
 
-cppogl::EventHost::~EventHost()
+rgle::EventHost::~EventHost()
 {
 	for (auto it = _listeners.begin(); it != _listeners.end(); ++it) {
 		std::vector<EventListener*>& list = it->second;
@@ -58,19 +58,19 @@ cppogl::EventHost::~EventHost()
 	}
 }
 
-void cppogl::EventHost::operator=(const EventHost & other)
+void rgle::EventHost::operator=(const EventHost & other)
 {
 	_changePointer(other._self);
 	this->_listeners = std::move(other._listeners);
 }
 
-void cppogl::EventHost::operator=(const EventHost && rvalue)
+void rgle::EventHost::operator=(const EventHost && rvalue)
 {
 	_changePointer(rvalue._self);
 	this->_listeners = std::move(rvalue._listeners);
 }
 
-void cppogl::EventHost::broadcastEvent(std::string eventname, EventMessage * message)
+void rgle::EventHost::broadcastEvent(std::string eventname, EventMessage * message)
 {
 	if (_listeners.find(eventname) != _listeners.end()) {
 		for (int i = 0; i < _listeners[eventname].size(); i++) {
@@ -80,7 +80,7 @@ void cppogl::EventHost::broadcastEvent(std::string eventname, EventMessage * mes
 	}
 }
 
-void cppogl::EventHost::registerListener(std::string eventname, EventListener * listener)
+void rgle::EventHost::registerListener(std::string eventname, EventListener * listener)
 {
 	if (listener->_hosts.find(this) == listener->_hosts.end()) {
 		listener->_hosts[this] = { eventname };
@@ -91,7 +91,7 @@ void cppogl::EventHost::registerListener(std::string eventname, EventListener * 
 	_listeners[eventname].push_back(listener);
 }
 
-void cppogl::EventHost::removeListener(std::string eventname, EventListener * listener)
+void rgle::EventHost::removeListener(std::string eventname, EventListener * listener)
 {
 	if (_listeners.find(eventname) == _listeners.end()) {
 		throw EventException("failed to remove listener, reference not found", EXCEPT_DETAIL_DEFAULT);
@@ -112,7 +112,7 @@ void cppogl::EventHost::removeListener(std::string eventname, EventListener * li
 	}
 }
 
-void cppogl::EventHost::_replaceListener(EventListener * previous, EventListener * replace)
+void rgle::EventHost::_replaceListener(EventListener * previous, EventListener * replace)
 {
 	for (std::map<std::string, std::vector<EventListener*>>::iterator it = _listeners.begin(); it != _listeners.end(); ++it) {
 		for (int i = 0; i < it->second.size(); i++) {
@@ -123,7 +123,7 @@ void cppogl::EventHost::_replaceListener(EventListener * previous, EventListener
 	}
 }
 
-void cppogl::EventHost::_changePointer(EventHost * previous)
+void rgle::EventHost::_changePointer(EventHost * previous)
 {
 	for (std::map<std::string, std::vector<EventListener*>>::iterator it = _listeners.begin(); it != _listeners.end(); ++it) {
 		for (int i = 0; i < it->second.size(); i++) {
@@ -133,13 +133,13 @@ void cppogl::EventHost::_changePointer(EventHost * previous)
 	this->_self = previous;
 }
 
-cppogl::EventListener::EventListener()
+rgle::EventListener::EventListener()
 {
 	_self = this;
 	_hosts = {};
 }
 
-cppogl::EventListener::EventListener(const EventListener & other)
+rgle::EventListener::EventListener(const EventListener & other)
 {
 	_changePointer(other._self);
 	for (auto it = other._hosts.begin(); it != other._hosts.end(); ++it) {
@@ -149,13 +149,13 @@ cppogl::EventListener::EventListener(const EventListener & other)
 	}
 }
 
-cppogl::EventListener::EventListener(EventListener && rvalue)
+rgle::EventListener::EventListener(EventListener && rvalue)
 {
 	_changePointer(rvalue._self);
 	_hosts = std::move(rvalue._hosts);
 }
 
-cppogl::EventListener::~EventListener()
+rgle::EventListener::~EventListener()
 {
 	for (std::map<EventHost*, std::vector<std::string>>::iterator it = _hosts.begin(); it != _hosts.end(); ++it) {
 		for (int i = 0; i < it->second.size(); i++) {
@@ -164,7 +164,7 @@ cppogl::EventListener::~EventListener()
 	}
 }
 
-void cppogl::EventListener::operator=(const EventListener & other)
+void rgle::EventListener::operator=(const EventListener & other)
 {
 	_changePointer(other._self);
 	for (auto it = other._hosts.begin(); it != other._hosts.end(); ++it) {
@@ -175,18 +175,18 @@ void cppogl::EventListener::operator=(const EventListener & other)
 }
 
 
-void cppogl::EventListener::operator=(const EventListener && rvalue)
+void rgle::EventListener::operator=(const EventListener && rvalue)
 {
 	_changePointer(rvalue._self);
 	_hosts = std::move(rvalue._hosts);
 }
 
 
-void cppogl::EventListener::onMessage(std::string eventname, EventMessage * message)
+void rgle::EventListener::onMessage(std::string eventname, EventMessage * message)
 {
 }
 
-void cppogl::EventListener::_removeHost(EventHost * host)
+void rgle::EventListener::_removeHost(EventHost * host)
 {
 	bool found = false;
 	for (std::map<EventHost*, std::vector<std::string>>::iterator it = _hosts.begin(); it != _hosts.end(); ++it) {
@@ -201,7 +201,7 @@ void cppogl::EventListener::_removeHost(EventHost * host)
 	}
 }
 
-void cppogl::EventListener::_replaceHost(EventHost* previous, EventHost * replace)
+void rgle::EventListener::_replaceHost(EventHost* previous, EventHost * replace)
 {
 	if (_hosts.find(previous) != _hosts.end()) {
 		std::vector<std::string> value = _hosts[previous];
@@ -210,7 +210,7 @@ void cppogl::EventListener::_replaceHost(EventHost* previous, EventHost * replac
 	}
 }
 
-void cppogl::EventListener::_changePointer(EventListener * previous)
+void rgle::EventListener::_changePointer(EventListener * previous)
 {
 	for (std::map<EventHost*, std::vector<std::string>>::iterator it = _hosts.begin(); it != _hosts.end(); ++it) {
 		it->first->_replaceListener(previous, this);

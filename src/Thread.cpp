@@ -1,10 +1,10 @@
 #include "Thread.h"
 
-cppogl::ThreadException::ThreadException()
+rgle::ThreadException::ThreadException()
 {
 }
 
-cppogl::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(false), _activeWorkers(0), _queueMutex()
+rgle::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(false), _activeWorkers(0), _queueMutex()
 {
 	this->_workers.reserve(n);
 	for (int i = 0; i < n; i++) {
@@ -12,11 +12,11 @@ cppogl::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(
 	}
 }
 
-cppogl::ThreadPool::ThreadPool(const ThreadPool & other) : ThreadPool(other._workers.size())
+rgle::ThreadPool::ThreadPool(const ThreadPool & other) : ThreadPool(other._workers.size())
 {
 }
 
-cppogl::ThreadPool::~ThreadPool()
+rgle::ThreadPool::~ThreadPool()
 {
 	this->_alive = false;
 	this->_ready = true;
@@ -26,7 +26,7 @@ cppogl::ThreadPool::~ThreadPool()
 	}
 }
 
-void cppogl::ThreadPool::startJob(std::function<void()> job)
+void rgle::ThreadPool::startJob(std::function<void()> job)
 {
 	while (this->_locked) {
 		std::this_thread::yield();
@@ -39,12 +39,12 @@ void cppogl::ThreadPool::startJob(std::function<void()> job)
 	this->_workerCondition.notify_one();
 }
 
-bool cppogl::ThreadPool::standBy()
+bool rgle::ThreadPool::standBy()
 {
 	return this->_jobQueue.empty() && this->_activeWorkers == 0;
 }
 
-void cppogl::ThreadPool::_threadLoop()
+void rgle::ThreadPool::_threadLoop()
 {
 	while (this->_alive) {
 		std::function<void()> job;
