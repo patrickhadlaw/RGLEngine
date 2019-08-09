@@ -2,7 +2,7 @@
 
 #include "Renderable.h"
 
-namespace cppogl {
+namespace rgle {
 	class Fill {
 	public:
 		struct RadialDescriptor {

@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <string>
 
-namespace cppogl {
+namespace rgle {
 	namespace Console {
 		enum class Color {
 			RED,

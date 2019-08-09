@@ -1,33 +1,33 @@
 #include "Interface.h"
 #include "Font.h"
 
-cppogl::UI::BoundingBox::BoundingBox()
+rgle::UI::BoundingBox::BoundingBox()
 {
 }
 
-cppogl::UI::BoundingBox::BoundingBox(UnitVector2D dimensions, UnitVector2D topleft)
+rgle::UI::BoundingBox::BoundingBox(UnitVector2D dimensions, UnitVector2D topleft)
 {
 }
 
-cppogl::UI::BoundingBox::~BoundingBox()
+rgle::UI::BoundingBox::~BoundingBox()
 {
 }
 
-void cppogl::UI::BoundingBox::onBoxUpdate()
+void rgle::UI::BoundingBox::onBoxUpdate()
 {
 }
 
-cppogl::UnitVector2D cppogl::UI::BoundingBox::getTopLeft()
+rgle::UnitVector2D rgle::UI::BoundingBox::getTopLeft()
 {
 	return _topLeft;
 }
 
-cppogl::UnitVector2D cppogl::UI::BoundingBox::getDimensions()
+rgle::UnitVector2D rgle::UI::BoundingBox::getDimensions()
 {
 	return _dimensions;
 }
 
-void cppogl::UI::BoundingBox::changeDimensions(UnitVector2D dimensions)
+void rgle::UI::BoundingBox::changeDimensions(UnitVector2D dimensions)
 {
 	this->_dimensions = dimensions;
 	LayoutChangeMessage* message = new LayoutChangeMessage();
@@ -37,7 +37,7 @@ void cppogl::UI::BoundingBox::changeDimensions(UnitVector2D dimensions)
 	this->onBoxUpdate();
 }
 
-void cppogl::UI::BoundingBox::changeTopLeft(UnitVector2D topleft)
+void rgle::UI::BoundingBox::changeTopLeft(UnitVector2D topleft)
 {
 	this->_topLeft = topleft;
 	LayoutChangeMessage* message = new LayoutChangeMessage();
@@ -47,7 +47,7 @@ void cppogl::UI::BoundingBox::changeTopLeft(UnitVector2D topleft)
 	this->onBoxUpdate();
 }
 
-void cppogl::UI::BoundingBox::change(UnitVector2D dimensions, UnitVector2D topleft)
+void rgle::UI::BoundingBox::change(UnitVector2D dimensions, UnitVector2D topleft)
 {
 	this->_dimensions = dimensions;
 	this->_topLeft = topleft;
@@ -58,38 +58,38 @@ void cppogl::UI::BoundingBox::change(UnitVector2D dimensions, UnitVector2D tople
 	this->onBoxUpdate();
 }
 
-void cppogl::UI::BoundingBox::quietChangeDimensions(UnitVector2D dimensions)
+void rgle::UI::BoundingBox::quietChangeDimensions(UnitVector2D dimensions)
 {
 	this->_dimensions = dimensions;
 	this->onBoxUpdate();
 }
 
-void cppogl::UI::BoundingBox::quietChangeTopLeft(UnitVector2D topleft)
+void rgle::UI::BoundingBox::quietChangeTopLeft(UnitVector2D topleft)
 {
 	this->_topLeft = topleft;
 	this->onBoxUpdate();
 }
 
-void cppogl::UI::BoundingBox::quietChange(UnitVector2D dimensions, UnitVector2D topleft)
+void rgle::UI::BoundingBox::quietChange(UnitVector2D dimensions, UnitVector2D topleft)
 {
 	this->_dimensions = dimensions;
 	this->_topLeft = topleft;
 	this->onBoxUpdate();
 }
 
-cppogl::UI::LayoutChangeMessage::LayoutChangeMessage()
+rgle::UI::LayoutChangeMessage::LayoutChangeMessage()
 {
 }
 
-cppogl::UI::LayoutChangeMessage::~LayoutChangeMessage()
+rgle::UI::LayoutChangeMessage::~LayoutChangeMessage()
 {
 }
 
-cppogl::UI::RelativeAligner::RelativeAligner()
+rgle::UI::RelativeAligner::RelativeAligner()
 {
 }
 
-cppogl::UI::RelativeAligner::RelativeAligner(sBoundingBox element, sBoundingBox align, RelativeAlignerAttributes attributes)
+rgle::UI::RelativeAligner::RelativeAligner(sBoundingBox element, sBoundingBox align, RelativeAlignerAttributes attributes)
 {
 	this->_element = element;
 	this->_align = align;
@@ -98,11 +98,11 @@ cppogl::UI::RelativeAligner::RelativeAligner(sBoundingBox element, sBoundingBox 
 	this->realign();
 }
 
-cppogl::UI::RelativeAligner::~RelativeAligner()
+rgle::UI::RelativeAligner::~RelativeAligner()
 {
 }
 
-void cppogl::UI::RelativeAligner::realign()
+void rgle::UI::RelativeAligner::realign()
 {
 	UnitVector2D newTopLeft = UnitVector2D{};
 	switch (_attributes.direction) {
@@ -126,11 +126,11 @@ void cppogl::UI::RelativeAligner::realign()
 	_align->changeTopLeft(newTopLeft);
 }
 
-cppogl::UI::LinearAligner::LinearAligner()
+rgle::UI::LinearAligner::LinearAligner()
 {
 }
 
-cppogl::UI::LinearAligner::LinearAligner(std::vector<sBoundingBox> elements, LinearAlignerAttributes attributes)
+rgle::UI::LinearAligner::LinearAligner(std::vector<sBoundingBox> elements, LinearAlignerAttributes attributes)
 {
 	this->_elements = elements;
 	this->_attributes = attributes;
@@ -147,15 +147,15 @@ cppogl::UI::LinearAligner::LinearAligner(std::vector<sBoundingBox> elements, Lin
 	}
 }
 
-cppogl::UI::LinearAligner::~LinearAligner()
+rgle::UI::LinearAligner::~LinearAligner()
 {
 }
 
-void cppogl::UI::LinearAligner::push(sBoundingBox element)
+void rgle::UI::LinearAligner::push(sBoundingBox element)
 {
 }
 
-cppogl::UI::sBoundingBox cppogl::UI::LinearAligner::pop()
+rgle::UI::sBoundingBox rgle::UI::LinearAligner::pop()
 {
 	_aligners.pop_back();
 	sBoundingBox bbox = _elements.back();
@@ -163,34 +163,34 @@ cppogl::UI::sBoundingBox cppogl::UI::LinearAligner::pop()
 	return bbox;
 }
 
-void cppogl::UI::LinearAligner::realign()
+void rgle::UI::LinearAligner::realign()
 {
 	for (int i = 0; i < _aligners.size(); i++) {
 		_aligners[i].realign();
 	}
 }
 
-cppogl::UI::Element::Element()
+rgle::UI::Element::Element()
 {
 }
 
-cppogl::UI::Element::Element(const Context & context, ElementAttributes attributes) : Renderable(context)
+rgle::UI::Element::Element(const Context & context, ElementAttributes attributes) : Renderable(context)
 {
 	this->_elementAttributes = attributes;
 }
 
-cppogl::UI::Element::~Element()
+rgle::UI::Element::~Element()
 {
 }
 
-void cppogl::UI::Element::onMessage(std::string eventname, EventMessage * message)
+void rgle::UI::Element::onMessage(std::string eventname, EventMessage * message)
 {
 	if (eventname == "resize") {
 		this->onBoxUpdate();
 	}
 }
 
-bool cppogl::UI::Element::raycast(Ray ray)
+bool rgle::UI::Element::raycast(Ray ray)
 {
 	glm::vec3 topleft = glm::vec3(_topLeft.resolve(_context.window), 0.0);
 	glm::vec2 dimensions = _dimensions.resolve(_context.window);
@@ -205,12 +205,12 @@ bool cppogl::UI::Element::raycast(Ray ray)
 	return ray.intersect(topright, topleft, bottomleft) || ray.intersect(bottomleft, bottomright, topright);
 }
 
-cppogl::UI::DelegateMouseState cppogl::UI::Element::delegateMouseState(Ray clickray, bool inside, MouseState state)
+rgle::UI::DelegateMouseState rgle::UI::Element::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
 	return DelegateMouseState::UNCHANGED;
 }
 
-glm::mat4 cppogl::UI::Element::transform()
+glm::mat4 rgle::UI::Element::transform()
 {
 	glm::mat4 transform = glm::mat4(1.0f);
 	transform[3][0] = _topLeft.x.resolve(_context.window, Window::X);
@@ -219,36 +219,36 @@ glm::mat4 cppogl::UI::Element::transform()
 	return transform;
 }
 
-cppogl::UI::ElementAttributes cppogl::UI::Element::getElementAttribs()
+rgle::UI::ElementAttributes rgle::UI::Element::getElementAttribs()
 {
 	return _elementAttributes;
 }
 
-std::string & cppogl::UI::Element::typeName()
+std::string & rgle::UI::Element::typeName()
 {
-	return std::string("cppogl::UI::Element");
+	return std::string("rgle::UI::Element");
 }
 
-cppogl::UI::Aligner::Aligner()
-{
-}
-
-cppogl::UI::Aligner::~Aligner()
+rgle::UI::Aligner::Aligner()
 {
 }
 
-void cppogl::UI::Aligner::onMessage(std::string eventname, EventMessage * message)
+rgle::UI::Aligner::~Aligner()
+{
+}
+
+void rgle::UI::Aligner::onMessage(std::string eventname, EventMessage * message)
 {
 	if (eventname == "bounding-box") {
 		this->realign();
 	}
 }
 
-void cppogl::UI::Aligner::realign()
+void rgle::UI::Aligner::realign()
 {
 }
 
-cppogl::UI::Layer::Layer(Context context, std::string id, clock_t ticktime) : RenderLayer(id), _tickTime(ticktime), _lastTick(0), _raycastCheck(false), _castHit(false)
+rgle::UI::Layer::Layer(Context context, std::string id, clock_t ticktime) : RenderLayer(id), _tickTime(ticktime), _lastTick(0), _raycastCheck(false), _castHit(false)
 {
 	this->_tickTime = ticktime;
 	this->_lastTick = 0;
@@ -257,21 +257,21 @@ cppogl::UI::Layer::Layer(Context context, std::string id, clock_t ticktime) : Re
 	this->_context.window->registerListener("mouseclick", this);
 }
 
-cppogl::UI::Layer::~Layer()
+rgle::UI::Layer::~Layer()
 {
 }
 
-bool cppogl::UI::Layer::tick()
+bool rgle::UI::Layer::tick()
 {
 	return (((float)clock() - (float)_lastTick) / CLOCKS_PER_SEC) >= _tickTime;
 }
 
-bool cppogl::UI::Layer::raycastHit()
+bool rgle::UI::Layer::raycastHit()
 {
 	return _castHit;
 }
 
-void cppogl::UI::Layer::onMessage(std::string eventname, EventMessage * message)
+void rgle::UI::Layer::onMessage(std::string eventname, EventMessage * message)
 {
 	bool click = eventname == "mouseclick";
 	if (eventname == "mousemove" || click && !this->_context.window->grabbed()) {
@@ -288,7 +288,7 @@ void cppogl::UI::Layer::onMessage(std::string eventname, EventMessage * message)
 	}
 }
 
-void cppogl::UI::Layer::update()
+void rgle::UI::Layer::update()
 {
 	clock_t currentTime = clock();
 	float deltaTime = ((float)currentTime - (float)_lastTick) / CLOCKS_PER_SEC;
@@ -345,7 +345,7 @@ void cppogl::UI::Layer::update()
 	}
 }
 
-void cppogl::UI::Layer::render()
+void rgle::UI::Layer::render()
 {
 	GLuint currentShader = 0;
 	for (int i = 0; i < _elements.size(); i++) {
@@ -360,12 +360,12 @@ void cppogl::UI::Layer::render()
 	}
 }
 
-void cppogl::UI::Layer::addLogicNode(sLogicNode node)
+void rgle::UI::Layer::addLogicNode(sLogicNode node)
 {
 	this->_logicNodes.push_back(node);
 }
 
-void cppogl::UI::Layer::addElement(sElement element)
+void rgle::UI::Layer::addElement(sElement element)
 {
 	for (int i = 0; i < this->_elements.size(); i++) {
 		if (element->getElementAttribs().zIndex < this->_elements[i]->getElementAttribs().zIndex) {
@@ -376,26 +376,26 @@ void cppogl::UI::Layer::addElement(sElement element)
 	this->_elements.push_back(element);
 }
 
-cppogl::UI::Button::Button()
+rgle::UI::Button::Button()
 {
 
 }
 
-cppogl::UI::Button::~Button()
+rgle::UI::Button::~Button()
 {
 }
 
-void cppogl::UI::Button::render()
+void rgle::UI::Button::render()
 {
 	
 }
 
-void cppogl::UI::Button::update()
+void rgle::UI::Button::update()
 {
 
 }
 
-cppogl::UI::DelegateMouseState cppogl::UI::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
+rgle::UI::DelegateMouseState rgle::UI::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
 	int key = this->_context.window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
 	State next = DEFAULT;
@@ -419,18 +419,18 @@ cppogl::UI::DelegateMouseState cppogl::UI::Button::delegateMouseState(Ray clickr
 	return delegateState;
 }
 
-void cppogl::UI::Button::onStateChange(State state, bool inside, MouseState mouseState)
+void rgle::UI::Button::onStateChange(State state, bool inside, MouseState mouseState)
 {
 	if (this->_currentState == ACTIVE && inside) {
 		this->broadcastEvent("onclick", new MouseStateMessage(mouseState));
 	}
 }
 
-cppogl::UI::BasicButton::BasicButton()
+rgle::UI::BasicButton::BasicButton()
 {
 }
 
-cppogl::UI::BasicButton::BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
+rgle::UI::BasicButton::BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
 {
 	this->_context = context;
 	this->shader = this->_context.manager.shader->operator[](shader);
@@ -453,11 +453,11 @@ cppogl::UI::BasicButton::BasicButton(Context context, std::string shader, std::s
 	this->_context.window->registerListener("resize", this);
 }
 
-cppogl::UI::BasicButton::~BasicButton()
+rgle::UI::BasicButton::~BasicButton()
 {
 }
 
-void cppogl::UI::BasicButton::onBoxUpdate()
+void rgle::UI::BasicButton::onBoxUpdate()
 {
 	glm::mat4 transform = this->transform();
 	this->_rect.model.matrix = transform;
@@ -466,7 +466,7 @@ void cppogl::UI::BasicButton::onBoxUpdate()
 	this->_text->changeTopLeft(UnitVector2D(this->_topLeft.x + this->_basicButtonAttributes.paddingHorizontal.x, this->_topLeft.y));
 }
 
-void cppogl::UI::BasicButton::onStateChange(Button::State state, bool inside, MouseState mouseState)
+void rgle::UI::BasicButton::onStateChange(Button::State state, bool inside, MouseState mouseState)
 {
 	Button::onStateChange(state, inside, mouseState);
 	switch (state) {
@@ -484,7 +484,7 @@ void cppogl::UI::BasicButton::onStateChange(Button::State state, bool inside, Mo
 	}
 }
 
-void cppogl::UI::BasicButton::render()
+void rgle::UI::BasicButton::render()
 {
 	this->_rect.render();
 	this->_text->shader->use(); // NOTE: rendering should be ordered by shader...
@@ -492,11 +492,11 @@ void cppogl::UI::BasicButton::render()
 	this->shader->use();
 }
 
-cppogl::UI::RectElement::RectElement()
+rgle::UI::RectElement::RectElement()
 {
 }
 
-cppogl::UI::RectElement::RectElement(Context& context, std::string& shader, RectAttributes& attribs)
+rgle::UI::RectElement::RectElement(Context& context, std::string& shader, RectAttributes& attribs)
 {
 	this->_context = context;
 	this->shader = (*this->_context.manager.shader)[shader];
@@ -541,11 +541,11 @@ cppogl::UI::RectElement::RectElement(Context& context, std::string& shader, Rect
 	this->generate();
 }
 
-cppogl::UI::RectElement::~RectElement()
+rgle::UI::RectElement::~RectElement()
 {
 }
 
-void cppogl::UI::RectElement::onMessage(std::string eventname, EventMessage * message)
+void rgle::UI::RectElement::onMessage(std::string eventname, EventMessage * message)
 {
 	Element::onMessage(eventname, message);
 	if (eventname == "resize") {
@@ -553,17 +553,17 @@ void cppogl::UI::RectElement::onMessage(std::string eventname, EventMessage * me
 	}
 }
 
-void cppogl::UI::RectElement::onBoxUpdate()
+void rgle::UI::RectElement::onBoxUpdate()
 {
 	this->model.matrix = this->transform();
 }
 
-void cppogl::UI::RectElement::render()
+void rgle::UI::RectElement::render()
 {
 	this->standardRender(this->shader);
 }
 
-void cppogl::UI::RectElement::updateGeometry()
+void rgle::UI::RectElement::updateGeometry()
 {
 	this->model.matrix = this->transform();
 	glm::vec2 dimensions = this->_dimensions.resolve(this->_context.window);
@@ -577,7 +577,7 @@ void cppogl::UI::RectElement::updateGeometry()
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
-void cppogl::UI::RectElement::changeColor(Fill color)
+void rgle::UI::RectElement::changeColor(Fill color)
 {
 	this->_attributes.color = color;
 	this->color.list = {

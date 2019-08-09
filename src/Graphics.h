@@ -2,7 +2,7 @@
 
 #include "Color.h"
 
-namespace cppogl {
+namespace rgle {
 
 	struct Image {
 		Image();

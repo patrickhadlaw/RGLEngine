@@ -9,7 +9,7 @@
 #include <mutex>
 #include <condition_variable>
 
-namespace cppogl {
+namespace rgle {
 	class ThreadException : public Exception {
 	public:
 		ThreadException();

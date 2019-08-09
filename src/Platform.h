@@ -3,7 +3,7 @@
 #include <iostream>
 #include <string.h>
 
-namespace cppogl {
+namespace rgle {
 	namespace Platform {
 		void initialize();
 	}
@@ -11,24 +11,24 @@ namespace cppogl {
 
 #if defined _MSC_VER
 
-#ifdef CPPOGL_DLL_BUILD_MODE
-#define CPPOGL_DLLEXPORTED  __declspec(dllexport)
+#ifdef RGLE_DLL_BUILD_MODE
+#define RGLE_DLLEXPORTED  __declspec(dllexport)
 #else
-#define CPPOGL_DLLEXPORTED  __declspec(dllimport)
+#define RGLE_DLLEXPORTED  __declspec(dllimport)
 #endif
 
 #else
 
-#define CPPOGL_DLLEXPORTED
+#define RGLE_DLLEXPORTED
 
 #endif
 
 #ifdef TARGET_OS_MAC
-#define CPPOGL_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #elif defined __linux__
-#define CPPOGL_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #elif defined _WIN32 || defined _WIN64
-#define CPPOGL_FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+#define RGLE_FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
 #error "Unknown platform..."
 #endif

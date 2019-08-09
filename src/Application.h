@@ -5,7 +5,7 @@
 #include "Raycast.h"
 #include "Thread.h"
 
-namespace cppogl {
+namespace rgle {
 
 	class Application : public ContextManager {
 	public:

@@ -4,7 +4,7 @@
 #include "Raycast.h"
 #include "Event.h"
 
-namespace cppogl {
+namespace rgle {
 
 	class Text;
 

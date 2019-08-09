@@ -1,73 +1,73 @@
 #include "Renderable.h"
 
 
-cppogl::Renderable::Renderable()
+rgle::Renderable::Renderable()
 {
 }
 
-cppogl::Renderable::Renderable(const Context & context)
+rgle::Renderable::Renderable(const Context & context)
 {
 	this->_context = context;
 }
 
-cppogl::Renderable::~Renderable()
+rgle::Renderable::~Renderable()
 {
 }
 
-void cppogl::Renderable::update()
+void rgle::Renderable::update()
 {
 }
 
-void cppogl::Renderable::render()
+void rgle::Renderable::render()
 {
 }
 
-std::string & cppogl::Renderable::typeName()
+std::string & rgle::Renderable::typeName()
 {
-	return std::string("cppogl::Renderable");
+	return std::string("rgle::Renderable");
 }
 
-cppogl::Context & cppogl::Renderable::getContext()
+rgle::Context & rgle::Renderable::getContext()
 {
 	return _context;
 }
 
-void cppogl::Renderable::setContext(Context & context)
+void rgle::Renderable::setContext(Context & context)
 {
 	this->_context = context;
 }
 
-cppogl::RenderLayer::RenderLayer(std::string id)
+rgle::RenderLayer::RenderLayer(std::string id)
 {
 	this->id = id;
 }
 
-cppogl::RenderLayer::~RenderLayer()
+rgle::RenderLayer::~RenderLayer()
 {
 }
 
-void cppogl::RenderLayer::update()
+void rgle::RenderLayer::update()
 {
 }
 
-void cppogl::RenderLayer::render()
+void rgle::RenderLayer::render()
 {
 }
 
-void cppogl::RenderLayer::addRenderable(sRenderable renderable)
+void rgle::RenderLayer::addRenderable(sRenderable renderable)
 {
 }
 
-std::string & cppogl::RenderLayer::typeName()
+std::string & rgle::RenderLayer::typeName()
 {
-	return std::string("cppogl::RenderLayer");
+	return std::string("rgle::RenderLayer");
 }
 
-cppogl::ContextManager::ContextManager()
+rgle::ContextManager::ContextManager()
 {
 }
 
-cppogl::ContextManager::ContextManager(sWindow window, std::string id)
+rgle::ContextManager::ContextManager(sWindow window, std::string id)
 {
 	this->_window = window;
 	this->id = id;
@@ -75,11 +75,11 @@ cppogl::ContextManager::ContextManager(sWindow window, std::string id)
 	this->_shaderManager = sShaderManager(new ShaderManager());
 }
 
-cppogl::ContextManager::~ContextManager()
+rgle::ContextManager::~ContextManager()
 {
 }
 
-cppogl::Context cppogl::ContextManager::getContext()
+rgle::Context rgle::ContextManager::getContext()
 {
 	Context context;
 	context.window = this->_window;
@@ -88,7 +88,7 @@ cppogl::Context cppogl::ContextManager::getContext()
 	return context;
 }
 
-cppogl::sRenderLayer cppogl::ContextManager::getLayerReference(std::string layer)
+rgle::sRenderLayer rgle::ContextManager::getLayerReference(std::string layer)
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		if (_layers[i]->id == layer) {
@@ -98,12 +98,12 @@ cppogl::sRenderLayer cppogl::ContextManager::getLayerReference(std::string layer
 	return nullptr;
 }
 
-void cppogl::ContextManager::addShader(sShaderProgram shader)
+void rgle::ContextManager::addShader(sShaderProgram shader)
 {
 	this->_shaderManager->addShader(shader);
 }
 
-void cppogl::ContextManager::addLayer(sRenderLayer layer)
+void rgle::ContextManager::addLayer(sRenderLayer layer)
 {
 	for (int i = 0; i < this->_layers.size(); i++) {
 		if (_layers[i]->id == layer->id) {
@@ -113,7 +113,7 @@ void cppogl::ContextManager::addLayer(sRenderLayer layer)
 	this->_layers.push_back(layer);
 }
 
-void cppogl::ContextManager::addRenderable(std::string layer, sRenderable renderable)
+void rgle::ContextManager::addRenderable(std::string layer, sRenderable renderable)
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		if (_layers[i]->id == layer) {
@@ -124,12 +124,12 @@ void cppogl::ContextManager::addRenderable(std::string layer, sRenderable render
 	throw IdentifierException("could not find identifier", layer, EXCEPT_DETAIL_DEFAULT);
 }
 
-void cppogl::ContextManager::addResource(sResource resource)
+void rgle::ContextManager::addResource(sResource resource)
 {
 	this->_resourceManager->addResource(resource);
 }
 
-void cppogl::ContextManager::update()
+void rgle::ContextManager::update()
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		_layers[i]->update();
@@ -137,19 +137,19 @@ void cppogl::ContextManager::update()
 	this->_window->update();
 }
 
-void cppogl::ContextManager::render()
+void rgle::ContextManager::render()
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		_layers[i]->render();
 	}
 }
 
-std::string & cppogl::ContextManager::typeName()
+std::string & rgle::ContextManager::typeName()
 {
-	return std::string("cppogl::ContextManager");
+	return std::string("rgle::ContextManager");
 }
 
-cppogl::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
+rgle::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -157,7 +157,7 @@ cppogl::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
 	_viewport = std::make_shared<Viewport>(Viewport());
 }
 
-cppogl::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer) : RenderLayer(id)
+rgle::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -165,7 +165,7 @@ cppogl::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transf
 	_viewport = std::make_shared<Viewport>(Viewport());
 }
 
-cppogl::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer, sViewport viewport) : RenderLayer(id)
+rgle::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer, sViewport viewport) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -173,16 +173,16 @@ cppogl::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transf
 	_viewport = viewport;
 }
 
-cppogl::RenderableLayer::~RenderableLayer()
+rgle::RenderableLayer::~RenderableLayer()
 {
 }
 
-float cppogl::RenderableLayer::getFrameDelay()
+float rgle::RenderableLayer::getFrameDelay()
 {
 	return ((float)clock() - (float)this->_previousTime) / CLOCKS_PER_SEC;
 }
 
-void cppogl::RenderableLayer::update()
+void rgle::RenderableLayer::update()
 {
 	clock_t time = clock();
 	_transformer->update(((float) time - (float) _previousTime) / CLOCKS_PER_SEC);
@@ -192,7 +192,7 @@ void cppogl::RenderableLayer::update()
 	}
 }
 
-void cppogl::RenderableLayer::render()
+void rgle::RenderableLayer::render()
 {
 	_viewport->use();
 	GLuint currentShader = 0;
@@ -209,7 +209,7 @@ void cppogl::RenderableLayer::render()
 	}
 }
 
-void cppogl::RenderableLayer::addRenderable(sRenderable renderable)
+void rgle::RenderableLayer::addRenderable(sRenderable renderable)
 {
 	if (renderable->shader == nullptr) {
 		throw ApplicationException("failed to add renderable to layer, shader is null", EXCEPT_DETAIL_IDENTIFIER(renderable->id));
@@ -228,20 +228,20 @@ void cppogl::RenderableLayer::addRenderable(sRenderable renderable)
 	this->_renderables.push_back(renderable);
 }
 
-std::string & cppogl::RenderableLayer::typeName()
+std::string & rgle::RenderableLayer::typeName()
 {
-	return std::string("cppogl::RenderableLayer");
+	return std::string("rgle::RenderableLayer");
 }
 
-cppogl::RenderException::RenderException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
-{
-}
-
-cppogl::RenderException::~RenderException()
+rgle::RenderException::RenderException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
 {
 }
 
-std::string cppogl::RenderException::_type()
+rgle::RenderException::~RenderException()
 {
-	return std::string("cppogl::RenderException");
+}
+
+std::string rgle::RenderException::_type()
+{
+	return std::string("rgle::RenderException");
 }

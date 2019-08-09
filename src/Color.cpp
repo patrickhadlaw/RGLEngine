@@ -1,20 +1,20 @@
 #include "Color.h"
 
 
-cppogl::Fill::Fill()
+rgle::Fill::Fill()
 {
 }
 
-cppogl::Fill::Fill(glm::vec4 solid)
+rgle::Fill::Fill(glm::vec4 solid)
 {
 	this->_solid = solid;
 }
 
-cppogl::Fill::~Fill()
+rgle::Fill::~Fill()
 {
 }
 
-glm::vec4 cppogl::Fill::evaluate(float u, float v)
+glm::vec4 rgle::Fill::evaluate(float u, float v)
 {
 	switch (this->_type)
 	{
