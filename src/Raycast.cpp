@@ -34,7 +34,7 @@ bool rgle::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
 bool rgle::Ray::intersect(Geometry3D * geometry)
 {
 	if (geometry == nullptr) {
-		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	for (int i = 0; i < geometry->numFaces(); i++) {
 		if (this->intersect(geometry->getFace(i))) {

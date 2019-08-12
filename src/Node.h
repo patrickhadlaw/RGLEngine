@@ -9,7 +9,7 @@ namespace rgle {
 
 	class IdentifierException : public Exception {
 	public:
-		IdentifierException(std::string exception, std::string identifier, Exception::Detail detail);
+		IdentifierException(std::string exception, std::string identifier, Logger::Detail detail);
 		virtual ~IdentifierException();
 
 	protected:
@@ -30,7 +30,7 @@ namespace rgle {
 
 	class LogicException : public Exception {
 	public:
-		LogicException(std::string exception, Exception::Detail detail);
+		LogicException(std::string exception, Logger::Detail detail);
 		virtual ~LogicException();
 
 	protected:
@@ -76,11 +76,11 @@ namespace rgle {
 						return cast;
 					}
 					else {
-						throw BadCastException(std::string("failed to cast resource"), EXCEPT_DETAIL_IDENTIFIER(id));
+						throw BadCastException(std::string("failed to cast resource"), LOGGER_DETAIL_IDENTIFIER(id));
 					}
 				}
 			}
-			throw IdentifierException("failed to look up resource", id, EXCEPT_DETAIL_DEFAULT);
+			throw IdentifierException("failed to look up resource", id, LOGGER_DETAIL_DEFAULT);
 		}
 
 		virtual std::string& typeName();

@@ -6,11 +6,11 @@ rgle::EventException::EventException()
 {
 }
 
-rgle::EventException::EventException(std::string & except, Detail & detail) : Exception(except, detail)
+rgle::EventException::EventException(std::string & except, Logger::Detail & detail) : Exception(except, detail)
 {
 }
 
-rgle::EventException::EventException(const char * except, Detail & detail) : Exception(except, detail)
+rgle::EventException::EventException(const char * except, Logger::Detail & detail) : Exception(except, detail)
 {
 }
 
@@ -94,7 +94,7 @@ void rgle::EventHost::registerListener(std::string eventname, EventListener * li
 void rgle::EventHost::removeListener(std::string eventname, EventListener * listener)
 {
 	if (_listeners.find(eventname) == _listeners.end()) {
-		throw EventException("failed to remove listener, reference not found", EXCEPT_DETAIL_DEFAULT);
+		throw EventException("failed to remove listener, reference not found", LOGGER_DETAIL_DEFAULT);
 	}
 	else {
 		std::vector<EventListener*>& list = _listeners[eventname];

@@ -1,4 +1,5 @@
 #include "Exception.h"
+#include "Exception.h"
 
 int rgle::Exception::_thrown = 0;
 
@@ -9,22 +10,22 @@ rgle::Exception::Exception() : std::runtime_error("undefined")
 	this->_thrown++;
 }
 
-rgle::Exception::Exception(const char * except, Detail & detail) : std::runtime_error(except)
+rgle::Exception::Exception(const char * except, Logger::Detail & detail) : std::runtime_error(except)
 {
 	this->_exception = std::string(except);
 	this->_details = detail;
 	this->_checkDoubleThrow();
 	this->_thrown++;
-	std::cerr << this->message() << std::endl;
+	Logger::except(this);
 }
 
-rgle::Exception::Exception(std::string & except, Detail & detail) : std::runtime_error(except)
+rgle::Exception::Exception(std::string & except, Logger::Detail & detail) : std::runtime_error(except)
 {
 	this->_exception = except;
 	this->_details = detail;
 	this->_checkDoubleThrow();
 	this->_thrown++;
-	std::cerr << this->message() << std::endl;
+	Logger::except(this);
 }
 
 rgle::Exception::~Exception()
@@ -37,21 +38,23 @@ std::string rgle::Exception::except()
 	return _exception;
 }
 
-std::string rgle::Exception::log()
+std::string rgle::Exception::print()
 {
-	std::string id = _details.id.empty() ? "" : std::string("[ID: ") + _details.id + "]";
-	return _details.timestamp + "\t[" + this->_type() + "]" + "[file: " + _details.file + "][func: " + _details.func + "][line: " + std::to_string(_details.line) + "]" + id;
-}
-
-std::string rgle::Exception::message()
-{
-	return this->log() + "ERROR: " + _exception;
+	std::string time = Logger::timeString(_details.timestamp);
+	std::cout << time << '|';
+	Console::coloredPrint(Console::Color::RED, "EXCEPTION");
+	std::string result = std::string("|") + this->_type() + '|' + _details.file + '|' + _details.func + '|' + std::to_string(_details.line);
+	result += _details.id.empty() ? "" : std::string("|ID: ") + _details.id;
+	result += std::string(": ") + _exception;
+	std::cout << result << std::endl;
+	result = time + "|EXCEPTION|" + result;
+	return result;
 }
 
 void rgle::Exception::_checkDoubleThrow()
 {
 	if (_thrown > 0) {
-		std::cout << "WARNING: multiple exceptions thrown, exception possibly thrown in destructor..." << std::endl;
+		Logger::warn("multiple exceptions thrown, exception possibly thrown in a destructor...", LOGGER_DETAIL_DEFAULT);
 	}
 }
 
@@ -64,7 +67,7 @@ rgle::NullPointerException::NullPointerException()
 {
 }
 
-rgle::NullPointerException::NullPointerException(Exception::Detail & detail) : Exception("null pointer exception", detail)
+rgle::NullPointerException::NullPointerException(Logger::Detail & detail) : Exception("null pointer exception", detail)
 {
 }
 
@@ -81,7 +84,7 @@ rgle::BadCastException::BadCastException()
 {
 }
 
-rgle::BadCastException::BadCastException(std::string exception, Exception::Detail & detail)
+rgle::BadCastException::BadCastException(std::string exception, Logger::Detail & detail)
 {
 }
 
@@ -94,7 +97,7 @@ std::string rgle::BadCastException::_type()
 	return std::string("rgle::BadCastException");
 }
 
-rgle::ApplicationException::ApplicationException(std::string exception, Exception::Detail & detail) : Exception(exception, detail)
+rgle::ApplicationException::ApplicationException(std::string exception, Logger::Detail & detail) : Exception(exception, detail)
 {
 }
 

@@ -7,6 +7,8 @@
 
 namespace rgle {
 
+	void initialize();
+
 	class Application : public ContextManager {
 	public:
 		Application();

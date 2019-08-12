@@ -9,17 +9,18 @@ rgle::Font::Font()
 
 rgle::Font::Font(sWindow window, std::string fontfile)
 {
+	RGLE_DEBUG_ONLY(Logger::debug(std::string("loading font file: ") + fontfile, LOGGER_DETAIL_DEFAULT);)
 	this->_window = window;
 	int error = FT_Init_FreeType(&_library);
 	if (error) {
-		throw Exception("failed to initialise FreeType library module, error code: " + std::to_string(error), EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to initialise FreeType library module, error code: " + std::to_string(error), LOGGER_DETAIL_DEFAULT);
 	}
 	error = FT_New_Face(_library, fontfile.data(), 0, &_face);
 	if (error == FT_Err_Unknown_File_Format) {
-		throw Exception("failed to load font, invalid file format", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to load font, invalid file format", LOGGER_DETAIL_DEFAULT);
 	}
 	else if (error) {
-		throw Exception("failed to load font: " + fontfile, EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to load font: " + fontfile, LOGGER_DETAIL_DEFAULT);
 	}
 }
 
@@ -30,17 +31,17 @@ rgle::Font::~Font()
 void rgle::Font::generate(int size)
 {
 	if (this->_window == nullptr) {
-		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	FT_Set_Pixel_Sizes(_face, 0, size);
 	std::map<char, sGlyph> glyphs;
 	for (unsigned char c = 1; c < 128; c++) {
 		if (FT_Load_Glyph(_face, FT_Get_Char_Index(_face, c), FT_LOAD_DEFAULT)) {
-			throw Exception("failed to load glyph", EXCEPT_DETAIL_DEFAULT);
+			throw Exception("failed to load glyph", LOGGER_DETAIL_DEFAULT);
 		}
 		FT_Glyph ft_glyph;
 		if (FT_Get_Glyph(_face->glyph, &ft_glyph)) {
-			throw Exception("failed to get glyph", EXCEPT_DETAIL_DEFAULT);
+			throw Exception("failed to get glyph", LOGGER_DETAIL_DEFAULT);
 		}
 		glyphs[c] = std::make_shared<Glyph>(Glyph(c, ft_glyph, _face->glyph->metrics));
 	}
@@ -74,15 +75,15 @@ rgle::CharRect::CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, Un
 	this->dimensions = dimensions;
 	this->color.location = glGetAttribLocation(shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 	this->uv.location = glGetAttribLocation(shader->programId(), "texture_coords");
 	if (this->uv.location < 0) {
-		throw Exception("failed to locate shader attribute: texture coordinates", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
 	}
 	this->model.enabled = false;
 	float width = this->dimensions.x.resolve(this->window, Window::X);
@@ -313,7 +314,7 @@ rgle::Text::Text(Context context, std::string shader, std::string fontFamily, st
 	this->_maxSize = font->lineHeight(pointSize);
 	this->_model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->_model.location < 0) {
-		throw Exception("failed to locate shader uniform: model", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader uniform: model", LOGGER_DETAIL_DEFAULT);
 	}
 	if (_attributes.dimensions.y.isZero()) {
 		_dimensions.y = UnitValue{ _scale(_maxSize), _attributes.fontSize.unit };
@@ -351,7 +352,7 @@ void rgle::Text::generate(std::string text, TextAttributes attributes)
 {
 	_attributes = attributes;
 	if (_fontFamily == nullptr || _context.window == nullptr || shader == nullptr) {
-		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	sFont font = _fontFamily->get(attributes.face);
 	float resolvedSize = _attributes.fontSize.resolve(this->_context.window, Window::Y);
@@ -486,7 +487,7 @@ void rgle::Text::append(std::string text)
 void rgle::Text::render()
 {
 	if (_fontFamily == nullptr || _context.window == nullptr || shader == nullptr) {
-		throw NullPointerException(EXCEPT_DETAIL_DEFAULT);
+		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	glUniformMatrix4fv(this->_model.location, 1, GL_FALSE, &this->_model.matrix[0][0]);
 	for (int i = 0; i < _charecters.size(); i++) {
@@ -606,7 +607,7 @@ rgle::FontFamily::~FontFamily()
 rgle::sFont rgle::FontFamily::get(const std::string& fontface) {
 	if (_fonts.find(fontface) == _fonts.end()) {
 		if (fontface == FontType::REGULAR) {
-			throw Exception(std::string("could not find default font face in family: ") + id, EXCEPT_DETAIL_DEFAULT);
+			throw Exception(std::string("could not find default font face in family: ") + id, LOGGER_DETAIL_DEFAULT);
 		}
 		return this->get(FontType::REGULAR);
 	}

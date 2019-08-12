@@ -350,7 +350,7 @@ void rgle::UI::Layer::render()
 	GLuint currentShader = 0;
 	for (int i = 0; i < _elements.size(); i++) {
 		if (_elements[i]->shader == nullptr) {
-			throw RenderException("failed to render ui element, shader is null", EXCEPT_DETAIL_IDENTIFIER(_elements[i]->id));
+			throw RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(_elements[i]->id));
 		}
 		if (_elements[i]->shader->programId() != currentShader) {
 			currentShader = _elements[i]->shader->programId();
@@ -507,15 +507,15 @@ rgle::UI::RectElement::RectElement(Context& context, std::string& shader, RectAt
 	this->model.matrix = glm::mat4(1.0f);
 	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
-		throw Exception("failed to locate shader uniform: model matrix", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
 	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex color", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 	glm::vec2 dimensions = this->_dimensions.resolve(this->_context.window);
 	this->vertex.list = {

@@ -9,7 +9,7 @@ namespace rgle {
 
 	class RenderException : public Exception {
 	public:
-		RenderException(std::string exception, Exception::Detail detail);
+		RenderException(std::string exception, Logger::Detail detail);
 		virtual ~RenderException();
 
 	protected:
