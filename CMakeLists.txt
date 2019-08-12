@@ -21,7 +21,7 @@ aux_source_directory(src RGLE_LIB_SRC)
 file(GLOB_RECURSE resources res/*)
 file(GLOB shaders shader/*)
 
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_custom_target(copy-shader)

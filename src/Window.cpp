@@ -59,8 +59,9 @@ rgle::Window::Window() : _cursor(nullptr)
 
 rgle::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
+	rgle::Logger::info("creating window with title: " + std::string(title), LOGGER_DETAIL_DEFAULT);
 	if (glfwInit() == GLFW_FALSE) {
-		throw rgle::Exception("failed to initialize glfw", EXCEPT_DETAIL_DEFAULT);
+		throw rgle::Exception("failed to initialize glfw", LOGGER_DETAIL_DEFAULT);
 	}
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
@@ -72,7 +73,7 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 
 	_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
 	if (_window == nullptr) {
-		throw Exception("failed to create GLFW window", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("failed to create GLFW window", LOGGER_DETAIL_DEFAULT);
 	}
 	glfwMakeContextCurrent(_window);
 
@@ -112,7 +113,7 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 
 rgle::Window::Window(const Window & other)
 {
-	throw Exception("invalid usage of Window class, copying not allowed", EXCEPT_DETAIL_DEFAULT);
+	throw Exception("invalid usage of Window class, copying not allowed", LOGGER_DETAIL_DEFAULT);
 }
 
 rgle::Window::Window(Window && rvalue)
@@ -123,7 +124,7 @@ rgle::Window::Window(Window && rvalue)
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
 	if (_handles.find(_window) == _handles.end()) {
-		throw EventException("invalid window handle", EXCEPT_DETAIL_DEFAULT);
+		throw EventException("invalid window handle", LOGGER_DETAIL_DEFAULT);
 	}
 	else {
 		_handles[_window] = this;
@@ -157,7 +158,7 @@ void rgle::Window::operator=(Window && rvalue)
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
 	if (_handles.find(_window) == _handles.end()) {
-		throw EventException("invalid window handle", EXCEPT_DETAIL_DEFAULT);
+		throw EventException("invalid window handle", LOGGER_DETAIL_DEFAULT);
 	}
 	else {
 		_handles[_window] = this;
@@ -224,7 +225,7 @@ float rgle::Window::pixelValue(float value, Unit unit, Direction direction)
 	case rgle::Unit::CM:
 		return pixelsPerInch * (1.0f / (Conversions::IN_PER_M * 100.0f))  * value;
 	case rgle::Unit::ERROR:
-		throw Exception("invalid unit conversion", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("invalid unit conversion", LOGGER_DETAIL_DEFAULT);
 	default:
 		return value;
 	}
@@ -301,7 +302,7 @@ rgle::UnitValue rgle::Window::convert(UnitValue value, Unit to)
 		value.value = pixel / pixelsPerInchX * (1.0f / (Conversions::IN_PER_M * 100.0f));
 		break;
 	case rgle::Unit::ERROR:
-		throw Exception("invalid unit conversion", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("invalid unit conversion", LOGGER_DETAIL_DEFAULT);
 		break;
 	default:
 		return value;
@@ -400,7 +401,7 @@ void rgle::Window::update()
 void rgle::Window::handleEvent(GLFWwindow* handle, std::string eventname, EventMessage * message)
 {
 	if (_handles.find(handle) == _handles.end()) {
-		throw EventException("invalid window handle for event broadcast", EXCEPT_DETAIL_DEFAULT);
+		throw EventException("invalid window handle for event broadcast", LOGGER_DETAIL_DEFAULT);
 	}
 	else {
 		Window* window = _handles[handle];
@@ -605,7 +606,7 @@ rgle::UnitExpression::UnitExpression(UnitValue left, char op, UnitValue right)
 		this->_operation = Operation::DIVISION;
 		break;
 	default:
-		throw Exception("invalid unit expression", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("invalid unit expression", LOGGER_DETAIL_DEFAULT);
 	}
 	this->_right = new UnitExpression(right);
 }
@@ -631,7 +632,7 @@ rgle::UnitExpression::UnitExpression(UnitExpression left, char op, UnitExpressio
 		this->_operation = Operation::DIVISION;
 		break;
 	default:
-		throw Exception("invalid unit expression", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("invalid unit expression", LOGGER_DETAIL_DEFAULT);
 	}
 	this->_right = new UnitExpression(right);
 }
@@ -967,7 +968,7 @@ float rgle::UnitExpression::resolve(sWindow window, Window::Direction direction)
 		return this->_left->resolve(window, direction);
 		break;
 	default:
-		throw Exception("invalid operation type", EXCEPT_DETAIL_DEFAULT);
+		throw Exception("invalid operation type", LOGGER_DETAIL_DEFAULT);
 	}
 }
 

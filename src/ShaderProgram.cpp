@@ -22,7 +22,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 		vertexFile.close();
 	}
 	else {
-		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
+		throw Exception("could not open file: " + std::string(vertexShader), LOGGER_DETAIL_DEFAULT);
 	}
 	std::string fragCode;
 	std::ifstream fragFile(fragmentShader, std::ios::in);
@@ -34,7 +34,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 		fragFile.close();
 	}
 	else {
-		throw Exception("could not open file: " + std::string(vertexShader), EXCEPT_DETAIL_DEFAULT);
+		throw Exception("could not open file: " + std::string(vertexShader), LOGGER_DETAIL_DEFAULT);
 	}
 
 	GLint result = GL_FALSE;
@@ -48,7 +48,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(vertexShaderID, logLength, nullptr, &errorMessage[0]);
-		throw Exception(std::string("failed to compile vertex shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
+		throw Exception(std::string("failed to compile vertex shader: ") + errorMessage.data(), LOGGER_DETAIL_DEFAULT);
 	}
 
 	logLength = 0;
@@ -61,7 +61,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetShaderInfoLog(fragmentShaderID, logLength, nullptr, &errorMessage[0]);
-		throw Exception(std::string("failed to compile fragment shader: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
+		throw Exception(std::string("failed to compile fragment shader: ") + errorMessage.data(), LOGGER_DETAIL_DEFAULT);
 	}
 
 	_programID = glCreateProgram();
@@ -74,7 +74,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 	if (logLength > 1) {
 		std::vector<char> errorMessage(logLength + 1);
 		glGetProgramInfoLog(_programID, logLength, nullptr, &errorMessage[0]);
-		throw Exception(std::string("failed to create shader program: ") + errorMessage.data(), EXCEPT_DETAIL_DEFAULT);
+		throw Exception(std::string("failed to create shader program: ") + errorMessage.data(), LOGGER_DETAIL_DEFAULT);
 	}
 
 	glDetachShader(_programID, vertexShaderID);
@@ -133,7 +133,7 @@ void rgle::ShaderManager::addShader(sShaderProgram shader)
 {
 	for (int i = 0; i < _shaderPrograms.size(); i++) {
 		if (shader->id == _shaderPrograms[i]->id) {
-			throw IdentifierException("shader program already exists", shader->id, EXCEPT_DETAIL_DEFAULT);
+			throw IdentifierException("shader program already exists", shader->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
 	_shaderPrograms.push_back(shader);

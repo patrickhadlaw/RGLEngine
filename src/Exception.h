@@ -1,34 +1,23 @@
 #pragma once
 
-#include "Console.h"
+#include "Logger.h"
 
 #include <iostream>
 #include <exception>
 #include <string>
 
-#define EXCEPT_DETAIL_DEFAULT rgle::Exception::Detail{RGLE_FILENAME, __func__, __LINE__, ""}
-#define EXCEPT_DETAIL_IDENTIFIER(id) rgle::Exception::Detail{RGLE_FILENAME, __func__, __LINE__, "", id}
-
 namespace rgle {
 
 	class Exception : public std::runtime_error {
 	public:
-		struct Detail {
-			std::string file = "";
-			std::string func = "";
-			int line = 0;
-			std::string timestamp = "";
-			std::string id = "";
-		};
 		Exception();
-		Exception(std::string& except, Detail& detail);
-		Exception(const char* except, Detail& detail);
+		Exception(std::string& except, Logger::Detail& detail);
+		Exception(const char* except, Logger::Detail& detail);
 		virtual ~Exception();
 
 		virtual std::string except();
-		virtual std::string log();
 
-		virtual std::string message();
+		virtual std::string print();
 
 	protected:
 
@@ -37,7 +26,7 @@ namespace rgle {
 		virtual std::string _type();
 
 		std::string _exception;
-		Detail _details;
+		Logger::Detail _details;
 	private:
 		static int _thrown;
 	};
@@ -45,7 +34,7 @@ namespace rgle {
 	class NullPointerException : public Exception {
 	public:
 		NullPointerException();
-		NullPointerException(Exception::Detail& detail);
+		NullPointerException(Logger::Detail& detail);
 		virtual ~NullPointerException();
 
 	protected:
@@ -56,7 +45,7 @@ namespace rgle {
 	class BadCastException : public Exception {
 	public:
 		BadCastException();
-		BadCastException(std::string exception, Exception::Detail& detail);
+		BadCastException(std::string exception, Logger::Detail& detail);
 		virtual ~BadCastException();
 
 	protected:
@@ -66,7 +55,7 @@ namespace rgle {
 
 	class ApplicationException : public Exception {
 	public:
-		ApplicationException(std::string exception, Exception::Detail& detail);
+		ApplicationException(std::string exception, Logger::Detail& detail);
 		virtual ~ApplicationException();
 
 	protected:

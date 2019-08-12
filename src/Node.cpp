@@ -1,7 +1,7 @@
 #include "Node.h"
 
 
-rgle::IdentifierException::IdentifierException(std::string exception, std::string identifier, Exception::Detail detail)
+rgle::IdentifierException::IdentifierException(std::string exception, std::string identifier, Logger::Detail detail)
 {
 	detail.id = identifier;
 	Exception(exception, detail);
@@ -60,7 +60,7 @@ void rgle::ResourceManager::addResource(sResource resource)
 {
 	for (int i = 0; i < _resources.size(); i++) {
 		if (resource->id == _resources[i]->id) {
-			throw IdentifierException("resource already exists", resource->id, EXCEPT_DETAIL_DEFAULT);
+			throw IdentifierException("resource already exists", resource->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
 	this->_resources.push_back(resource);
@@ -88,7 +88,7 @@ std::string & rgle::LogicNode::typeName()
 	return std::string("rgle::LogicNode");
 }
 
-rgle::LogicException::LogicException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
+rgle::LogicException::LogicException(std::string exception, Logger::Detail detail) : Exception(exception, detail)
 {
 }
 

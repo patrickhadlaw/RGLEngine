@@ -11,8 +11,8 @@ namespace rgle {
 	class EventException : public Exception {
 	public:
 		EventException();
-		EventException(std::string& except, Detail& detail);
-		EventException(const char* except, Detail& detail);
+		EventException(std::string& except, Logger::Detail& detail);
+		EventException(const char* except, Logger::Detail& detail);
 		virtual ~EventException();
 
 	protected:
@@ -79,7 +79,7 @@ namespace rgle {
 		Type* cast() {
 			Type* ptr = dynamic_cast<Type*>(this);
 			if (ptr == nullptr) {
-				throw BadCastException(std::string("failed to cast event message to type-id: ") + typeid(Type).name(), EXCEPT_DETAIL_DEFAULT);
+				throw BadCastException(std::string("failed to cast event message to type-id: ") + typeid(Type).name(), LOGGER_DETAIL_DEFAULT);
 			}
 			return ptr;
 		}
@@ -138,7 +138,7 @@ namespace rgle {
 	public:
 		EventCallback(std::function<void(MessageType*)> callback) : _callback(callback) {
 			if (!std::is_base_of<EventMessage, MessageType>()) {
-				throw EventException("invalid event callback, message-type should be an EventMessage", EXCEPT_DETAIL_DEFAULT);
+				throw EventException("invalid event callback, message-type should be an EventMessage", LOGGER_DETAIL_DEFAULT);
 			}
 		}
 		virtual ~EventCallback() {}

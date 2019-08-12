@@ -66,12 +66,14 @@ int main(const int argc, const char* const argv[]) {
 			height = atoi(argv[2]);
 		}
 
+		rgle::initialize();
+
 		rgle::sWindow window = std::make_shared<rgle::Window>(rgle::Window(width, height, "RGLEngine"));
 
 		glewExperimental = true;
 		GLenum err = glewInit();
 		if (err != GLEW_OK) {
-			throw rgle::Exception("failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), EXCEPT_DETAIL_DEFAULT);
+			throw rgle::Exception("failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), LOGGER_DETAIL_DEFAULT);
 		}
 
 		rgle::Application app = rgle::Application("rgle", window);
@@ -212,15 +214,13 @@ int main(const int argc, const char* const argv[]) {
 		return -1;
 	}
 	catch (std::exception& e) {
-		rgle::Exception except = rgle::Exception(e.what(), EXCEPT_DETAIL_DEFAULT);
-		std::cout << except.message();
+		rgle::Exception except = rgle::Exception(e.what(), LOGGER_DETAIL_DEFAULT);
 		cleanup();
 		std::cin.get();
 		return -1;
 	}
 	catch (...) {
-		rgle::Exception except = rgle::Exception("UNHANDLED EXCEPTION", EXCEPT_DETAIL_DEFAULT);
-		std::cout << except.message();
+		rgle::Exception except = rgle::Exception("UNHANDLED EXCEPTION", LOGGER_DETAIL_DEFAULT);
 		cleanup();
 		std::cin.get();
 		return -1;

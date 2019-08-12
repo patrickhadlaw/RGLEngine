@@ -2,6 +2,20 @@
 #include "Platform.h"
 
 
+void rgle::initialize()
+{
+	rgle::Logger::message(
+		"RGLEngine Version: " +
+		std::to_string(RGLE_VERSION_MAJOR) +
+		'.' +
+		std::to_string(RGLE_VERSION_MINOR) +
+		'.' +
+		std::to_string(RGLE_VERSION_REVISION)
+	);
+	rgle::Logger::info("initializing RGLEngine", LOGGER_DETAIL_DEFAULT);
+	rgle::Platform::initialize();
+}
+
 rgle::Application::Application()
 {
 }
@@ -16,7 +30,7 @@ rgle::Application::~Application()
 
 void rgle::Application::initialize()
 {
-	rgle::Platform::initialize();
+	rgle::Logger::info("Initializing application", LOGGER_DETAIL_DEFAULT);
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(rgle::debugCallback, 0);
 	glClearColor(1.0, 1.0, 1.0, 1.0);

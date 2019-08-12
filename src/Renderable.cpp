@@ -107,7 +107,7 @@ void rgle::ContextManager::addLayer(sRenderLayer layer)
 {
 	for (int i = 0; i < this->_layers.size(); i++) {
 		if (_layers[i]->id == layer->id) {
-			throw IdentifierException("render layer already found", layer->id, EXCEPT_DETAIL_DEFAULT);
+			throw IdentifierException("render layer already found", layer->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
 	this->_layers.push_back(layer);
@@ -121,7 +121,7 @@ void rgle::ContextManager::addRenderable(std::string layer, sRenderable renderab
 			return;
 		}
 	}
-	throw IdentifierException("could not find identifier", layer, EXCEPT_DETAIL_DEFAULT);
+	throw IdentifierException("could not find identifier", layer, LOGGER_DETAIL_DEFAULT);
 }
 
 void rgle::ContextManager::addResource(sResource resource)
@@ -198,7 +198,7 @@ void rgle::RenderableLayer::render()
 	GLuint currentShader = 0;
 	for (int i = 0; i < _renderables.size(); i++) {
 		if (_renderables[i]->shader == nullptr) {
-			throw RenderException("failed to render object, shader is null", EXCEPT_DETAIL_IDENTIFIER(_renderables[i]->id));
+			throw RenderException("failed to render object, shader is null", LOGGER_DETAIL_IDENTIFIER(_renderables[i]->id));
 		}
 		if (_renderables[i]->shader->programId() != currentShader) {
 			currentShader = _renderables[i]->shader->programId();
@@ -212,11 +212,11 @@ void rgle::RenderableLayer::render()
 void rgle::RenderableLayer::addRenderable(sRenderable renderable)
 {
 	if (renderable->shader == nullptr) {
-		throw ApplicationException("failed to add renderable to layer, shader is null", EXCEPT_DETAIL_IDENTIFIER(renderable->id));
+		throw ApplicationException("failed to add renderable to layer, shader is null", LOGGER_DETAIL_IDENTIFIER(renderable->id));
 	}
 	for (int i = 0; i < _renderables.size(); i++) {
 		if (_renderables[i]->id == renderable->id) {
-			throw IdentifierException("identifier already exists", renderable->id, EXCEPT_DETAIL_DEFAULT);
+			throw IdentifierException("identifier already exists", renderable->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
 	for (int i = 0; i < _renderables.size(); i++) {
@@ -233,7 +233,7 @@ std::string & rgle::RenderableLayer::typeName()
 	return std::string("rgle::RenderableLayer");
 }
 
-rgle::RenderException::RenderException(std::string exception, Exception::Detail detail) : Exception(exception, detail)
+rgle::RenderException::RenderException(std::string exception, Logger::Detail detail) : Exception(exception, detail)
 {
 }
 
