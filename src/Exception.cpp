@@ -80,6 +80,23 @@ std::string rgle::NullPointerException::_type()
 	return std::string("rgle::NullPointerException");
 }
 
+rgle::IOException::IOException()
+{
+}
+
+rgle::IOException::IOException(std::string exception, Logger::Detail & detail) : Exception(exception, detail)
+{
+}
+
+rgle::IOException::~IOException()
+{
+}
+
+std::string rgle::IOException::_type()
+{
+	return std::string("rgle::IOException");
+}
+
 rgle::BadCastException::BadCastException()
 {
 }

@@ -42,6 +42,16 @@ namespace rgle {
 		virtual std::string _type();
 	};
 
+	class IOException : public Exception {
+	public:
+		IOException();
+		IOException(std::string exception, Logger::Detail& detail);
+		virtual ~IOException();
+
+	protected:
+		virtual std::string _type();
+	};
+
 	class BadCastException : public Exception {
 	public:
 		BadCastException();

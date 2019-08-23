@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 
 set(RGLE_VERSION_MAJOR 0)
-set(RGLE_VERSION_MINOR 1)
-set(RGLE_VERSION_REVISION 4)
+set(RGLE_VERSION_MINOR 2)
+set(RGLE_VERSION_REVISION 0)
 
 project(rgle VERSION ${RGLE_VERSION_MAJOR}.${RGLE_VERSION_MINOR}.${RGLE_VERSION_REVISION})
 
@@ -19,7 +19,7 @@ configure_file (
 
 aux_source_directory(src RGLE_LIB_SRC)
 file(GLOB_RECURSE resources res/*)
-file(GLOB shaders shader/*)
+file(GLOB shaders shader/*.*)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

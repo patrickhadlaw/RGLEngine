@@ -65,7 +65,7 @@ void rgle::Logger::write(std::string entry)
 			Logger::_outputStream.open(Logger::_logFile);
 			if (!Logger::_outputStream) {
 				Settings::setLoggerWrite(false);
-				throw Exception(std::string("failed to open log file: ") + Logger::_logFile, LOGGER_DETAIL_DEFAULT);
+				throw IOException(std::string("failed to open log file: ") + Logger::_logFile, LOGGER_DETAIL_DEFAULT);
 			}
 		}
 		Logger::_outputStream << entry << std::endl;
@@ -78,7 +78,7 @@ std::string rgle::Logger::_print(std::string header, std::string& message, Detai
 	std::cout << time << '|';
 	Console::coloredPrint(color, header);
 	std::string result = std::string("|") + detail.file + '|' + detail.func + '|' + std::to_string(detail.line);
-	result += detail.id.empty() ? "" : std::string("|ID: ") + detail.id;
+	result += detail.id.empty() ? "" : std::string("|ID: ") + detail.id + "|";
 	result += std::string(": ") + message;
 	std::cout << result << std::endl;
 	result = time + '|' + header + result;

@@ -25,22 +25,21 @@
 #include <freetype\ftglyph.h>
 #include FT_FREETYPE_H
 
-#ifdef NDEBUG
-#define DEBUG_MESSAGE
-#else
-#define DEBUG_MESSAGE std::cout << "[" << __FUNCTION__ << "][" << __LINE__ << "]\n";
-#endif
-
-void checkGLErrors(int line);
-
 namespace rgle {
 
 	void APIENTRY debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam);
+
+	class Shader {
+	public:
+		static GLuint compileFile(std::string shaderfile, GLenum type);
+		static GLuint compile(std::string shadercode, GLenum type);
+	};
 
 	class ShaderProgram : public Node {
 	public:
 		ShaderProgram();
 		ShaderProgram(std::string name, const char* vertexShader, const char* fragmentShader);
+		ShaderProgram(std::string name, std::initializer_list<GLuint> shaders);
 		~ShaderProgram();
 
 		GLuint programId();

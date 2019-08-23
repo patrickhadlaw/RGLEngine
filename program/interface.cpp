@@ -199,8 +199,6 @@ int main(const int argc, const char* const argv[]) {
 				clickText->update(std::string("Clicked: ") + std::to_string(numClicked));
 				updateText = false;
 			}
-
-			checkGLErrors(0);
 			
 			app.update();
 			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
