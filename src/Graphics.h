@@ -4,6 +4,16 @@
 
 namespace rgle {
 
+	class GraphicsException : public Exception {
+	public:
+		GraphicsException();
+		GraphicsException(std::string except, Logger::Detail& detail);
+		virtual ~GraphicsException();
+
+	protected:
+		std::string _type();
+	};
+
 	struct Image {
 		Image();
 		Image(std::string imagefile);
@@ -19,8 +29,6 @@ namespace rgle {
 		int bpp;
 	};
 	
-	typedef std::shared_ptr<Image> sImage;
-
 	class Texture {
 	public:
 
@@ -33,13 +41,13 @@ namespace rgle {
 		Texture(std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		Texture(const Texture& other);
 		Texture(Texture&& rvalue);
-		Texture(const sImage& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
+		Texture(const std::shared_ptr<Image>& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		virtual ~Texture();
 
 		void operator=(const Texture& other);
 		void operator=(Texture&& rvalue);
 
-		sImage image;
+		std::shared_ptr<Image> image;
 
 		GLuint textureID;
 		GLenum texture;
@@ -50,13 +58,11 @@ namespace rgle {
 		void _generate();
 	};
 
-	typedef std::shared_ptr<Texture> sTexture;
-
 	struct Sampler2D {
 		Sampler2D();
 		Sampler2D(const Sampler2D& other);
-		Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
-		Sampler2D(sShaderProgram shader, const sTexture& texture);
+		Sampler2D(std::shared_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
+		Sampler2D(std::shared_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture);
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
@@ -68,14 +74,12 @@ namespace rgle {
 
 		bool enabled;
 
-		sTexture texture;
+		std::shared_ptr<Texture> texture;
 
-		sShaderProgram shader;
+		std::shared_ptr<ShaderProgram> shader;
 	protected:
 		void _generate();
 	};
-
-	typedef std::shared_ptr<Sampler2D> sSampler2D;
 
 	class Geometry3D {
 	public:
@@ -103,7 +107,7 @@ namespace rgle {
 
 		virtual void generate();
 
-		void standardRender(sShaderProgram shader);
+		void standardRender(std::shared_ptr<ShaderProgram> shader);
 
 		void standardFill(Fill colorFill);
 
@@ -145,34 +149,17 @@ namespace rgle {
 	};
 
 	typedef Geometry3D Material;
-	typedef std::shared_ptr<Geometry3D> sGeometry3D;
 
 	class SceneLayer : public RenderLayer {
 	public:
 		SceneLayer(std::string id);
 		virtual ~SceneLayer();
 
-		virtual void add(sGeometry3D geometry);
+		virtual void add(std::shared_ptr<Geometry3D> geometry);
 	private:
-		std::vector<sGeometry3D> _renderables;
+		std::vector<std::shared_ptr<Geometry3D>> _renderables;
 	};
 	typedef std::shared_ptr<SceneLayer> sSceneLayer;
-
-	// TODO: implement binary-space-partition with triangle sort and potential use for collision detection
-	struct BSPNode {
-		struct {
-			Geometry3D* geometry;
-			unsigned short index;
-		} face;
-		BSPNode* front = nullptr;
-		BSPNode* back = nullptr;
-	};
-
-	class BSPTree {
-	public:
-		BSPTree();
-		~BSPTree();
-	};
 
 	class Shape : public Geometry3D, public Renderable {
 	public:

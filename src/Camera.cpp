@@ -8,7 +8,7 @@ rgle::Camera::Camera()
 	this->_view = glm::mat4(1.0f);
 }
 
-rgle::Camera::Camera(CameraType type, sWindow window)
+rgle::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
 {
 	if (window == nullptr) {
 		throw std::runtime_error("Error: null window handle passed");
@@ -45,7 +45,7 @@ void rgle::Camera::update(float deltaT)
 	glUniformMatrix4fv(_viewLocation, 1, GL_FALSE, &_view[0][0]);
 }
 
-void rgle::Camera::bind(sShaderProgram shader)
+void rgle::Camera::bind(std::shared_ptr<ShaderProgram> shader)
 {
 	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &_projection[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &_view[0][0]);
@@ -117,7 +117,7 @@ rgle::NoClipCamera::NoClipCamera() : Camera()
 	_isGrabbed = false;
 }
 
-rgle::NoClipCamera::NoClipCamera(CameraType type, sWindow window) : Camera(type, window)
+rgle::NoClipCamera::NoClipCamera(CameraType type, std::shared_ptr<Window> window) : Camera(type, window)
 {
 	_isGrabbed = false;
 	this->_window = window;
@@ -208,7 +208,7 @@ void rgle::ViewTransformer::update(float deltaT)
 {
 }
 
-void rgle::ViewTransformer::bind(sShaderProgram program)
+void rgle::ViewTransformer::bind(std::shared_ptr<ShaderProgram> program)
 {
 }
 

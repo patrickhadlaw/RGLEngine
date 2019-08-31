@@ -89,7 +89,7 @@ rgle::UI::RelativeAligner::RelativeAligner()
 {
 }
 
-rgle::UI::RelativeAligner::RelativeAligner(sBoundingBox element, sBoundingBox align, RelativeAlignerAttributes attributes)
+rgle::UI::RelativeAligner::RelativeAligner(std::shared_ptr<BoundingBox> element, std::shared_ptr<BoundingBox> align, RelativeAlignerAttributes attributes)
 {
 	this->_element = element;
 	this->_align = align;
@@ -130,7 +130,7 @@ rgle::UI::LinearAligner::LinearAligner()
 {
 }
 
-rgle::UI::LinearAligner::LinearAligner(std::vector<sBoundingBox> elements, LinearAlignerAttributes attributes)
+rgle::UI::LinearAligner::LinearAligner(std::vector<std::shared_ptr<BoundingBox>> elements, LinearAlignerAttributes attributes)
 {
 	this->_elements = elements;
 	this->_attributes = attributes;
@@ -151,14 +151,14 @@ rgle::UI::LinearAligner::~LinearAligner()
 {
 }
 
-void rgle::UI::LinearAligner::push(sBoundingBox element)
+void rgle::UI::LinearAligner::push(std::shared_ptr<BoundingBox> element)
 {
 }
 
-rgle::UI::sBoundingBox rgle::UI::LinearAligner::pop()
+std::shared_ptr<rgle::UI::BoundingBox> rgle::UI::LinearAligner::pop()
 {
 	_aligners.pop_back();
-	sBoundingBox bbox = _elements.back();
+	std::shared_ptr<BoundingBox> bbox = _elements.back();
 	_elements.pop_back();
 	return bbox;
 }
@@ -433,7 +433,7 @@ rgle::UI::BasicButton::BasicButton()
 rgle::UI::BasicButton::BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
 {
 	this->_context = context;
-	this->shader = this->_context.manager.shader->operator[](shader);
+	this->shader = (*this->_context.manager.shader)[shader];
 	this->_basicButtonAttributes = attribs;
 	
 	TextAttributes textattribs{};

@@ -20,10 +20,10 @@ namespace rgle {
 	typedef std::shared_ptr<Application> sApplication;
 
 	struct Context {
-		sWindow window;
+		std::shared_ptr<Window> window;
 		struct {
-			sShaderManager shader;
-			sResourceManager resource;
+			std::shared_ptr<ShaderManager> shader;
+			std::shared_ptr<ResourceManager> resource;
 		} manager;
 	};
 
@@ -44,12 +44,10 @@ namespace rgle {
 		virtual Context& getContext();
 		virtual void setContext(Context& context);
 
-		sShaderProgram shader;
+		std::shared_ptr<ShaderProgram> shader;
 	protected:
 		Context _context;
 	};
-
-	typedef std::shared_ptr<Renderable> sRenderable;
 
 	class RenderLayer : public Renderable {
 	public:
@@ -59,19 +57,17 @@ namespace rgle {
 		virtual void update();
 		virtual void render();
 
-		virtual void addRenderable(sRenderable renderable);
+		virtual void addRenderable(std::shared_ptr<Renderable> renderable);
 		
 		virtual std::string & typeName();
 
 	};
 
-	typedef std::shared_ptr<RenderLayer> sRenderLayer;
-
 	class RenderableLayer : public RenderLayer {
 	public:
 		RenderableLayer(std::string id);
-		RenderableLayer(std::string id, sViewTransformer transformer);
-		RenderableLayer(std::string id, sViewTransformer transformer, sViewport viewport);
+		RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer);
+		RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer, std::shared_ptr<Viewport> viewport);
 		virtual ~RenderableLayer();
 
 		float getFrameDelay();
@@ -79,36 +75,35 @@ namespace rgle {
 		virtual void update();
 		virtual void render();
 
-		virtual void addRenderable(sRenderable renderable);
+		virtual void addRenderable(std::shared_ptr<Renderable> renderable);
 
 		virtual std::string & typeName();
 
 	protected:
 		clock_t _previousTime;
-		std::vector<sRenderable> _renderables;
-		sViewTransformer _transformer;
-		sViewport _viewport;
+		std::vector<std::shared_ptr<Renderable>> _renderables;
+		std::shared_ptr<ViewTransformer> _transformer;
+		std::shared_ptr<Viewport> _viewport;
 	};
 
-	typedef std::shared_ptr<RenderableLayer> sRenderableLayer;
 
 	class ContextManager : public Node {
 	public:
 		ContextManager();
-		ContextManager(sWindow window, std::string id);
+		ContextManager(std::shared_ptr<Window> window, std::string id);
 		virtual ~ContextManager();
 
 		virtual Context getContext();
 
-		virtual sRenderLayer getLayerReference(std::string layer);
+		virtual std::shared_ptr<RenderLayer> getLayerReference(std::string layer);
 
-		virtual void addShader(sShaderProgram shader);
+		virtual void addShader(std::shared_ptr<ShaderProgram> shader);
 
-		virtual void addLayer(sRenderLayer layer);
+		virtual void addLayer(std::shared_ptr<RenderLayer> layer);
 
-		virtual void addRenderable(std::string layer, sRenderable renderable);
+		virtual void addRenderable(std::string layer, std::shared_ptr<Renderable> renderable);
 
-		virtual void addResource(sResource resource);
+		virtual void addResource(std::shared_ptr<Resource> resource);
 
 		template<typename Type>
 		std::shared_ptr<Type> getResource(std::string id) {
@@ -121,11 +116,9 @@ namespace rgle {
 		virtual std::string& typeName();
 
 	protected:
-		sWindow _window;
-		sShaderManager _shaderManager;
-		sResourceManager _resourceManager = nullptr;
-		std::vector<sRenderLayer> _layers;
+		std::shared_ptr<Window> _window;
+		std::shared_ptr<ShaderManager> _shaderManager;
+		std::shared_ptr<ResourceManager> _resourceManager = nullptr;
+		std::vector<std::shared_ptr<RenderLayer>> _layers;
 	};
-
-	typedef std::shared_ptr<ContextManager> sContextManager;
 }

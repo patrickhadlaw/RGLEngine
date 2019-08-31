@@ -163,15 +163,13 @@ namespace rgle {
 		static std::map<GLFWwindow*, Window*> _handles;
 	};
 
-	typedef std::shared_ptr<Window> sWindow;
-
 	struct UnitValue {
 		static UnitValue& parse(std::string parse);
 		float value = 0.0f;
 		Unit unit = Unit::ND;
 
-		float resolvePixelValue(sWindow window, Window::Direction direction = Window::Direction::X);
-		float resolve(sWindow window, Window::Direction direction = Window::Direction::X);
+		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
+		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
 	};
 	enum class Operation {
 		VALUE,
@@ -214,13 +212,13 @@ namespace rgle {
 		void operator*=(UnitValue& value);
 		void operator*=(UnitExpression& value);
 
-		bool lessThan(UnitExpression& other, sWindow window);
-		bool greaterThan(UnitExpression& other, sWindow window);
+		bool lessThan(UnitExpression& other, std::shared_ptr<Window> window);
+		bool greaterThan(UnitExpression& other, std::shared_ptr<Window> window);
 		bool isZero();
 		bool isValue();
 
-		float resolvePixelValue(sWindow window, Window::Direction direction = Window::Direction::X);
-		float resolve(sWindow window, Window::Direction direction = Window::Direction::X);
+		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
+		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
 
 	private:
 
@@ -242,7 +240,7 @@ namespace rgle {
 
 		UnitExpression x;
 		UnitExpression y;
-		glm::vec2 resolve(sWindow window);
+		glm::vec2 resolve(std::shared_ptr<Window> window);
 	};
 	class UnitVector3D {
 	public:
@@ -252,6 +250,6 @@ namespace rgle {
 		UnitExpression x;
 		UnitExpression y;
 		UnitExpression z;
-		glm::vec3 resolve(sWindow window);
+		glm::vec3 resolve(std::shared_ptr<Window> window);
 	};
 }

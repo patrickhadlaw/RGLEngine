@@ -20,7 +20,7 @@ rgle::Application::Application()
 {
 }
 
-rgle::Application::Application(std::string app, sWindow window) : ContextManager(window, app)
+rgle::Application::Application(std::string app, std::shared_ptr<Window> window) : ContextManager(window, app)
 {
 }
 
@@ -40,7 +40,7 @@ void rgle::Application::initialize()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-rgle::sContextManager rgle::Application::getContextManager(std::string id)
+std::shared_ptr<rgle::ContextManager> rgle::Application::getContextManager(std::string id)
 {
-	return sContextManager();
+	return std::shared_ptr<rgle::ContextManager>();
 }

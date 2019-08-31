@@ -26,8 +26,6 @@ namespace rgle {
 		glm::ivec2 _position;
 	};
 
-	typedef std::shared_ptr<Viewport> sViewport;
-
 	class ViewTransformer {
 	public:
 		ViewTransformer();
@@ -35,22 +33,20 @@ namespace rgle {
 
 		virtual void update(float deltaT);
 
-		virtual void bind(sShaderProgram program);
+		virtual void bind(std::shared_ptr<ShaderProgram> program);
 	};
-
-	typedef std::shared_ptr<ViewTransformer> sViewTransformer;
 
 	class Camera : public ViewTransformer, public EventListener {
 	public:
 		Camera();
-		Camera(CameraType type, sWindow window);
+		Camera(CameraType type, std::shared_ptr<Window> window);
 		~Camera();
 
 		virtual void onMessage(std::string eventname, EventMessage* message);
 
 		virtual void update(float deltaT);
 
-		virtual void bind(sShaderProgram program);
+		virtual void bind(std::shared_ptr<ShaderProgram> program);
 
 		void generate(CameraType type);
 
@@ -75,15 +71,13 @@ namespace rgle {
 		GLint _projectionLocation;
 		CameraType _type;
 
-		sWindow _window;
+		std::shared_ptr<Window> _window;
 	};
-
-	typedef std::shared_ptr<Camera> sCamera;
 
 	class NoClipCamera : public Camera {
 	public:
 		NoClipCamera();
-		NoClipCamera(CameraType type, sWindow window);
+		NoClipCamera(CameraType type, std::shared_ptr<Window> window);
 		~NoClipCamera();
 
 		virtual void onMessage(std::string eventname, EventMessage* message);

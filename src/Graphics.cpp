@@ -3,6 +3,23 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+rgle::GraphicsException::GraphicsException() : Exception()
+{
+}
+
+rgle::GraphicsException::GraphicsException(std::string except, Logger::Detail & detail) : Exception(except, detail)
+{
+}
+
+rgle::GraphicsException::~GraphicsException()
+{
+}
+
+std::string rgle::GraphicsException::_type()
+{
+	return std::string("rgle::GraphicsException");
+}
+
 rgle::Shape::Shape()
 {
 	this->model.matrix = glm::mat4(1.0f);
@@ -13,20 +30,20 @@ rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> v
 	this->_context = context;
 	this->color.list = colors;
 	this->vertex.list = verticies;
-	this->shader = _context.manager.shader->operator[](shader);
+	this->shader = (*_context.manager.shader)[shader];
 
 	model.matrix = glm::mat4(1.0f);
 	model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (model.location < 0) {
-		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
 	color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (color.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
 	vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 
 	this->generate();
@@ -100,7 +117,7 @@ rgle::Image::Image(std::string imagefile)
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading image: " + imagefile, LOGGER_DETAIL_DEFAULT);)
 	image = stbi_load(imagefile.data(), &width, &height, &bpp, STBI_rgb_alpha);
 	if (this->image == nullptr) {
-		throw Exception("failed to load image", LOGGER_DETAIL_DEFAULT);
+		throw IOException("failed to load image: " + imagefile, LOGGER_DETAIL_DEFAULT);
 	}
 }
 
@@ -181,7 +198,7 @@ rgle::Texture::Texture(Texture && rvalue)
 	rvalue.textureID = 0;
 }
 
-rgle::Texture::Texture(const sImage & image, GLenum texture, Format format)
+rgle::Texture::Texture(const std::shared_ptr<Image> & image, GLenum texture, Format format)
 {
 	this->format = format;
 	this->image = image;
@@ -248,7 +265,7 @@ rgle::Sampler2D::Sampler2D()
 	this->samplerLocation = 0;
 }
 
-rgle::Sampler2D::Sampler2D(sShaderProgram shader, std::string imagefile, GLenum texture, Texture::Format format)
+rgle::Sampler2D::Sampler2D(std::shared_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture, Texture::Format format)
 {
 	this->enabled = true;
 	this->shader = shader;
@@ -264,7 +281,7 @@ rgle::Sampler2D::Sampler2D(const Sampler2D & other)
 	this->_generate();
 }
 
-rgle::Sampler2D::Sampler2D(sShaderProgram shader, const sTexture& texture)
+rgle::Sampler2D::Sampler2D(std::shared_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture)
 {
 	this->enabled = true;
 	this->shader = shader;
@@ -324,19 +341,19 @@ rgle::Triangle::Triangle(Context context, std::string shader, float a, float b, 
 void rgle::Triangle::_construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
 {
 	this->_context = context;
-	this->shader = context.manager.shader->operator[](shader);
+	this->shader = (*context.manager.shader)[shader];
 	this->model.matrix = glm::mat4(1.0f);
 	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
-		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
 	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0),
@@ -344,7 +361,7 @@ void rgle::Triangle::_construct(Context& context, std::string& shader, float& a,
 		glm::vec3(b * cosf(theta), b * sinf(theta), 0.0)
 	};
 	if (colors.size() < 3) {
-		throw Exception("invalid colors, expected 3 got " + std::to_string(colors.size()), LOGGER_DETAIL_DEFAULT);
+		throw Exception("invalid triangle colors, expected 3 got " + std::to_string(colors.size()), LOGGER_DETAIL_DEFAULT);
 	}
 	this->color.list = colors;
 	this->generate();
@@ -390,19 +407,19 @@ void rgle::Rect::changeDimensions(float width, float height)
 
 void rgle::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
 {
-	this->shader = context.manager.shader->operator[](shader);
+	this->shader = (*context.manager.shader)[shader];
 	this->model.matrix = glm::mat4(1.0f);
 	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
-		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
 	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0),
@@ -539,7 +556,7 @@ void rgle::Geometry3D::generate()
 	}
 }
 
-void rgle::Geometry3D::standardRender(sShaderProgram shader)
+void rgle::Geometry3D::standardRender(std::shared_ptr<ShaderProgram> shader)
 {
 	glBindVertexArray(vertexArray);
 	if (model.enabled) {
@@ -644,20 +661,20 @@ rgle::ImageRect::ImageRect()
 rgle::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image)
 {
 	this->_context = context;
-	this->shader = context.manager.shader->operator[](shader);
+	this->shader = (*context.manager.shader)[shader];
 	this->samplers.push_back(Sampler2D(this->shader, image));
 	this->model.matrix = glm::mat4(1.0f);
 	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
 	if (this->model.location < 0) {
-		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
 	this->uv.location = glGetAttribLocation(this->shader->programId(), "texture_coords");
 	if (this->uv.location < 0) {
-		throw Exception("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.list = {
 		glm::vec3(-width / 2, height / 2, 0.0),
@@ -716,7 +733,7 @@ rgle::SceneLayer::~SceneLayer()
 {
 }
 
-void rgle::SceneLayer::add(sGeometry3D geometry)
+void rgle::SceneLayer::add(std::shared_ptr<Geometry3D> geometry)
 {
 	this->_renderables.push_back(geometry);
 }

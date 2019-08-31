@@ -54,7 +54,7 @@ void rgle::RenderLayer::render()
 {
 }
 
-void rgle::RenderLayer::addRenderable(sRenderable renderable)
+void rgle::RenderLayer::addRenderable(std::shared_ptr<Renderable> renderable)
 {
 }
 
@@ -67,12 +67,12 @@ rgle::ContextManager::ContextManager()
 {
 }
 
-rgle::ContextManager::ContextManager(sWindow window, std::string id)
+rgle::ContextManager::ContextManager(std::shared_ptr<Window> window, std::string id)
 {
 	this->_window = window;
 	this->id = id;
-	this->_resourceManager = sResourceManager(new ResourceManager());
-	this->_shaderManager = sShaderManager(new ShaderManager());
+	this->_resourceManager = std::shared_ptr<ResourceManager>(new ResourceManager());
+	this->_shaderManager = std::shared_ptr<ShaderManager>(new ShaderManager());
 }
 
 rgle::ContextManager::~ContextManager()
@@ -88,7 +88,7 @@ rgle::Context rgle::ContextManager::getContext()
 	return context;
 }
 
-rgle::sRenderLayer rgle::ContextManager::getLayerReference(std::string layer)
+std::shared_ptr<rgle::RenderLayer> rgle::ContextManager::getLayerReference(std::string layer)
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		if (_layers[i]->id == layer) {
@@ -98,12 +98,12 @@ rgle::sRenderLayer rgle::ContextManager::getLayerReference(std::string layer)
 	return nullptr;
 }
 
-void rgle::ContextManager::addShader(sShaderProgram shader)
+void rgle::ContextManager::addShader(std::shared_ptr<ShaderProgram> shader)
 {
 	this->_shaderManager->addShader(shader);
 }
 
-void rgle::ContextManager::addLayer(sRenderLayer layer)
+void rgle::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
 {
 	for (int i = 0; i < this->_layers.size(); i++) {
 		if (_layers[i]->id == layer->id) {
@@ -113,7 +113,7 @@ void rgle::ContextManager::addLayer(sRenderLayer layer)
 	this->_layers.push_back(layer);
 }
 
-void rgle::ContextManager::addRenderable(std::string layer, sRenderable renderable)
+void rgle::ContextManager::addRenderable(std::string layer, std::shared_ptr<Renderable> renderable)
 {
 	for (int i = 0; i < _layers.size(); i++) {
 		if (_layers[i]->id == layer) {
@@ -124,7 +124,7 @@ void rgle::ContextManager::addRenderable(std::string layer, sRenderable renderab
 	throw IdentifierException("could not find identifier", layer, LOGGER_DETAIL_DEFAULT);
 }
 
-void rgle::ContextManager::addResource(sResource resource)
+void rgle::ContextManager::addResource(std::shared_ptr<Resource> resource)
 {
 	this->_resourceManager->addResource(resource);
 }
@@ -157,7 +157,7 @@ rgle::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
 	_viewport = std::make_shared<Viewport>(Viewport());
 }
 
-rgle::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer) : RenderLayer(id)
+rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -165,7 +165,7 @@ rgle::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transfor
 	_viewport = std::make_shared<Viewport>(Viewport());
 }
 
-rgle::RenderableLayer::RenderableLayer(std::string id, sViewTransformer transformer, sViewport viewport) : RenderLayer(id)
+rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer, std::shared_ptr<Viewport> viewport) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -209,7 +209,7 @@ void rgle::RenderableLayer::render()
 	}
 }
 
-void rgle::RenderableLayer::addRenderable(sRenderable renderable)
+void rgle::RenderableLayer::addRenderable(std::shared_ptr<Renderable> renderable)
 {
 	if (renderable->shader == nullptr) {
 		throw ApplicationException("failed to add renderable to layer, shader is null", LOGGER_DETAIL_IDENTIFIER(renderable->id));

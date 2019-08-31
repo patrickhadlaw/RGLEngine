@@ -12,14 +12,14 @@ namespace rgle {
 	class Application : public ContextManager {
 	public:
 		Application();
-		Application(std::string app, sWindow window);
+		Application(std::string app, std::shared_ptr<Window> window);
 		virtual ~Application();
 
 		virtual void initialize();
 
-		virtual sContextManager getContextManager(std::string id);
+		virtual std::shared_ptr<ContextManager> getContextManager(std::string id);
 
 	protected:
-		std::vector<sContextManager> _contexts;
+		std::vector<std::shared_ptr<ContextManager>> _contexts;
 	};
 }

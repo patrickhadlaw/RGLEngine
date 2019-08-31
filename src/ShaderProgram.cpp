@@ -105,13 +105,13 @@ std::string & rgle::ShaderProgram::typeName()
 
 rgle::ShaderManager::ShaderManager()
 {
-	this->_shaderPrograms = std::vector<sShaderProgram>();
+	this->_shaderPrograms = std::vector<std::shared_ptr<ShaderProgram>>();
 }
 
-rgle::ShaderManager::ShaderManager(std::initializer_list<sShaderProgram> programs)
+rgle::ShaderManager::ShaderManager(std::initializer_list<std::shared_ptr<ShaderProgram>> programs)
 {
-	this->_shaderPrograms = std::vector<sShaderProgram>();
-	for (const sShaderProgram& program : programs) {
+	this->_shaderPrograms = std::vector<std::shared_ptr<ShaderProgram>>();
+	for (const auto& program : programs) {
 		_shaderPrograms.push_back(program);
 	}
 }
@@ -120,7 +120,7 @@ rgle::ShaderManager::~ShaderManager()
 {
 }
 
-void rgle::ShaderManager::addShader(sShaderProgram shader)
+void rgle::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
 {
 	for (int i = 0; i < _shaderPrograms.size(); i++) {
 		if (shader->id == _shaderPrograms[i]->id) {
@@ -130,7 +130,7 @@ void rgle::ShaderManager::addShader(sShaderProgram shader)
 	_shaderPrograms.push_back(shader);
 }
 
-rgle::sShaderProgram rgle::ShaderManager::operator[](std::string name)
+std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string name)
 {
 	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {

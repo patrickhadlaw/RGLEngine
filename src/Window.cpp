@@ -567,12 +567,12 @@ rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 	return unitvalue;
 }
 
-float rgle::UnitValue::resolvePixelValue(sWindow window, Window::Direction direction)
+float rgle::UnitValue::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction)
 {
 	return 0.0f;
 }
 
-float rgle::UnitValue::resolve(sWindow window, Window::Direction direction)
+float rgle::UnitValue::resolve(std::shared_ptr<Window> window, Window::Direction direction)
 {
 	return window->resolve(*this, direction);
 }
@@ -900,12 +900,12 @@ void rgle::UnitExpression::operator*=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-bool rgle::UnitExpression::lessThan(UnitExpression & other, sWindow window)
+bool rgle::UnitExpression::lessThan(UnitExpression & other, std::shared_ptr<Window> window)
 {
 	return this->resolve(window) <= other.resolve(window);
 }
 
-bool rgle::UnitExpression::greaterThan(UnitExpression & other, sWindow window)
+bool rgle::UnitExpression::greaterThan(UnitExpression & other, std::shared_ptr<Window> window)
 {
 	return this->resolve(window) >= other.resolve(window);
 }
@@ -941,12 +941,12 @@ bool rgle::UnitExpression::isValue()
 	return this->_operation == Operation::VALUE;
 }
 
-float rgle::UnitExpression::resolvePixelValue(sWindow window, Window::Direction direction)
+float rgle::UnitExpression::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction)
 {
 	return 0.0f;
 }
 
-float rgle::UnitExpression::resolve(sWindow window, Window::Direction direction)
+float rgle::UnitExpression::resolve(std::shared_ptr<Window> window, Window::Direction direction)
 {
 	if (this->isValue()) {
 		return this->_value.resolve(window, direction);
@@ -999,7 +999,7 @@ void rgle::UnitVector2D::operator+=(UnitVector2D & other)
 	this->x += other.y;
 }
 
-glm::vec2 rgle::UnitVector2D::resolve(sWindow window)
+glm::vec2 rgle::UnitVector2D::resolve(std::shared_ptr<Window> window)
 {
 	return glm::vec2(this->x.resolve(window, Window::Direction::X), this->y.resolve(window, Window::Direction::Y));
 }
@@ -1020,7 +1020,7 @@ rgle::UnitVector3D & rgle::UnitVector3D::parse(std::string parse)
 	return UnitVector3D();
 }
 
-glm::vec3 rgle::UnitVector3D::resolve(sWindow window)
+glm::vec3 rgle::UnitVector3D::resolve(std::shared_ptr<Window> window)
 {
 	return glm::vec3(this->x.resolve(window, Window::Direction::X), this->y.resolve(window, Window::Direction::Y), this->z.resolve(window, Window::Direction::Y));
 }

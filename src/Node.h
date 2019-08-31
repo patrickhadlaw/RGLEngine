@@ -18,6 +18,10 @@ namespace rgle {
 		std::string _identifier;
 	};
 
+	namespace UUID {
+		std::string generate();
+	}
+
 	class Node {
 	public:
 		Node();
@@ -57,15 +61,13 @@ namespace rgle {
 		virtual std::string& typeName();
 	};
 
-	typedef std::shared_ptr<Resource> sResource;
-
 	class ResourceManager : public Node {
 	public:
 		ResourceManager();
 		ResourceManager(const ResourceManager& other);
 		virtual ~ResourceManager();
 
-		void addResource(sResource resource);
+		void addResource(std::shared_ptr<Resource> resource);
 
 		template<typename Type>
 		std::shared_ptr<Type> getResource(std::string id) {
@@ -86,7 +88,7 @@ namespace rgle {
 		virtual std::string& typeName();
 
 	private:
-		std::vector<sResource> _resources;
+		std::vector<std::shared_ptr<Resource>> _resources;
 	};
 
 	typedef std::shared_ptr<ResourceManager> sResourceManager;

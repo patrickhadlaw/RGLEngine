@@ -68,7 +68,7 @@ int main(const int argc, const char* const argv[]) {
 
 		rgle::initialize();
 
-		rgle::sWindow window = std::make_shared<rgle::Window>(rgle::Window(width, height, "RGLEngine"));
+		std::shared_ptr<rgle::Window> window = std::make_shared<rgle::Window>(rgle::Window(width, height, "RGLEngine"));
 
 		glewExperimental = true;
 		GLenum err = glewInit();
@@ -80,16 +80,16 @@ int main(const int argc, const char* const argv[]) {
 
 		app.initialize();
 
-		rgle::sShaderProgram basic3D = rgle::sShaderProgram(new rgle::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
+		auto basic3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
 		app.addShader(basic3D);
-		rgle::sShaderProgram textured3D = rgle::sShaderProgram(new rgle::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
+		auto textured3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
 		app.addShader(textured3D);
-		rgle::sShaderProgram text = rgle::sShaderProgram(new rgle::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
+		auto text = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
 		app.addShader(text);
-		rgle::sShaderProgram interface = rgle::sShaderProgram(new rgle::ShaderProgram("interface", "shader/interface.vert", "shader/interface.frag"));
+		auto interface = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("interface", "shader/interface.vert", "shader/interface.frag"));
 		app.addShader(interface);
 
-		rgle::sFontFamily roboto = std::make_shared<rgle::FontFamily>(rgle::FontFamily("roboto", {
+		auto roboto = std::make_shared<rgle::FontFamily>(rgle::FontFamily("roboto", {
 			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
 			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Bold.ttf")) },
 			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Italic.ttf")) },
@@ -99,17 +99,17 @@ int main(const int argc, const char* const argv[]) {
 
 		app.addResource(roboto);
 
-		std::shared_ptr<rgle::NoClipCamera> camera = std::shared_ptr<rgle::NoClipCamera>(new rgle::NoClipCamera(rgle::PERSPECTIVE_PROJECTION, window));
+		auto camera = std::shared_ptr<rgle::NoClipCamera>(new rgle::NoClipCamera(rgle::PERSPECTIVE_PROJECTION, window));
 		camera->translate(-0.1, 0.0, -0.5);
 
-		rgle::sRenderableLayer mainLayer = rgle::sRenderableLayer(new rgle::RenderableLayer("main", camera));
+		auto mainLayer = std::shared_ptr<rgle::RenderableLayer>(new rgle::RenderableLayer("main", camera));
 		app.addLayer(mainLayer);
 
-		rgle::UI::sLayer uiLayer = rgle::UI::sLayer(new rgle::UI::Layer(app.getContext(), "ui", UI_TICK));
+		auto uiLayer = std::shared_ptr<rgle::UI::Layer>(new rgle::UI::Layer(app.getContext(), "ui", UI_TICK));
 		app.addLayer(uiLayer);
 
 		srand(clock());
-		std::shared_ptr<rgle::Triangle> triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
+		auto triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
 			app.getContext(),
 			"basic3D",
 			1.0,

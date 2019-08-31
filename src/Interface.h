@@ -45,8 +45,6 @@ namespace rgle {
 			UnitVector2D _dimensions;
 		};
 
-		typedef std::shared_ptr<BoundingBox> sBoundingBox;
-
 		struct ElementAttributes {
 			float zIndex = 0.0f;
 		};
@@ -105,14 +103,14 @@ namespace rgle {
 		class RelativeAligner : public Aligner {
 		public:
 			RelativeAligner();
-			RelativeAligner(sBoundingBox element, sBoundingBox align, RelativeAlignerAttributes attributes = {});
+			RelativeAligner(std::shared_ptr<BoundingBox> element, std::shared_ptr<BoundingBox> align, RelativeAlignerAttributes attributes = {});
 			virtual ~RelativeAligner();
 
 			void realign();
 
 		protected:
-			sBoundingBox _element;
-			sBoundingBox _align;
+			std::shared_ptr<BoundingBox> _element;
+			std::shared_ptr<BoundingBox> _align;
 			RelativeAlignerAttributes _attributes;
 		};
 
@@ -128,17 +126,17 @@ namespace rgle {
 		class LinearAligner : public Aligner {
 		public:
 			LinearAligner();
-			LinearAligner(std::vector<sBoundingBox> elements, LinearAlignerAttributes attributes = LinearAlignerAttributes{});
+			LinearAligner(std::vector<std::shared_ptr<BoundingBox>> elements, LinearAlignerAttributes attributes = LinearAlignerAttributes{});
 			virtual ~LinearAligner();
 
-			void push(sBoundingBox element);
-			sBoundingBox pop();
+			void push(std::shared_ptr<BoundingBox> element);
+			std::shared_ptr<BoundingBox> pop();
 
 			void realign();
 
 		private:
 			LinearAlignerAttributes _attributes;
-			std::vector<sBoundingBox> _elements;
+			std::vector<std::shared_ptr<BoundingBox>> _elements;
 			std::vector<RelativeAligner> _aligners;
 		};
 
@@ -170,7 +168,6 @@ namespace rgle {
 			std::vector<sLogicNode> _logicNodes;
 			Context _context;
 		};
-		typedef std::shared_ptr<Layer> sLayer;
 
 		struct RectAttributes {
 			UnitVector2D dimensions;

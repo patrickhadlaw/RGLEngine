@@ -50,21 +50,18 @@ namespace rgle {
 	private:
 		GLuint _programID;
 	};
-	typedef std::shared_ptr<ShaderProgram> sShaderProgram;
 
 	class ShaderManager {
 	public:
 		ShaderManager();
-		ShaderManager(std::initializer_list<sShaderProgram> programs);
+		ShaderManager(std::initializer_list<std::shared_ptr<ShaderProgram>> programs);
 		~ShaderManager();
 
-		void addShader(sShaderProgram shader);
+		void addShader(std::shared_ptr<ShaderProgram> shader);
 
-		sShaderProgram operator[](std::string name);
+		std::shared_ptr<ShaderProgram> operator[](std::string name);
 
 	private:
-		std::vector<sShaderProgram> _shaderPrograms;
+		std::vector<std::shared_ptr<ShaderProgram>> _shaderPrograms;
 	};
-
-	typedef std::shared_ptr<ShaderManager> sShaderManager;
 }

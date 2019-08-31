@@ -22,8 +22,8 @@ namespace rgle {
 		FT_Glyph glyph;
 		FT_Glyph_Metrics metrics;
 		FT_BBox bbox;
-		sImage image;
-		sTexture texture;
+		std::shared_ptr<Image> image;
+		std::shared_ptr<Texture> texture;
 		unsigned size;
 		struct {
 			unsigned width;
@@ -31,15 +31,12 @@ namespace rgle {
 		} border;
 		int lineSpacing;
 	};
-
-	typedef std::shared_ptr<Glyph> sGlyph;
-	typedef std::vector<sGlyph> sGlyphv;
 	
 	class Font : public Resource {
 		friend class Text;
 	public:
 		Font();
-		Font(sWindow window, std::string fontfile);
+		Font(std::shared_ptr<Window> window, std::string fontfile);
 		virtual ~Font();
 
 		void generate(int size);
@@ -49,10 +46,10 @@ namespace rgle {
 		virtual std::string& typeName();
 
 	private:
-		sWindow _window;
+		std::shared_ptr<Window> _window;
 		FT_Library _library;
 		FT_Face _face;
-		std::map< unsigned, std::map<char, sGlyph> > _generated;
+		std::map< unsigned, std::map<char, std::shared_ptr<Glyph>> > _generated;
 	};
 
 	typedef std::shared_ptr<Font> sFont;
@@ -80,8 +77,6 @@ namespace rgle {
 		std::map<std::string, sFont> _fonts;
 	};
 
-	typedef std::shared_ptr<FontFamily> sFontFamily;
-
 	struct TextAttributes {
 		std::string face = FontType::REGULAR;
 		UnitValue fontSize = UnitValue{ 16.0f, Unit::PT };
@@ -97,7 +92,15 @@ namespace rgle {
 	class CharRect : public Shape {
 	public:
 		CharRect();
-		CharRect(sWindow window, sShaderProgram shader, sGlyph glyph, UnitVector2D offset, float zIndex, UnitValue baselineOffset, UnitVector2D dimensions);
+		CharRect(
+			std::shared_ptr<Window> window,
+			std::shared_ptr<ShaderProgram> shader,
+			std::shared_ptr<Glyph> glyph,
+			UnitVector2D offset,
+			float zIndex,
+			UnitValue baselineOffset,
+			UnitVector2D dimensions
+		);
 		CharRect(const CharRect& other);
 		CharRect(CharRect&& rvalue);
 		virtual ~CharRect();
@@ -115,8 +118,8 @@ namespace rgle {
 		UnitVector2D offset;
 		UnitValue baselineOffset;
 		UnitVector2D dimensions;
-		sGlyph glyph;
-		sWindow window;
+		std::shared_ptr<Glyph> glyph;
+		std::shared_ptr<Window> window;
 	};
 
 	class Text : public UI::Element {
@@ -142,8 +145,8 @@ namespace rgle {
 
 	protected:
 		float _scale(float value);
-		void _getOffsetWrapWidth(UnitVector2D& offset, sGlyph& glyph);
-		void _getOffsetWrapWord(UnitVector2D& offset, sGlyph& glyph, int& wordIndex, int& index, bool& firstWord);
+		void _getOffsetWrapWidth(UnitVector2D& offset, std::shared_ptr<Glyph>& glyph);
+		void _getOffsetWrapWord(UnitVector2D& offset, std::shared_ptr<Glyph>& glyph, int& wordIndex, int& index, bool& firstWord);
 
 		struct {
 			GLint location;
@@ -154,6 +157,6 @@ namespace rgle {
 		float _pixelSize;
 		float _maxSize;
 		TextAttributes _attributes;
-		sFontFamily _fontFamily;
+		std::shared_ptr<FontFamily> _fontFamily;
 	};
 }

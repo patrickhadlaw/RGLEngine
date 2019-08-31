@@ -23,9 +23,6 @@ namespace rgle {
 	class Observable;
 
 	template<typename Type>
-	using sObservable = std::shared_ptr<Observable<Type>>;
-
-	template<typename Type>
 	class Subject {
 	public:
 		Subject() {
@@ -46,15 +43,15 @@ namespace rgle {
 			}
 		}
 
-		sObservable<Type> observe(Observable<Type>* observer) {
-			sObservable<Type> observable = std::make_shared<Observable<Type>>(observer);
+		std::shared_ptr<Observable<Type>> observe(Observable<Type>* observer) {
+			std::shared_ptr<Observable<Type>> observable = std::make_shared<Observable<Type>>(observer);
 			observable._subject = std::weak_ptr<Subject<Type>>(this);
 			_observers.push_back(observable);
 			return observable;
 		}
 
 	private:
-		std::vector<sObservable<Type>> _observers;
+		std::vector<std::shared_ptr<Observable<Type>>> _observers;
 	};
 
 	template<typename Type>

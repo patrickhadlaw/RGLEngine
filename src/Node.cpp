@@ -56,7 +56,7 @@ rgle::ResourceManager::~ResourceManager()
 {
 }
 
-void rgle::ResourceManager::addResource(sResource resource)
+void rgle::ResourceManager::addResource(std::shared_ptr<Resource> resource)
 {
 	for (int i = 0; i < _resources.size(); i++) {
 		if (resource->id == _resources[i]->id) {
