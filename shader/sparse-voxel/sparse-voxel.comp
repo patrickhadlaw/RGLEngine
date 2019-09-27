@@ -1,0 +1,161 @@
+/*
+	Sparse Voxel Octree compute shader
+*/
+
+#version 440
+
+#define CUBE_TOP 0
+#define CUBE_RIGHT 1
+#define CUBE_BOTTOM 2
+#define CUBE_LEFT 3
+#define CUBE_FRONT 4
+#define CUBE_BACK 5
+
+const vec3 BASIS_X = vec3(1.0f, 0.0f, 0.0f);
+const vec3 BASIS_Y = vec3(0.0f, 1.0f, 0.0f);
+const vec3 BASIS_Z = vec3(0.0f, 0.0f, 1.0f);
+
+struct OctreeNode {
+	vec4 color;
+	vec3 position;
+	uint depth;
+	int next;
+};
+
+uniform uint root_node_offset;
+uniform float root_node_size;
+
+layout(std430, binding=0) buffer octree_buffer {
+	OctreeNode nodes[];
+};
+
+struct RayState {
+	uint offset;
+	ivec2 pixel;
+	vec3 ray;
+};
+
+// Buffer for consuming
+layout(std430, binding=1) readonly buffer pass_read_buffer {
+	RayState read_state[];
+};
+
+// Buffer for producing
+layout(std430, binding=2) writeonly buffer pass_write_buffer {
+	RayState write_state[];
+};
+
+shared int read_pass_size;
+shared int write_pass_size;
+
+// 
+layout(std430, binding=3) buffer output_buffer {
+	float out_depth[];
+};
+
+layout(rgba32f) uniform image2D out_image;
+
+// Pass uniforms
+uniform bool bootstrap;
+uniform bool finalize;
+uniform uint rays_per_pass;
+
+// Camera uniforms
+uniform vec3 camera_position;
+uniform float field_of_view;
+
+// Render uniforms
+uniform uvec2 render_resolution;
+
+// Project vector u onto v
+vec3 project(vec3 u, vec3 v) {
+	return (dot(u, v) / dot (v, v)) * v;
+}
+
+vec3 raycast_plane(vec3 basis1, vec3 basis2, vec3 basis3, vec3 p, vec3 v) {
+	vec3 n = cross(basis2 - basis1, basis3 - basis2);
+	float denom = dot(n, p);
+	float r;
+	if (denom != 0.0f) {
+		r = dot(n, basis1 - p) / denom;
+	}
+	else {
+		r = 0.0f;
+	}
+	return p + r * v;
+}
+
+vec3 plane_normal(vec3 basis1, vec3 basis2, vec3 basis3) {
+	return cross(basis2 - basis1, basis3 - basis2);
+}
+
+struct SquareRaycast {
+	bool hit;
+	vec2 coords;
+};
+
+// raycast_square: returns true if ray defined by x = rt + p hits square
+SquareRaycast raycast_square(vec3 position, vec3 basis_u, vec3 basis_v, float size, vec3 p, vec3 r) { // Algorithm check if distance to plane is less than distance to corners of square
+	vec3 topleft = p - (size / 2) * basis_u - (size / 2) * basis_v;
+	vec3 point = raycast_plane(position, topleft, position + (size / 2) * basis_u, p, r);
+	SquareRaycast raycast = SquareRaycast(false, vec2(0.0f));
+	raycast.coords.x = length(project(point, basis_u));
+	raycast.coords.y = length(project(point, basis_v));
+	raycast.hit = raycast.coords.x > 0 && raycast.coords.x < size && raycast.coords.y > 0 && raycast.coords.y < size;
+	return raycast;
+}
+
+void raycast_cube(vec3 position, float size, vec3 p, vec3 r, SquareRaycast result[6]) {
+	vec3 offset = vec3(size / 2);
+	vec3 corner1 = position - offset;
+	vec3 corner2 = position + offset;
+	result[CUBE_TOP] = raycast_square(corner1, BASIS_X, -BASIS_Z, size, p, r);
+	result[CUBE_RIGHT] = raycast_square(corner2, BASIS_Z, BASIS_Y, size, p, r);
+	result[CUBE_BOTTOM] = raycast_square(corner2, -BASIS_X, BASIS_Z, size, p, r);
+	result[CUBE_LEFT] = raycast_square(corner1, -BASIS_Z, -BASIS_Y, size, p, r);
+	result[CUBE_FRONT] = raycast_square(corner2, -BASIS_X, -BASIS_Y, size, p, r);
+	result[CUBE_BACK] = raycast_square(corner2, -BASIS_X, -BASIS_Y, size, p, r);
+}
+
+void main() {
+	RayState state;
+
+	OctreeNode root_node = nodes[root_node_offset];
+	OctreeNode current_node;
+	SquareRaycast raycast[6];
+	float size;
+	float depth;
+	bool hit;
+
+	float r;
+
+	const float pixel_angle = field_of_view / render_resolution.x;
+
+	for (int i = 0; i < rays_per_pass; i++) {
+		// Aquire ray state for ith iteration of pass
+		state = read_state[gl_LocalInvocationIndex * rays_per_pass + i];
+		current_node = nodes[state.offset];
+		size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
+		r = sin(pixel_angle) * length(current_node.position - camera_position);
+		const bool ray_done = size < r || current_node.color.a < 0.001f;
+		raycast_cube(current_node.position, size, camera_position, state.ray, raycast);
+		hit = false;
+		for (int j = 0; j < 6; j++) {
+			write_state[write_pass_size] = RayState(current_node.next + j, state.pixel, state.ray);
+			memoryBarrierBuffer();
+			write_pass_size = atomicAdd(write_pass_size, raycast[j].hit && !ray_done ? 1 : 0);
+			memoryBarrierShared();
+			barrier();
+			hit = hit || raycast[j].hit;
+		}
+		depth = length(current_node.position);
+		const uint index = render_resolution.x * state.pixel.y + state.pixel.x;
+		const bool depth_change = depth < out_depth[index];
+		out_depth[index] = depth_change ? depth : out_depth[index];
+		memoryBarrierBuffer();
+		vec4 previous_color = imageLoad(out_image, state.pixel);
+		imageStore(out_image, state.pixel, depth_change ? current_node.color : previous_color);
+		memoryBarrierBuffer();
+		barrier();
+	}
+}
