@@ -12,9 +12,21 @@ set(FREETYPE_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype)
 set(STB_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/stb)
 set(GLM_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/glm)
 
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+
 configure_file (
     "${PROJECT_SOURCE_DIR}/configuration.h.in"
     "${PROJECT_BINARY_DIR}/configuration.h"
+)
+
+set(RGLE_INSTALL_PATH ${PROJECT_BINARY_DIR})
+set(RGLE_LOG_LEVEL "DEBUG")
+
+configure_file (
+	"${PROJECT_SOURCE_DIR}/rgle.cfg.in"
+	"${CMAKE_BINARY_DIR}/bin/rgle.cfg"
 )
 
 aux_source_directory(src RGLE_LIB_SRC)
@@ -49,24 +61,21 @@ find_package(OpenGL REQUIRED)
 set(RGLE_INCLUDE_DIRS include src ${PROJECT_BINARY_DIR} ${GLFW_LOCATION}/include ${STB_LOCATION} ${FREETYPE_LOCATION}/include ${GLM_LOCATION} ${GLEW_LOCATION}/include)
 set(RGLE_LINK_LIBS glew ${OPENGL_LIBRARIES} glfw freetype)
 
-include_directories(${RGLE_INCLUDE_DIRS})
-link_directories(${PROJECT_BINARY_DIR})
-
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS YES)
 
 add_library(rgle SHARED ${RGLE_LIB_SRC})
 target_compile_definitions(rgle PUBLIC RGLE_DLL_BUILD_MODE)
 
 add_custom_command(TARGET rgle
-	POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${PROJECT_BINARY_DIR}/bin ${PROJECT_BINARY_DIR}
+	POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}
 )
 
 target_link_libraries(rgle ${RGLE_LINK_LIBS})
-target_include_directories(rgle PRIVATE ${RGLE_INCLUDE_DIRS})
+target_include_directories(rgle PUBLIC ${RGLE_INCLUDE_DIRS})
 set_target_properties(rgle PROPERTIES PUBLIC_HEADER "include/rgle.h")
 
 install(TARGETS rgle
-    LIBRARY DESTINATION bin
+    LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION bin
 	PUBLIC_HEADER DESTINATION include
 	COMPONENT LIBRARY

@@ -80,22 +80,39 @@ int main(const int argc, const char* const argv[]) {
 
 		app.initialize();
 
-		auto basic3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("basic3D", "shader/basic3D.vert", "shader/basic3D.frag"));
+		auto basic3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram(
+			"basic3D",
+			rgle::installed_filename("shader/basic3D.vert"),
+			rgle::installed_filename("shader/basic3D.frag")
+		));
 		app.addShader(basic3D);
-		auto textured3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("textured3D", "shader/textured3D.vert", "shader/textured3D.frag"));
+		auto textured3D = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram(
+			"textured3D",
+			rgle::installed_filename("shader/textured3D.vert"),
+			rgle::installed_filename("shader/textured3D.frag")
+		));
 		app.addShader(textured3D);
-		auto text = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("text", "shader/text.vert", "shader/text.frag"));
+		auto text = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram(
+			"text",
+			rgle::installed_filename("shader/text.vert"),
+			rgle::installed_filename("shader/text.frag")
+		));
 		app.addShader(text);
-		auto interface = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram("interface", "shader/interface.vert", "shader/interface.frag"));
+		auto interface = std::shared_ptr<rgle::ShaderProgram>(new rgle::ShaderProgram(
+			"interface",
+			rgle::installed_filename("shader/interface.vert"),
+			rgle::installed_filename("shader/interface.frag")
+		));
 		app.addShader(interface);
 
 		auto roboto = std::make_shared<rgle::FontFamily>(rgle::FontFamily("roboto", {
-			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Regular.ttf")) },
-			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Bold.ttf")) },
-			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Italic.ttf")) },
-			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-BoldItalic.ttf")) },
-			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-Light.ttf")) },
-			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(rgle::Font(window, "res/font/Roboto/Roboto-LightItalic.ttf")) } }));
+			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-Regular.ttf"))) },
+			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-Bold.ttf"))) },
+			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-Italic.ttf"))) },
+			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-BoldItalic.ttf"))) },
+			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-Light.ttf"))) },
+			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(rgle::Font(window, rgle::installed_filename("res/font/Roboto/Roboto-LightItalic.ttf"))) }
+		}));
 
 		app.addResource(roboto);
 
@@ -120,7 +137,7 @@ int main(const int argc, const char* const argv[]) {
 		triangleA->id = "triangleA";
 		mainLayer->addRenderable(triangleA);
 
-		auto rect = std::shared_ptr<rgle::ImageRect>(new rgle::ImageRect(app.getContext(), "textured3D", 1.0, 1.0, "res/sky.png"));
+		auto rect = std::shared_ptr<rgle::ImageRect>(new rgle::ImageRect(app.getContext(), "textured3D", 1.0, 1.0, rgle::installed_filename("res/sky.png")));
 		rect->translate(0.0, 2.0, 0.0);
 		triangleA->id = "rect";
 		mainLayer->addRenderable(rect);

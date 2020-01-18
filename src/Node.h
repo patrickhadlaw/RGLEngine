@@ -1,8 +1,5 @@
 #pragma once
 
-#include <vector>
-#include <memory>
-
 #include "Exception.h"
 
 namespace rgle {

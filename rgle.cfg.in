@@ -1,0 +1,2 @@
+install_path="@RGLE_INSTALL_PATH@"
+log_level="@RGLE_LOG_LEVEL@"
