@@ -2,21 +2,6 @@
 
 #include "Node.h"
 
-#include <iostream>
-#include <fstream>
-#include <string>
-#include <stdio.h>
-#include <stdlib.h>
-#include <exception>
-#include <ctime>
-#include <vector>
-#include <cmath>
-#include <cstdlib>
-#include <array>
-#include <memory>
-#include <map>
-#include <assert.h>
-
 #include <GL\glew.h>
 #include <GL\GL.h>
 #include <GLFW\glfw3.h>
@@ -38,6 +23,7 @@ namespace rgle {
 	class ShaderProgram : public Node {
 	public:
 		ShaderProgram();
+		ShaderProgram(std::string name, std::string vertexShader, std::string fragmentShader);
 		ShaderProgram(std::string name, const char* vertexShader, const char* fragmentShader);
 		ShaderProgram(std::string name, std::initializer_list<GLuint> shaders);
 		~ShaderProgram();

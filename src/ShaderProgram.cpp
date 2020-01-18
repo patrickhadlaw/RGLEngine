@@ -1,7 +1,4 @@
 #include "ShaderProgram.h"
-#include "ShaderProgram.h"
-#include "ShaderProgram.h"
-
 
 
 GLuint rgle::Shader::compileFile(std::string shaderfile, GLenum type)
@@ -46,15 +43,19 @@ rgle::ShaderProgram::ShaderProgram()
 {
 }
 
+rgle::ShaderProgram::ShaderProgram(std::string name, std::string vertexShader, std::string fragmentShader) : ShaderProgram(
+	name,
+	vertexShader.c_str(),
+	fragmentShader.c_str()
+) {}
+
 rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader) : ShaderProgram(
 	name,
 	{
 		Shader::compileFile(vertexShader, GL_VERTEX_SHADER),
 		Shader::compileFile(fragmentShader, GL_FRAGMENT_SHADER)
 	}
-) {
-
-}
+) {}
 
 rgle::ShaderProgram::ShaderProgram(std::string name, std::initializer_list<GLuint> shaders)
 {
