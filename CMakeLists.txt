@@ -29,7 +29,7 @@ configure_file (
 	"${CMAKE_BINARY_DIR}/bin/rgle.cfg"
 )
 
-aux_source_directory(src RGLE_LIB_SRC)
+aux_source_directory(src/rgle RGLE_LIB_SRC)
 file(GLOB_RECURSE resources res/*)
 file(GLOB shaders shader/*.*)
 
