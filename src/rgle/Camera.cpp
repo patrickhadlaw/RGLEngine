@@ -1,6 +1,11 @@
 #include "rgle/Camera.h"
 
 
+float rgle::z_index(float z)
+{
+	return (std::exp2(z) - 1.0f) / (std::exp2(z) + 1.0f);
+}
+
 rgle::Camera::Camera()
 {
 	this->_position = glm::vec3(0.0, 0.0, 0.0);
@@ -19,9 +24,9 @@ rgle::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
 	this->_window->registerListener("resize", this);
 
 	this->_position = glm::vec3(0.0, 0.0, 0.0);
-	this->_direction = glm::vec3(0.0, 0.0, 1.0);
-	this->_up = glm::vec3(0.0, 1.0, 0.0);
-	this->_right = glm::vec3(1.0, 0.0, 0.0);
+	this->_direction = glm::vec3(0.0, 0.0, -1.0f);
+	this->_up = glm::vec3(0.0, 1.0f, 0.0);
+	this->_right = glm::vec3(1.0f, 0.0, 0.0);
 
 	this->generate(type);
 }
@@ -40,9 +45,7 @@ void rgle::Camera::onMessage(std::string eventname, EventMessage * message)
 
 void rgle::Camera::update(float deltaT)
 {
-	glUniformMatrix4fv(_projectionLocation, 1, GL_FALSE, &_projection[0][0]);
-	_view = glm::lookAt(_position, _position + _direction, _up);
-	glUniformMatrix4fv(_viewLocation, 1, GL_FALSE, &_view[0][0]);
+	this->_view = glm::lookAt(this->_position, this->_position + this->_direction, this->_up);
 }
 
 void rgle::Camera::bind(std::shared_ptr<ShaderProgram> shader)
@@ -56,7 +59,7 @@ void rgle::Camera::generate(CameraType type)
 	switch (type) {
 	default:
 	case ORTHOGONAL_PROJECTION:
-		this->_projection = glm::ortho(0.0f, (float)_window->width(), (float)_window->height(), 0.0f, 0.01f, 1000.0f);
+		this->_projection = glm::ortho(-1.0f, 1.0f, -1.0f, 1.0f, -10.0f, 10.0f);
 		break;
 	case PERSPECTIVE_PROJECTION:
 		this->_projection = glm::perspective(glm::radians(60.0f), ((float)_window->width() / (float)_window->height()), 0.001f, 100.0f);
@@ -84,7 +87,14 @@ void rgle::Camera::rotate(float x, float y, float z)
 
 void rgle::Camera::lookAt(glm::vec3 direction)
 {
-	
+	this->_direction = direction;
+	this->_right = glm::cross(this->_direction, this->_up);
+	this->_up = glm::cross(this->_right, this->_direction);
+}
+
+void rgle::Camera::relocate(glm::vec3 position)
+{
+	this->_position = position;
 }
 
 glm::vec3 rgle::Camera::position()

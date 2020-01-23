@@ -118,6 +118,7 @@ int main(const int argc, const char* const argv[]) {
 
 		auto camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
 		camera->translate(-0.1, 0.0, -0.5);
+		camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
 
 		auto mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
 		app.addLayer(mainLayer);

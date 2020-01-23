@@ -3,6 +3,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+size_t rgle::InstancedRenderer::_idCounter = 0;
+
 rgle::GraphicsException::GraphicsException() : Exception()
 {
 }
@@ -250,8 +252,8 @@ void rgle::Texture::_generate()
 		this->image->image
 	);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
@@ -658,15 +660,17 @@ rgle::ImageRect::ImageRect()
 {
 }
 
-rgle::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image)
+rgle::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image, ShaderModel shadermodel)
 {
 	this->_context = context;
 	this->shader = (*context.manager.shader)[shader];
 	this->samplers.push_back(Sampler2D(this->shader, image));
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
-	if (this->model.location < 0) {
-		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+	if (shadermodel != ShaderModel::INSTANCED) {
+		this->model.location = glGetUniformLocation(this->shader->programId(), "model");
+		if (this->model.location < 0) {
+			throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+		}
 	}
 	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
@@ -677,16 +681,16 @@ rgle::ImageRect::ImageRect(Context context, std::string shader, float width, flo
 		throw GraphicsException("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
 	}
 	this->vertex.list = {
-		glm::vec3(-width / 2, height / 2, 0.0),
 		glm::vec3(-width / 2, -height / 2, 0.0),
-		glm::vec3(width / 2, height / 2, 0.0),
-		glm::vec3(width / 2, -height / 2, 0.0)
+		glm::vec3(-width / 2, height / 2, 0.0),
+		glm::vec3(width / 2, -height / 2, 0.0),
+		glm::vec3(width / 2, height / 2, 0.0)
 	};
 	this->uv.list = {
-		glm::vec2(0.0, 1.0),
 		glm::vec2(0.0, 0.0),
-		glm::vec2(1.0, 1.0),
-		glm::vec2(1.0, 0.0)
+		glm::vec2(0.0, 1.0),
+		glm::vec2(1.0, 0.0),
+		glm::vec2(1.0, 1.0)
 	};
 	this->index.list = {
 		0,
@@ -745,4 +749,140 @@ rgle::Geometry3D::Face::Face(glm::vec3 & p1,
 	glm::vec3 & p3,
 	unsigned short & i3) : p1(p1), i1(i1), p2(p2), i2(i2), p3(p3), i3(i3)
 {
+}
+
+rgle::InstancedRenderer::InstancedRenderer(Context context) : Renderable(context)
+{
+}
+
+rgle::InstancedRenderer::~InstancedRenderer()
+{
+	for (auto it = this->_setMap.begin(); it != this->_setMap.end(); ++it) {
+		glDeleteBuffers(1, &it->second.ssbo);
+	}
+}
+
+void rgle::InstancedRenderer::addModel(std::string key, std::shared_ptr<Geometry3D> geometry)
+{
+	Logger::debug("adding model to instanced renderer with key: " + key, LOGGER_DETAIL_DEFAULT);
+	if (key.empty()) {
+		throw GraphicsException("failed to add model to renderer, invalid key", LOGGER_DETAIL_DEFAULT);
+	}
+	if (this->_setMap.find(key) != this->_setMap.end()) {
+		Logger::warn("instance set for model with key: " + key + " already created, all models will be destroyed", LOGGER_DETAIL_DEFAULT);
+	}
+	InstanceSet set;
+	set.geometry = geometry;
+	glBindVertexArray(geometry->vertexArray);
+	glGenBuffers(1, &set.ssbo);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, set.ssbo);
+	this->_setMap[key] = set;
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 0, this->_setMap[key].modelTransforms.data(), GL_DYNAMIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->_setMap[key].ssbo);
+
+}
+
+void rgle::InstancedRenderer::removeModel(std::string key)
+{
+	RGLE_DEBUG_ONLY(Logger::debug("removing model from instanced renderer with key: " + key, LOGGER_DETAIL_DEFAULT);)
+	if (this->_setMap.find(key) == this->_setMap.end()) {
+		throw GraphicsException("failed to remove model with key: " + key + " from instanced renderer", LOGGER_DETAIL_DEFAULT);
+	}
+	for (auto it = this->_setMap[key].allocationMap.begin(); it != this->_setMap[key].allocationMap.end(); ++it) {
+		this->_keyLookupTable.erase(it->first);
+	}
+	glDeleteBuffers(1, &this->_setMap[key].ssbo);
+	this->_setMap.erase(key);
+}
+
+size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
+{
+	if (this->_setMap.find(key) == this->_setMap.end()) {
+		throw GraphicsException("failed to add instance of model with key: " + key + ", key not found", LOGGER_DETAIL_DEFAULT);
+	}
+	size_t id = InstancedRenderer::_idCounter++;
+	this->_setMap[key].modelTransforms.push_back(model);
+	this->_setMap[key].allocationMap[id] = this->_setMap[key].modelTransforms.size() - 1;
+	this->_keyLookupTable[id] = key;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_setMap[key].ssbo);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		16 * this->_setMap[key].modelTransforms.size() * sizeof(GLfloat),
+		this->_setMap[key].modelTransforms.data(),
+		GL_DYNAMIC_DRAW
+	);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->_setMap[key].ssbo);
+	return id;
+}
+
+void rgle::InstancedRenderer::removeInstance(size_t id)
+{
+	std::string key = this->_keyLookupTable[id];
+	if (this->_setMap.find(key) == this->_setMap.end()) {
+		Logger::warn("failed to remove a model instance with id: " + std::to_string(id) + ", id not found", LOGGER_DETAIL_DEFAULT);
+		return;
+	}
+	this->_setMap[key].modelTransforms.erase(this->_setMap[key].modelTransforms.begin() + this->_setMap[key].allocationMap[id]);
+	size_t idx = this->_setMap[key].allocationMap[id];
+	for (auto it = this->_setMap[key].allocationMap.begin(); it != this->_setMap[key].allocationMap.end(); ++it) {
+		if (it->second > idx) {
+			this->_setMap[key].allocationMap[it->first]--;
+		}
+	}
+	this->_setMap[key].allocationMap.erase(id);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_setMap[key].ssbo);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		16 * this->_setMap[key].modelTransforms.size() * sizeof(GLfloat),
+		this->_setMap[key].modelTransforms.data(),
+		GL_DYNAMIC_DRAW
+	);
+}
+
+void rgle::InstancedRenderer::render()
+{
+	for (auto it = this->_setMap.begin(); it != this->_setMap.end(); ++it) {
+		glBindVertexArray(it->second.geometry->vertexArray);
+
+		for (int i = 0; i < it->second.geometry->samplers.size(); i++) {
+			it->second.geometry->samplers[i].use();
+		}
+
+		if (!it->second.geometry->vertex.list.empty()) {
+			glBindBuffer(GL_ARRAY_BUFFER, it->second.geometry->vertex.buffer);
+			glEnableVertexAttribArray(it->second.geometry->vertex.location);
+			glVertexAttribPointer(it->second.geometry->vertex.location, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		}
+
+		if (!it->second.geometry->uv.list.empty()) {
+			glBindBuffer(GL_ARRAY_BUFFER, it->second.geometry->uv.buffer);
+			glEnableVertexAttribArray(it->second.geometry->uv.location);
+			glVertexAttribPointer(it->second.geometry->uv.location, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		}
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, it->second.ssbo);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, it->second.ssbo);
+		if (it->second.geometry->index.list.empty()) {
+			glDrawArraysInstanced(GL_TRIANGLES, 0, it->second.geometry->vertex.list.size(), it->second.modelTransforms.size());
+		}
+		else {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.geometry->index.buffer);
+			glDrawElementsInstanced(
+				GL_TRIANGLES,
+				it->second.geometry->index.list.size(),
+				GL_UNSIGNED_SHORT,
+				nullptr,
+				it->second.modelTransforms.size()
+			);
+		}
+	}
+}
+
+void rgle::InstancedRenderer::update()
+{
+}
+
+std::string & rgle::InstancedRenderer::typeName()
+{
+	return std::string("rgle::InstancedRenderer");
 }

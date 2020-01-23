@@ -14,6 +14,12 @@ namespace rgle {
 
 	class Config {
 	public:
+		enum class Type {
+			OBJECT,
+			LIST,
+			STRING,
+			NUMBER
+		};
 		Config();
 		Config(std::string filename);
 
@@ -30,6 +36,8 @@ namespace rgle {
 		};
 
 		bool _validate(char c);
+
+		size_t _iterateWhitespace(std::string line, size_t index);
 
 		std::map<std::string, std::string> _config;
 	};

@@ -14,6 +14,11 @@ namespace rgle {
 		std::string _type();
 	};
 
+	enum class ShaderModel {
+		DEFAULT,
+		INSTANCED
+	};
+
 	struct Image {
 		Image();
 		Image(std::string imagefile);
@@ -214,7 +219,7 @@ namespace rgle {
 	class ImageRect : public Shape {
 	public:
 		ImageRect();
-		ImageRect(Context context, std::string shader, float width, float height, std::string image);
+		ImageRect(Context context, std::string shader, float width, float height, std::string image, ShaderModel shadermodel = ShaderModel::DEFAULT);
 		virtual ~ImageRect();
 
 		void render();
@@ -234,5 +239,35 @@ namespace rgle {
 		virtual void update();
 
 		std::vector<Material> materials;
+	};
+
+	class InstancedRenderer : public Renderable {
+	public:
+		InstancedRenderer(Context context);
+		virtual ~InstancedRenderer();
+
+		void addModel(std::string key, std::shared_ptr<Geometry3D> geometry);
+		void removeModel(std::string key);
+
+		size_t addInstance(std::string key, glm::mat4 model = glm::mat4(1.0f));
+		void removeInstance(size_t id);
+
+		virtual void render();
+		virtual void update();
+
+		virtual std::string& typeName();
+
+	private:
+
+		struct InstanceSet {
+			std::shared_ptr<Geometry3D> geometry;
+			std::map<size_t, size_t> allocationMap;
+			std::vector<glm::mat4> modelTransforms;
+			GLuint ssbo;
+		};
+		std::map<std::string, InstanceSet> _setMap;
+		std::map<size_t, std::string> _keyLookupTable;
+
+		static RGLE_DLLEXPORTED size_t _idCounter;
 	};
 }

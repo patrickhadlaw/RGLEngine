@@ -7,6 +7,8 @@
 
 namespace rgle {
 
+	float z_index(float z);
+
 	enum CameraType {
 		PERSPECTIVE_PROJECTION,
 		ORTHOGONAL_PROJECTION,
@@ -54,6 +56,8 @@ namespace rgle {
 		void rotate(float x, float y, float z);
 		void lookAt(glm::vec3 direction);
 
+		void relocate(glm::vec3 position);
+
 		glm::vec3 position();
 		glm::vec3 direction();
 		glm::vec3 up();
@@ -67,8 +71,6 @@ namespace rgle {
 		glm::vec3 _right;
 		glm::mat4 _view;
 		glm::mat4 _projection;
-		GLint _viewLocation;
-		GLint _projectionLocation;
 		CameraType _type;
 
 		std::shared_ptr<Window> _window;
