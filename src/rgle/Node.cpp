@@ -1,19 +1,16 @@
 #include "rgle/Node.h"
 
 
-rgle::IdentifierException::IdentifierException(std::string exception, std::string identifier, Logger::Detail detail)
-{
-	detail.id = identifier;
-	Exception(exception, detail);
-}
-
-rgle::IdentifierException::~IdentifierException()
+rgle::IdentifierException::IdentifierException(std::string exception, std::string identifier, Logger::Detail detail) :
+	Exception(exception, IdentifierException::_makeDetail(std::move(detail), identifier), "rgle::IdentifierException")
 {
 }
 
-std::string rgle::IdentifierException::_type()
+rgle::Logger::Detail rgle::IdentifierException::_makeDetail(Logger::Detail && detail, const std::string & identifier)
 {
-	return std::string("rgle::IdentifierException");
+	Logger::Detail det = std::move(detail);
+	det.id = identifier;
+	return det;
 }
 
 rgle::Node::Node()
@@ -24,9 +21,9 @@ rgle::Node::~Node()
 {
 }
 
-std::string & rgle::Node::typeName()
+const char * rgle::Node::typeName() const
 {
-	return std::string("rgle::Node");
+	return "rgle::Node";
 }
 
 rgle::Resource::Resource()
@@ -37,9 +34,9 @@ rgle::Resource::~Resource()
 {
 }
 
-std::string & rgle::Resource::typeName()
+const char * rgle::Resource::typeName() const
 {
-	return std::string("rgle::Resource");
+	return "rgle::Resource";
 }
 
 rgle::ResourceManager::ResourceManager()
@@ -66,9 +63,9 @@ void rgle::ResourceManager::addResource(std::shared_ptr<Resource> resource)
 	this->_resources.push_back(resource);
 }
 
-std::string & rgle::ResourceManager::typeName()
+const char * rgle::ResourceManager::typeName() const
 {
-	return std::string("rgle::ResourceManager");
+	return "rgle::ResourceManager";
 }
 
 rgle::LogicNode::LogicNode()
@@ -83,20 +80,11 @@ void rgle::LogicNode::update()
 {
 }
 
-std::string & rgle::LogicNode::typeName()
+const char * rgle::LogicNode::typeName() const
 {
-	return std::string("rgle::LogicNode");
+	return "rgle::LogicNode";
 }
 
-rgle::LogicException::LogicException(std::string exception, Logger::Detail detail) : Exception(exception, detail)
+rgle::LogicException::LogicException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::LogicException")
 {
-}
-
-rgle::LogicException::~LogicException()
-{
-}
-
-std::string rgle::LogicException::_type()
-{
-	return std::string("rgle::LogicException");
 }

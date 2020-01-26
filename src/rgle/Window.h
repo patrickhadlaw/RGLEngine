@@ -103,12 +103,12 @@ namespace rgle {
 			Y
 		};
 
-		Window();
 		Window(const int width, const int height, const char* title = "rgle");
-		Window(const Window& other);
+		Window(const Window&) = delete;
 		Window(Window&& rvalue);
 		~Window();
 
+		void operator=(const Window&) = delete;
 		void operator=(Window&& rvalue);
 		
 		int width();

@@ -15,7 +15,7 @@ glm::vec4 randomColor() {
 	);
 }
 
-const float UI_TICK = 20.0f / 1000.0f;
+const float UI_TICK = 1.0f / 20.0f;
 
 template<size_t N, typename Type>
 class Stack {
@@ -116,78 +116,84 @@ int main(const int argc, const char* const argv[]) {
 
 		app.addResource(roboto);
 
-		auto camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
-		camera->translate(-0.1, 0.0, -0.5);
-		camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
+		std::shared_ptr<rgle::RenderableLayer> mainLayer;
+		std::shared_ptr<rgle::UI::Layer> uiLayer;
+		std::shared_ptr<rgle::NoClipCamera> camera;
+		std::shared_ptr<rgle::UI::BasicButton> basicButton;
+		std::shared_ptr<rgle::Text> fpsText;
+		std::shared_ptr<rgle::Text> clickText;
 
-		auto mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
-		app.addLayer(mainLayer);
+		app.executeInContext([&app, &window, &mainLayer, &uiLayer, &camera, &basicButton, &fpsText, &clickText]() {
+			camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
+			camera->translate(-0.1, 0.0, -0.5);
+			camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
 
-		auto uiLayer = std::make_shared<rgle::UI::Layer>(app.getContext(), "ui", UI_TICK);
-		app.addLayer(uiLayer);
+			mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
+			app.addLayer(mainLayer);
 
-		srand(clock());
-		auto triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
-			app.getContext(),
-			"basic3D",
-			1.0,
-			1.0,
-			glm::radians(60.0f),
-			{ randomColor(), randomColor(), randomColor() }
-		));
-		triangleA->id = "triangleA";
-		mainLayer->addRenderable(triangleA);
+			uiLayer = std::make_shared<rgle::UI::Layer>("ui", UI_TICK);
+			app.addLayer(uiLayer);
 
-		auto rect = std::make_shared<rgle::ImageRect>(app.getContext(), "textured3D", 1.0, 1.0, rgle::installed_filename("res/sky.png"));
-		rect->translate(0.0, 2.0, 0.0);
-		triangleA->id = "rect";
-		mainLayer->addRenderable(rect);
+			srand(clock());
+			auto triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
+				"basic3D",
+				1.0,
+				1.0,
+				glm::radians(60.0f),
+				{ randomColor(), randomColor(), randomColor() }
+			));
+			triangleA->id = "triangleA";
+			mainLayer->addRenderable(triangleA);
 
-		auto triangleB = std::make_shared<rgle::Triangle>(
-			app.getContext(),
-			"basic3D",
-			1.0,
-			1.0,
-			glm::radians(60.0f),
-			glm::vec4(0.0, 0.5, 0.75, 1.0)
-		);
-		triangleB->id = "triangleB";
-		mainLayer->addRenderable(triangleB);
-		triangleB->rotate(0.0, 0.0, glm::radians(60.0f));
-		triangleB->translate(0.0, 0.0, 1.0);
+			auto rect = std::make_shared<rgle::ImageRect>("textured3D", 1.0, 1.0, rgle::installed_filename("res/sky.png"));
+			rect->translate(0.0, 2.0, 0.0);
+			triangleA->id = "rect";
+			mainLayer->addRenderable(rect);
 
-		rgle::TextAttributes attrib{ rgle::FontType::BOLD, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) };
-		auto fpsText = std::make_shared<rgle::Text>(app.getContext(), "text", "roboto", "Framerate: ", attrib);
-		fpsText->id = "fpsText";
-		uiLayer->addElement(fpsText);
-		auto wrapTest = std::make_shared<rgle::Text>(
-			app.getContext(),
-			"text",
-			"roboto",
-			"Hello world! This is a test of word wrapping, will it wrap, mabye.",
-			rgle::TextAttributes{ rgle::FontType::LIGHT, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) }
-		);
-		wrapTest->id = "wrapTest";
-		uiLayer->addElement(wrapTest);
-		auto clickText = std::make_shared<rgle::Text>(app.getContext(), "text", "roboto", "Clicked: 0", attrib);
-		clickText->id = "clickText";
-		uiLayer->addElement(clickText);
+			auto triangleB = std::make_shared<rgle::Triangle>(
+				"basic3D",
+				1.0,
+				1.0,
+				glm::radians(60.0f),
+				glm::vec4(0.0, 0.5, 0.75, 1.0)
+				);
+			triangleB->id = "triangleB";
+			mainLayer->addRenderable(triangleB);
+			triangleB->rotate(0.0, 0.0, glm::radians(60.0f));
+			triangleB->translate(0.0, 0.0, 1.0);
 
-		auto basicButton = std::make_shared<rgle::UI::BasicButton>(app.getContext(), "interface", "roboto", "Click Me!");
-		basicButton->id = "basicButton";
-		uiLayer->addElement(basicButton);
+			rgle::TextAttributes attrib{ rgle::FontType::BOLD, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) };
+			fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
+			fpsText->id = "fpsText";
+			uiLayer->addElement(fpsText);
+			auto wrapTest = std::make_shared<rgle::Text>(
+				"text",
+				"roboto",
+				"Hello world! This is a test of word wrapping, will it wrap, mabye.",
+				rgle::TextAttributes{ rgle::FontType::LIGHT, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) }
+			);
+			wrapTest->id = "wrapTest";
+			uiLayer->addElement(wrapTest);
+			clickText = std::make_shared<rgle::Text>("text", "roboto", "Clicked: 0", attrib);
+			clickText->id = "clickText";
+			uiLayer->addElement(clickText);
 
-		auto alignerAttribs = rgle::UI::LinearAlignerAttributes{};
-		alignerAttribs.spacing = rgle::UnitValue{ 10.0, rgle::Unit::PT };
-		alignerAttribs.topLeft.x = rgle::UnitValue{ 10.0f, rgle::Unit::PT };
-		auto aligner = std::shared_ptr<rgle::UI::LinearAligner>(new rgle::UI::LinearAligner({
-			fpsText,
-			wrapTest,
-			clickText,
-			basicButton
-		}, alignerAttribs));
-		aligner->id = "aligner";
-		uiLayer->addLogicNode(aligner);
+			basicButton = std::make_shared<rgle::UI::BasicButton>("interface", "roboto", "Click Me!");
+			basicButton->id = "basicButton";
+			uiLayer->addElement(basicButton);
+
+			auto alignerAttribs = rgle::UI::LinearAlignerAttributes{};
+			alignerAttribs.spacing = rgle::UnitValue{ 10.0, rgle::Unit::PT };
+			alignerAttribs.topLeft.x = rgle::UnitValue{ 10.0f, rgle::Unit::PT };
+			auto aligner = std::shared_ptr<rgle::UI::LinearAligner>(new rgle::UI::LinearAligner({
+				fpsText,
+				wrapTest,
+				clickText,
+				basicButton
+				}, alignerAttribs));
+			aligner->id = "aligner";
+			uiLayer->addLogicNode(aligner);
+		});
 
 		Stack<30, int> framerate;
 		int numClicked = 0;

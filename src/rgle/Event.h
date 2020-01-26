@@ -10,13 +10,8 @@ namespace rgle {
 
 	class EventException : public Exception {
 	public:
-		EventException();
 		EventException(std::string& except, Logger::Detail& detail);
 		EventException(const char* except, Logger::Detail& detail);
-		virtual ~EventException();
-
-	protected:
-		virtual std::string _type();
 	};
 
 	template<typename Type>

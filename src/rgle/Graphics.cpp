@@ -2,24 +2,13 @@
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
 
 size_t rgle::InstancedRenderer::_idCounter = 0;
 
-rgle::GraphicsException::GraphicsException() : Exception()
+rgle::GraphicsException::GraphicsException(std::string except, Logger::Detail & detail) : Exception(except, detail, "rgle::GraphicsException")
 {
-}
-
-rgle::GraphicsException::GraphicsException(std::string except, Logger::Detail & detail) : Exception(except, detail)
-{
-}
-
-rgle::GraphicsException::~GraphicsException()
-{
-}
-
-std::string rgle::GraphicsException::_type()
-{
-	return std::string("rgle::GraphicsException");
 }
 
 rgle::Shape::Shape()
@@ -27,23 +16,23 @@ rgle::Shape::Shape()
 	this->model.matrix = glm::mat4(1.0f);
 }
 
-rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
+rgle::Shape::Shape(std::string shaderid, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors)
 {
-	this->_context = context;
 	this->color.list = colors;
 	this->vertex.list = verticies;
-	this->shader = (*_context.manager.shader)[shader];
+	this->shader() = (*this->context().manager.shader.lock())[shaderid];
 
 	model.matrix = glm::mat4(1.0f);
-	model.location = glGetUniformLocation(this->shader->programId(), "model");
+	auto shader = this->shaderLocked();
+	model.location = glGetUniformLocation(shader->programId(), "model");
 	if (model.location < 0) {
 		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
-	color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
+	color.location = glGetAttribLocation(shader->programId(), "vertex_color");
 	if (color.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
-	vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
+	vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (vertex.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
@@ -51,14 +40,14 @@ rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> v
 	this->generate();
 }
 
-rgle::Shape::Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color)
+rgle::Shape::Shape(std::string shaderid, std::vector<glm::vec3> verticies, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.resize(verticies.size());
 	for (int i = 0; i < colors.size(); i++) {
 		colors[i] = color;
 	}
-	Shape(context, shader, verticies, colors);
+	Shape(shaderid, verticies, colors);
 }
 
 rgle::Shape::~Shape()
@@ -68,12 +57,12 @@ rgle::Shape::~Shape()
 
 void rgle::Shape::render()
 {
-	this->standardRender(this->shader);
+	this->standardRender(this->shaderLocked());
 }
 
-std::string & rgle::Shape::typeName()
+const char * rgle::Shape::typeName() const
 {
-	return std::string("rgle::Shape");
+	return "rgle::Shape";
 }
 
 void rgle::Shape::translate(float x, float y, float z)
@@ -111,28 +100,31 @@ rgle::Image::Image()
 	image = nullptr;
 	width = -1;
 	height = -1;
-	bpp = -1;
+	channels = -1;
 }
 
 rgle::Image::Image(std::string imagefile)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading image: " + imagefile, LOGGER_DETAIL_DEFAULT);)
-	image = stbi_load(imagefile.data(), &width, &height, &bpp, STBI_rgb_alpha);
+	image = stbi_load(imagefile.data(), &width, &height, &channels, STBI_rgb_alpha);
 	if (this->image == nullptr) {
 		throw IOException("failed to load image: " + imagefile, LOGGER_DETAIL_DEFAULT);
 	}
 }
 
+rgle::Image::Image(int width, int height, int channels) : width(width), height(height), channels(channels)
+{
+	this->image = new unsigned char[width * height * channels];
+}
+
 rgle::Image::Image(const Image & other)
 {
-	if (other.image == nullptr) {
-		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
-	}
+	RGLE_DEBUG_ASSERT(other.image != nullptr)
 	this->width = other.width;
 	this->height = other.height;
-	this->bpp = other.bpp;
-	this->image = new unsigned char[width * bpp * height];
-	for (int i = 0; i < width * bpp * height; i++) {
+	this->channels = other.channels;
+	this->image = new unsigned char[width * height * channels];
+	for (int i = 0; i < width * height * channels; i++) {
 		this->image[i] = other.image[i];
 	}
 }
@@ -141,22 +133,120 @@ rgle::Image::Image(Image && rvalue)
 {
 	this->width = rvalue.width;
 	this->height = rvalue.height;
-	this->bpp = rvalue.bpp;
+	this->channels = rvalue.channels;
 	this->image = rvalue.image;
 	rvalue.image = nullptr;
 }
 
 void rgle::Image::operator=(const Image& other)
 {
+	RGLE_DEBUG_ASSERT(other.image != nullptr)
 	delete[] image;
 	image = nullptr;
 	this->width = other.width;
 	this->height = other.height;
-	this->bpp = other.bpp;
+	this->channels = other.channels;
 	this->image = other.image;
-	this->image = new unsigned char[width * bpp * height];
-	for (int i = 0; i < width * bpp * height; i++) {
+	this->image = new unsigned char[width * height * channels];
+	for (int i = 0; i < width * height * channels; i++) {
 		this->image[i] = other.image[i];
+	}
+}
+
+void rgle::Image::operator=(Image && rvalue)
+{
+	this->width = rvalue.width;
+	this->height = rvalue.height;
+	this->channels = rvalue.channels;
+	std::swap(this->image, rvalue.image);
+}
+
+void rgle::Image::set(const size_t & x, const size_t & y, unsigned char * data, const size_t & size)
+{
+	if (size != this->channels) {
+		throw IllegalArgumentException("invalid image set, payload size invalid", LOGGER_DETAIL_DEFAULT);
+	}
+	else if (x >= this->width || y >= this->height) {
+		throw OutOfBoundsException(LOGGER_DETAIL_DEFAULT);
+	}
+	else {
+		std::memcpy(this->image + (y * this->width * this->channels) + (x * this->channels), data, size);
+	}
+}
+
+void rgle::Image::set(const size_t & x, const size_t & y, const float & intensity)
+{
+	unsigned char data = static_cast<unsigned char>(intensity * 255);
+	this->set(x, y, &data, 1);
+}
+
+void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
+{
+	unsigned char data[2] = {
+		static_cast<unsigned char>(ia.r * 255),
+		static_cast<unsigned char>(ia.g * 255)
+	};
+	this->set(x, y, data, 2);
+}
+
+void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec3 & rgb)
+{
+	unsigned char data[3] = {
+		static_cast<unsigned char>(rgb.r * 255),
+		static_cast<unsigned char>(rgb.g * 255),
+		static_cast<unsigned char>(rgb.b * 255)
+	};
+	this->set(x, y, data, 3);
+}
+
+void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
+{
+	unsigned char data[4] = {
+		static_cast<unsigned char>(rgba.r * 255),
+		static_cast<unsigned char>(rgba.g * 255),
+		static_cast<unsigned char>(rgba.b * 255),
+		static_cast<unsigned char>(rgba.a * 255)
+	};
+	this->set(x, y, data, 4);
+}
+
+void rgle::Image::write(const std::string& imagefile) const
+{
+	size_t idx = imagefile.find_last_of('.');
+	if (idx == std::string::npos) {
+		throw IOException("failed to write image to file: " + imagefile + ", missing extension", LOGGER_DETAIL_DEFAULT);
+	}
+	else {
+		std::string ext = imagefile.substr(idx + 1);
+		if (ext == "png") {
+			this->write(imagefile, Format::PNG);
+		}
+		else if (ext == "jpg") {
+			this->write(imagefile, Format::JPEG);
+		}
+		else {
+			throw IOException("failed to write image to file: " + imagefile + ", format not supported", LOGGER_DETAIL_DEFAULT);
+		}
+	}
+}
+
+void rgle::Image::write(const std::string& imagefile, const Format& format) const
+{
+	rgle::Logger::info("writing image to file: " + imagefile, LOGGER_DETAIL_DEFAULT);
+	int status;
+	switch (format) {
+	case Format::JPEG:
+		status = stbi_write_jpg(imagefile.c_str(), this->width, this->height, this->channels, this->image, 100);
+		break;
+	case Format::PNG:
+		status = stbi_write_png(imagefile.c_str(), this->width, this->height, this->channels, this->image, this->width * this->channels);
+		break;
+	}
+	if (status < 0) {
+		throw IOException(
+			"failed to write image to file: " + imagefile + ", error code: " + std::to_string(status),
+			LOGGER_DETAIL_DEFAULT
+		);
 	}
 }
 
@@ -262,16 +352,15 @@ void rgle::Texture::_generate()
 rgle::Sampler2D::Sampler2D()
 {
 	this->enabled = true;
-	this->shader = nullptr;
 	this->texture = nullptr;
 	this->samplerLocation = 0;
 }
 
-rgle::Sampler2D::Sampler2D(std::shared_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture, Texture::Format format)
+rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture, Texture::Format format)
 {
 	this->enabled = true;
 	this->shader = shader;
-	this->texture = std::make_shared<Texture>(Texture(std::make_shared<Image>(Image(imagefile)), texture, format));
+	this->texture = std::make_shared<Texture>(Texture(std::make_shared<Image>(imagefile), texture, format));
 	this->_generate();
 }
 
@@ -283,7 +372,7 @@ rgle::Sampler2D::Sampler2D(const Sampler2D & other)
 	this->_generate();
 }
 
-rgle::Sampler2D::Sampler2D(std::shared_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture)
+rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture)
 {
 	this->enabled = true;
 	this->shader = shader;
@@ -305,7 +394,7 @@ rgle::Sampler2D::~Sampler2D()
 
 void rgle::Sampler2D::use()
 {
-	if (this->texture == nullptr || this->shader == nullptr) {
+	if (this->texture == nullptr || this->shader.expired()) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	glUniform1i(this->enableLocation, enabled);
@@ -316,11 +405,12 @@ void rgle::Sampler2D::use()
 
 void rgle::Sampler2D::_generate()
 {
-	this->enableLocation = glGetUniformLocation(this->shader->programId(), "enable_texture");
+	auto shader = this->shader.lock();
+	this->enableLocation = glGetUniformLocation(shader->programId(), "enable_texture");
 	if (this->enableLocation < 0) {
 		throw Exception("failed to get uniform location of: enable texture", LOGGER_DETAIL_DEFAULT);
 	}
-	this->samplerLocation = glGetUniformLocation(this->shader->programId(), "texture_0");
+	this->samplerLocation = glGetUniformLocation(shader->programId(), "texture_0");
 	if (this->samplerLocation < 0) {
 		throw Exception("failed to get uniform location of: texture 0", LOGGER_DETAIL_DEFAULT);
 	}
@@ -330,30 +420,30 @@ rgle::Triangle::Triangle()
 {
 }
 
-rgle::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color)
+rgle::Triangle::Triangle(std::string shaderid, float a, float b, float theta, glm::vec4 color)
 {	
-	this->_construct(context, shader, a, b, theta, std::vector<glm::vec4>({ color, color, color }));
+	this->_construct(shaderid, a, b, theta, std::vector<glm::vec4>({ color, color, color }));
 }
 
-rgle::Triangle::Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors)
+rgle::Triangle::Triangle(std::string shaderid, float a, float b, float theta, std::vector<glm::vec4> colors)
 {
-	this->_construct(context, shader, a, b, theta, colors);
+	this->_construct(shaderid, a, b, theta, colors);
 }
 
-void rgle::Triangle::_construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
+void rgle::Triangle::_construct(std::string& shaderid, float& a, float& b, float& theta, std::vector<glm::vec4> colors)
 {
-	this->_context = context;
-	this->shader = (*context.manager.shader)[shader];
+	auto shader = (*this->context().manager.shader.lock())[shaderid];
+	this->shader() = shader;
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
+	this->model.location = glGetUniformLocation(shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
-	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
+	this->color.location = glGetAttribLocation(shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
@@ -377,19 +467,19 @@ rgle::Rect::Rect()
 {
 }
 
-rgle::Rect::Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors)
+rgle::Rect::Rect(std::string shaderid, float width, float height, std::vector<glm::vec4> colors)
 {
-	this->_construct(context, shader, width, height, colors);
+	this->_construct(shaderid, width, height, colors);
 }
 
-rgle::Rect::Rect(Context context, std::string shader, float width, float height, glm::vec4 color)
+rgle::Rect::Rect(std::string shaderid, float width, float height, glm::vec4 color)
 {
 	std::vector<glm::vec4> colors;
 	colors.reserve(6);
 	for (int i = 0; i < 6; i++) {
 		colors.push_back(color);
 	}
-	this->_construct(context, shader, width, height, colors);
+	this->_construct(shaderid, width, height, colors);
 }
 
 rgle::Rect::~Rect()
@@ -407,19 +497,20 @@ void rgle::Rect::changeDimensions(float width, float height)
 	this->updateVertexBuffer();
 }
 
-void rgle::Rect::_construct(Context& context, std::string& shader, float & width, float & height, std::vector<glm::vec4> colors)
+void rgle::Rect::_construct(std::string& shaderid, float & width, float & height, std::vector<glm::vec4> colors)
 {
-	this->shader = (*context.manager.shader)[shader];
+	auto shader = (*this->context().manager.shader.lock())[shaderid];
+	this->shader() = shader;
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
+	this->model.location = glGetUniformLocation(shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
-	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
+	this->color.location = glGetAttribLocation(shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
@@ -604,7 +695,6 @@ void rgle::Geometry3D::standardFill(Fill colorFill)
 			else {
 				this->color.list.push_back(glm::vec4(0.0, 0.0, 0.0, 0.0));
 			}
-			
 		}
 		else {
 			glm::vec3& vertex = this->vertex.list[i];
@@ -660,25 +750,25 @@ rgle::ImageRect::ImageRect()
 {
 }
 
-rgle::ImageRect::ImageRect(Context context, std::string shader, float width, float height, std::string image, ShaderModel shadermodel)
+rgle::ImageRect::ImageRect(std::string shaderid, float width, float height, std::string image, ShaderModel shadermodel)
 {
-	this->_context = context;
-	this->shader = (*context.manager.shader)[shader];
-	this->samplers.push_back(Sampler2D(this->shader, image));
+	auto shader = (*this->context().manager.shader.lock())[shaderid];
+	this->shader() = shader;
+	this->samplers.push_back(Sampler2D(this->shader(), image));
 	this->model.matrix = glm::mat4(1.0f);
 	if (shadermodel != ShaderModel::INSTANCED) {
-		this->model.location = glGetUniformLocation(this->shader->programId(), "model");
+		this->model.location = glGetUniformLocation(shader->programId(), "model");
 		if (this->model.location < 0) {
-			throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
+			throw GraphicsException("failed to locate shader uniform: model matrix", LOGGER_DETAIL_IDENTIFIER(this->id));
 		}
 	}
-	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
-		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: vertex position", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
-	this->uv.location = glGetAttribLocation(this->shader->programId(), "texture_coords");
+	this->uv.location = glGetAttribLocation(shader->programId(), "texture_coords");
 	if (this->uv.location < 0) {
-		throw GraphicsException("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	this->vertex.list = {
 		glm::vec3(-width / 2, -height / 2, 0.0),
@@ -751,68 +841,138 @@ rgle::Geometry3D::Face::Face(glm::vec3 & p1,
 {
 }
 
-rgle::InstancedRenderer::InstancedRenderer(Context context) : Renderable(context)
+rgle::InstancedRenderer::InstancedRenderer(std::string id, std::shared_ptr<ViewTransformer> transformer, float allocationFactor, size_t minAllocated) :
+	_allocationFactor(allocationFactor),
+	_minAllocated(minAllocated),
+	_transformer(transformer),
+	RenderLayer(id)
 {
+	if (this->_allocationFactor <= 1.0f || this->_minAllocated < 1 || !std::isnormal(this->_allocationFactor)) {
+		throw IllegalArgumentException("failed to create instanced renderer, invalid allocation factor", LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
 }
 
 rgle::InstancedRenderer::~InstancedRenderer()
 {
 	for (auto it = this->_setMap.begin(); it != this->_setMap.end(); ++it) {
 		glDeleteBuffers(1, &it->second.ssbo);
+		delete[] it->second.instanceData;
 	}
+	this->_setMap.clear();
 }
 
-void rgle::InstancedRenderer::addModel(std::string key, std::shared_ptr<Geometry3D> geometry)
+void rgle::InstancedRenderer::addModel(std::string key, std::shared_ptr<Geometry3D> geometry, size_t payloadsize)
 {
 	Logger::debug("adding model to instanced renderer with key: " + key, LOGGER_DETAIL_DEFAULT);
 	if (key.empty()) {
-		throw GraphicsException("failed to add model to renderer, invalid key", LOGGER_DETAIL_DEFAULT);
+		throw IllegalArgumentException("failed to add model to renderer, invalid key", LOGGER_DETAIL_DEFAULT);
 	}
 	if (this->_setMap.find(key) != this->_setMap.end()) {
 		Logger::warn("instance set for model with key: " + key + " already created, all models will be destroyed", LOGGER_DETAIL_DEFAULT);
+		glDeleteBuffers(1, &this->_setMap[key].ssbo);
 	}
 	InstanceSet set;
+	set.numInstances = 0;
+	set.numAllocated = this->_minAllocated;
+	// NOTE: payload size must be aligned to nearest sizeof(vec4)
+	set.payloadSize = this->_alignedSize(payloadsize);
+	set.instanceData = (unsigned char*) std::calloc(this->_minAllocated, set.payloadSize);
 	set.geometry = geometry;
 	glBindVertexArray(geometry->vertexArray);
 	glGenBuffers(1, &set.ssbo);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, set.ssbo);
 	this->_setMap[key] = set;
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 0, this->_setMap[key].modelTransforms.data(), GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, set.numAllocated * set.payloadSize, set.instanceData, GL_DYNAMIC_DRAW);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->_setMap[key].ssbo);
 
+}
+
+void rgle::InstancedRenderer::setModelBindFunc(std::string key, std::function<void()> bindfunc)
+{
+	auto it = this->_setMap.find(key);
+	if (it == this->_setMap.end()) {
+		Logger::warn("failed to set bind function of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
+	else {
+		it->second.bindFunc = bindfunc;
+	}
+}
+
+void rgle::InstancedRenderer::setModelShader(std::string key, std::shared_ptr<ShaderProgram> shader)
+{
+	auto it = this->_setMap.find(key);
+	if (it == this->_setMap.end()) {
+		Logger::warn("failed to set shader of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
+	else {
+		it->second.shader = shader;
+	}
 }
 
 void rgle::InstancedRenderer::removeModel(std::string key)
 {
 	RGLE_DEBUG_ONLY(Logger::debug("removing model from instanced renderer with key: " + key, LOGGER_DETAIL_DEFAULT);)
 	if (this->_setMap.find(key) == this->_setMap.end()) {
-		throw GraphicsException("failed to remove model with key: " + key + " from instanced renderer", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException(
+			"failed to remove model with key: " + key + " from instanced renderer, key not found",
+			LOGGER_DETAIL_DEFAULT
+		);
 	}
-	for (auto it = this->_setMap[key].allocationMap.begin(); it != this->_setMap[key].allocationMap.end(); ++it) {
+	InstanceSet* set = &this->_setMap[key];
+	for (auto it = set->allocationMap.begin(); it != set->allocationMap.end(); ++it) {
 		this->_keyLookupTable.erase(it->first);
 	}
-	glDeleteBuffers(1, &this->_setMap[key].ssbo);
+	glDeleteBuffers(1, &set->ssbo);
+	delete[] set->instanceData;
+	set->instanceData = nullptr;
 	this->_setMap.erase(key);
 }
 
-size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
+size_t rgle::InstancedRenderer::addInstance(std::string key, void* payload, size_t size)
 {
 	if (this->_setMap.find(key) == this->_setMap.end()) {
 		throw GraphicsException("failed to add instance of model with key: " + key + ", key not found", LOGGER_DETAIL_DEFAULT);
 	}
 	size_t id = InstancedRenderer::_idCounter++;
-	this->_setMap[key].modelTransforms.push_back(model);
-	this->_setMap[key].allocationMap[id] = this->_setMap[key].modelTransforms.size() - 1;
+	InstanceSet* set = &this->_setMap[key];
+	if (size > set->payloadSize) {
+		throw IllegalArgumentException("failed to add instance of model with key: " + key + ", invalid payload size", LOGGER_DETAIL_DEFAULT);
+	}
+	set->numInstances++;
+	set->allocationMap[id] = set->numInstances - 1;
 	this->_keyLookupTable[id] = key;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_setMap[key].ssbo);
-	glBufferData(
-		GL_SHADER_STORAGE_BUFFER,
-		16 * this->_setMap[key].modelTransforms.size() * sizeof(GLfloat),
-		this->_setMap[key].modelTransforms.data(),
-		GL_DYNAMIC_DRAW
-	);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->_setMap[key].ssbo);
+	if (set->numInstances > set->numAllocated) {
+		set->numAllocated *= this->_allocationFactor;
+		set->instanceData = (unsigned char*) std::realloc(
+			set->instanceData,
+			set->numAllocated * set->payloadSize
+		);
+		std::memcpy(set->instanceData + (set->numInstances - 1) * set->payloadSize, payload, size);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_setMap[key].ssbo);
+		glBufferData(
+			GL_SHADER_STORAGE_BUFFER,
+			set->payloadSize * set->numAllocated,
+			set->instanceData,
+			GL_DYNAMIC_DRAW
+		);
+	}
+	else {
+		void* dst = set->instanceData + (set->numInstances - 1) * set->payloadSize;
+		std::memcpy(dst, payload, size);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, set->ssbo);
+		glBufferSubData(
+			GL_SHADER_STORAGE_BUFFER,
+			(set->numInstances - 1) * set->payloadSize,
+			set->payloadSize,
+			dst
+		);
+	}
 	return id;
+}
+
+size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
+{
+	return this->addInstance(key, &model[0][0], 16 * sizeof(GLfloat));
 }
 
 void rgle::InstancedRenderer::removeInstance(size_t id)
@@ -822,27 +982,59 @@ void rgle::InstancedRenderer::removeInstance(size_t id)
 		Logger::warn("failed to remove a model instance with id: " + std::to_string(id) + ", id not found", LOGGER_DETAIL_DEFAULT);
 		return;
 	}
-	this->_setMap[key].modelTransforms.erase(this->_setMap[key].modelTransforms.begin() + this->_setMap[key].allocationMap[id]);
-	size_t idx = this->_setMap[key].allocationMap[id];
-	for (auto it = this->_setMap[key].allocationMap.begin(); it != this->_setMap[key].allocationMap.end(); ++it) {
-		if (it->second > idx) {
-			this->_setMap[key].allocationMap[it->first]--;
+	InstanceSet* set = &this->_setMap[key];
+	size_t idx = set->allocationMap[id];
+	set->numInstances--;
+	for (auto it = set->allocationMap.begin(); it != set->allocationMap.end(); ++it) {
+		if (it->second == set->numInstances) {
+			it->second = idx;
 		}
 	}
-	this->_setMap[key].allocationMap.erase(id);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_setMap[key].ssbo);
-	glBufferData(
-		GL_SHADER_STORAGE_BUFFER,
-		16 * this->_setMap[key].modelTransforms.size() * sizeof(GLfloat),
-		this->_setMap[key].modelTransforms.data(),
-		GL_DYNAMIC_DRAW
-	);
+	set->allocationMap.erase(id);
+	this->_keyLookupTable.erase(id);
+	void* idxptr = set->instanceData + idx * set->payloadSize;
+	// Copy last instance payload into deleted instance payload slot
+	std::memcpy(idxptr, set->instanceData + set->numInstances * set->payloadSize, set->payloadSize);
+	size_t reduced = set->numAllocated / this->_allocationFactor;
+	if (set->numInstances <= reduced && reduced >= this->_minAllocated) {
+		set->numAllocated = reduced;
+		set->instanceData = (unsigned char*)std::realloc(set->instanceData, set->numAllocated * set->payloadSize);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, set->ssbo);
+		glBufferData(
+			GL_SHADER_STORAGE_BUFFER,
+			set->numInstances * set->payloadSize,
+			set->instanceData,
+			GL_DYNAMIC_DRAW
+		);
+	}
+	else {
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, set->ssbo);
+		glBufferSubData(
+			GL_SHADER_STORAGE_BUFFER,
+			idx * set->payloadSize,
+			set->payloadSize,
+			idxptr
+		);
+	}
 }
 
 void rgle::InstancedRenderer::render()
 {
 	for (auto it = this->_setMap.begin(); it != this->_setMap.end(); ++it) {
+		if (!it->second.shader.expired()) {
+			it->second.shader.lock()->use();
+			this->_transformer->bind(it->second.shader.lock());
+		}
+		else {
+			auto shader = this->shaderLocked();
+			shader->use();
+			this->_transformer->bind(shader);
+		}
 		glBindVertexArray(it->second.geometry->vertexArray);
+
+		if (it->second.bindFunc) {
+			it->second.bindFunc();
+		}
 
 		for (int i = 0; i < it->second.geometry->samplers.size(); i++) {
 			it->second.geometry->samplers[i].use();
@@ -860,10 +1052,9 @@ void rgle::InstancedRenderer::render()
 			glVertexAttribPointer(it->second.geometry->uv.location, 2, GL_FLOAT, GL_FALSE, 0, 0);
 		}
 
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, it->second.ssbo);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, it->second.ssbo);
 		if (it->second.geometry->index.list.empty()) {
-			glDrawArraysInstanced(GL_TRIANGLES, 0, it->second.geometry->vertex.list.size(), it->second.modelTransforms.size());
+			glDrawArraysInstanced(GL_TRIANGLES, 0, it->second.geometry->vertex.list.size(), it->second.numInstances);
 		}
 		else {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, it->second.geometry->index.buffer);
@@ -872,7 +1063,7 @@ void rgle::InstancedRenderer::render()
 				it->second.geometry->index.list.size(),
 				GL_UNSIGNED_SHORT,
 				nullptr,
-				it->second.modelTransforms.size()
+				it->second.numInstances
 			);
 		}
 	}
@@ -882,7 +1073,18 @@ void rgle::InstancedRenderer::update()
 {
 }
 
-std::string & rgle::InstancedRenderer::typeName()
+const char * rgle::InstancedRenderer::typeName() const
 {
-	return std::string("rgle::InstancedRenderer");
+	return "rgle::InstancedRenderer";
+}
+
+size_t rgle::InstancedRenderer::_alignedSize(const size_t & size) const
+{
+	size_t rem = size % (4 * sizeof(GLfloat));
+	if (rem == 0) {
+		return size;
+	}
+	else {
+		return size + rem;
+	}
 }

@@ -58,7 +58,7 @@ namespace rgle {
 		class Element : public Renderable, public Raycastable, public BoundingBox, public EventListener {
 		public:
 			Element();
-			Element(const Context& context, ElementAttributes attributes);
+			Element(ElementAttributes attributes);
 			virtual ~Element();
 
 			virtual void onMessage(std::string eventname, EventMessage* message);
@@ -71,7 +71,7 @@ namespace rgle {
 
 			ElementAttributes getElementAttribs();
 
-			virtual std::string& typeName();
+			virtual const char* typeName() const;
 		protected:
 			ElementAttributes _elementAttributes;
 		};
@@ -143,7 +143,7 @@ namespace rgle {
 
 		class Layer : public RenderLayer, public EventListener {
 		public:
-			Layer(Context context, std::string id, clock_t ticktime = 30 / 1000);
+			Layer(std::string id, float ticktime = 1 / 30);
 			virtual ~Layer();
 
 			virtual bool tick();
@@ -161,11 +161,10 @@ namespace rgle {
 			bool _raycastCheck;
 			MouseState _mouseState;
 			bool _castHit;
-			clock_t _tickTime;
+			float _tickTime;
 			clock_t _lastTick;
 			std::vector<sElement> _elements;
 			std::vector<sLogicNode> _logicNodes;
-			Context _context;
 		};
 
 		struct RectAttributes {
@@ -178,7 +177,7 @@ namespace rgle {
 		class RectElement : public Element, public Geometry3D {
 		public:
 			RectElement();
-			RectElement(Context& context, std::string& shader, RectAttributes& attribs);
+			RectElement(std::string& shaderid, RectAttributes& attribs);
 			virtual ~RectElement();
 
 			virtual void onMessage(std::string eventname, EventMessage* message);
@@ -206,7 +205,6 @@ namespace rgle {
 				ACTIVE
 			};
 
-
 			virtual void render();
 			virtual void update();
 
@@ -229,8 +227,12 @@ namespace rgle {
 
 		class BasicButton : public Button {
 		public:
-			BasicButton();
-			BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs = BasicButtonAttributes{});
+			BasicButton(
+				std::string shaderid,
+				std::string fontfamily,
+				std::string text,
+				BasicButtonAttributes attribs = BasicButtonAttributes{}
+			);
 			virtual ~BasicButton();
 
 			virtual void onBoxUpdate();

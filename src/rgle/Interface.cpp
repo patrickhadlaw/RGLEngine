@@ -174,7 +174,7 @@ rgle::UI::Element::Element()
 {
 }
 
-rgle::UI::Element::Element(const Context & context, ElementAttributes attributes) : Renderable(context)
+rgle::UI::Element::Element(ElementAttributes attributes)
 {
 	this->_elementAttributes = attributes;
 }
@@ -192,8 +192,9 @@ void rgle::UI::Element::onMessage(std::string eventname, EventMessage * message)
 
 bool rgle::UI::Element::raycast(Ray ray)
 {
-	glm::vec3 topleft = glm::vec3(_topLeft.resolve(_context.window), 0.0);
-	glm::vec2 dimensions = _dimensions.resolve(_context.window);
+	auto window = this->context().window.lock();
+	glm::vec3 topleft = glm::vec3(_topLeft.resolve(window), 0.0);
+	glm::vec2 dimensions = _dimensions.resolve(window);
 	glm::vec3 topright = topleft;
 	topright.x += dimensions.x;
 	glm::vec3 bottomleft = topleft;
@@ -213,8 +214,9 @@ rgle::UI::DelegateMouseState rgle::UI::Element::delegateMouseState(Ray clickray,
 glm::mat4 rgle::UI::Element::transform()
 {
 	glm::mat4 transform = glm::mat4(1.0f);
-	transform[3][0] = _topLeft.x.resolve(_context.window, Window::X);
-	transform[3][1] = -_topLeft.y.resolve(_context.window, Window::Y);
+	auto window = this->context().window.lock();
+	transform[3][0] = _topLeft.x.resolve(window, Window::X);
+	transform[3][1] = -_topLeft.y.resolve(window, Window::Y);
 	transform[3][2] = _elementAttributes.zIndex;
 	return transform;
 }
@@ -224,9 +226,9 @@ rgle::UI::ElementAttributes rgle::UI::Element::getElementAttribs()
 	return _elementAttributes;
 }
 
-std::string & rgle::UI::Element::typeName()
+const char * rgle::UI::Element::typeName() const
 {
-	return std::string("rgle::UI::Element");
+	return "rgle::UI::Element";
 }
 
 rgle::UI::Aligner::Aligner()
@@ -248,13 +250,20 @@ void rgle::UI::Aligner::realign()
 {
 }
 
-rgle::UI::Layer::Layer(Context context, std::string id, clock_t ticktime) : RenderLayer(id), _tickTime(ticktime), _lastTick(0), _raycastCheck(false), _castHit(false)
+rgle::UI::Layer::Layer(std::string id, float ticktime) : 
+	RenderLayer(id),
+	_tickTime(ticktime),
+	_lastTick(0),
+	_raycastCheck(false),
+	_castHit(false)
 {
-	this->_tickTime = ticktime;
-	this->_lastTick = 0;
-	this->_context = context;
-	this->_context.window->registerListener("mousemove", this);
-	this->_context.window->registerListener("mouseclick", this);
+	this->transformer() = std::make_shared<Camera>(CameraType::ORTHOGONAL_PROJECTION, this->context().window.lock());
+	if (ticktime <= 0.0f || !std::isnormal(ticktime)) {
+		throw IllegalArgumentException("failed to create UI layer, invalid tick time", LOGGER_DETAIL_IDENTIFIER(id));
+	}
+	auto window = this->context().window.lock();
+	window->registerListener("mousemove", this);
+	window->registerListener("mouseclick", this);
 }
 
 rgle::UI::Layer::~Layer()
@@ -274,9 +283,10 @@ bool rgle::UI::Layer::raycastHit()
 void rgle::UI::Layer::onMessage(std::string eventname, EventMessage * message)
 {
 	bool click = eventname == "mouseclick";
-	if (eventname == "mousemove" || click && !this->_context.window->grabbed()) {
+	auto window = this->context().window.lock();
+	if ((eventname == "mousemove" || click) && !window->grabbed()) {
 		this->_raycastCheck = true;
-		glm::vec2 cursor = this->_context.window->getCursorPosition();
+		glm::vec2 cursor = window->getCursorPosition();
 		this->_mouseState.x = cursor.x;
 		this->_mouseState.y = cursor.y;
 		if (click) {
@@ -292,12 +302,13 @@ void rgle::UI::Layer::update()
 {
 	clock_t currentTime = clock();
 	float deltaTime = ((float)currentTime - (float)_lastTick) / CLOCKS_PER_SEC;
+	auto window = this->context().window.lock();
 	if (deltaTime >= _tickTime) {
 		if (_raycastCheck) {
-			if (!_context.window->grabbed()) {
+			if (!window->grabbed()) {
 				this->_castHit = false;
-				glm::vec2 cursor = this->_context.window->getCursorPosition();
-				Ray mouseray = Ray(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3((cursor.x / this->_context.window->width()) * 2, (cursor.y / this->_context.window->height()) * 2, 0.0f));
+				glm::vec2 cursor = window->getCursorPosition();
+				Ray mouseray = Ray(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3((cursor.x / window->width()) * 2, (cursor.y / window->height()) * 2, 0.0f));
 				sElement closest = nullptr;
 				for (int i = 0; i < this->_elements.size(); i++) {
 					if (this->_elements[i]->raycast(mouseray)) {
@@ -320,17 +331,17 @@ void rgle::UI::Layer::update()
 					DelegateMouseState state = closest->delegateMouseState(mouseray, true, this->_mouseState);
 					switch (state) {
 					case DelegateMouseState::CURSOR_ARROW:
-						this->_context.window->setCursor(GLFW_ARROW_CURSOR);
+						window->setCursor(GLFW_ARROW_CURSOR);
 						break;
 					case DelegateMouseState::CURSOR_HAND:
-						this->_context.window->setCursor(GLFW_HAND_CURSOR);
+						window->setCursor(GLFW_HAND_CURSOR);
 						break;
 					default:
 						break;
 					}
 				}
 				else {
-					this->_context.window->setCursor(GLFW_ARROW_CURSOR);
+					window->setCursor(GLFW_ARROW_CURSOR);
 				}
 			}
 			this->_raycastCheck = false;
@@ -347,16 +358,20 @@ void rgle::UI::Layer::update()
 
 void rgle::UI::Layer::render()
 {
+	glClear(GL_DEPTH_BUFFER_BIT);
+	this->viewport()->use();
 	GLuint currentShader = 0;
-	for (int i = 0; i < _elements.size(); i++) {
-		if (_elements[i]->shader == nullptr) {
+	for (int i = 0; i < this->_elements.size(); i++) {
+		if (this->_elements[i]->shader().expired()) {
 			throw RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(_elements[i]->id));
 		}
-		if (_elements[i]->shader->programId() != currentShader) {
-			currentShader = _elements[i]->shader->programId();
-			_elements[i]->shader->use();
+		auto shader = this->_elements[i]->shader().lock();
+		if (shader->programId() != currentShader) {
+			currentShader = shader->programId();
+			shader->use();
 		}
-		_elements[i]->render();
+		this->transformer()->bind(shader);
+		this->_elements[i]->render();
 	}
 }
 
@@ -397,7 +412,7 @@ void rgle::UI::Button::update()
 
 rgle::UI::DelegateMouseState rgle::UI::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
-	int key = this->_context.window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
+	int key = this->context().window.lock()->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
 	State next = DEFAULT;
 	DelegateMouseState delegateState = DelegateMouseState::UNCHANGED;
 	if (!inside) {
@@ -426,31 +441,28 @@ void rgle::UI::Button::onStateChange(State state, bool inside, MouseState mouseS
 	}
 }
 
-rgle::UI::BasicButton::BasicButton()
+rgle::UI::BasicButton::BasicButton(std::string shaderid, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
 {
-}
-
-rgle::UI::BasicButton::BasicButton(Context context, std::string shader, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
-{
-	this->_context = context;
-	this->shader = (*this->_context.manager.shader)[shader];
+	auto shader = (*this->context().manager.shader.lock())[shaderid];
+	this->shader() = shader;
+	auto window = this->context().window.lock();
 	this->_basicButtonAttributes = attribs;
 	
 	TextAttributes textattribs{};
-	textattribs.zIndex = -0.1f;
+	textattribs.zIndex = 1.0f;
 	textattribs.topLeft = UnitVector2D(this->_topLeft.x + attribs.paddingHorizontal.x, this->_topLeft.y);
-	this->_text = std::unique_ptr<Text>(new Text(this->_context, "text", fontfamily, text, textattribs));
+	this->_text = std::unique_ptr<Text>(new Text("text", fontfamily, text, textattribs));
 	this->_dimensions = UnitVector2D(
 		(attribs.paddingHorizontal.x + attribs.paddingHorizontal.y) + this->_text->getDimensions().x,
 		(attribs.paddingVertical.x + attribs.paddingVertical.y) + this->_text->getDimensions().y
 	);
 
-	this->_rect = Rect(this->_context, shader, this->_dimensions.x.resolve(this->_context.window), this->_dimensions.x.resolve(this->_context.window, Window::X));
+	this->_rect = Rect(shaderid, this->_dimensions.x.resolve(window, Window::X), this->_dimensions.x.resolve(window, Window::X));
 	this->_rect.standardFill(attribs.defaultColor);
 	this->_rect.updateColorBuffer();
-	this->_context.window->registerListener("mousemove", this);
-	this->_context.window->registerListener("mouseclick", this);
-	this->_context.window->registerListener("resize", this);
+	window->registerListener("mousemove", this);
+	window->registerListener("mouseclick", this);
+	window->registerListener("resize", this);
 }
 
 rgle::UI::BasicButton::~BasicButton()
@@ -461,7 +473,7 @@ void rgle::UI::BasicButton::onBoxUpdate()
 {
 	glm::mat4 transform = this->transform();
 	this->_rect.model.matrix = transform;
-	glm::vec2 dim = this->_dimensions.resolve(this->_context.window);
+	glm::vec2 dim = this->_dimensions.resolve(this->context().window.lock());
 	this->_rect.changeDimensions(dim.x, dim.y);
 	this->_text->changeTopLeft(UnitVector2D(this->_topLeft.x + this->_basicButtonAttributes.paddingHorizontal.x, this->_topLeft.y));
 }
@@ -487,37 +499,38 @@ void rgle::UI::BasicButton::onStateChange(Button::State state, bool inside, Mous
 void rgle::UI::BasicButton::render()
 {
 	this->_rect.render();
-	this->_text->shader->use(); // NOTE: rendering should be ordered by shader...
+	this->_text->shaderLocked()->use(); // NOTE: rendering should be ordered by shader...
 	this->_text->render();
-	this->shader->use();
+	this->shaderLocked()->use();
 }
 
 rgle::UI::RectElement::RectElement()
 {
 }
 
-rgle::UI::RectElement::RectElement(Context& context, std::string& shader, RectAttributes& attribs)
+rgle::UI::RectElement::RectElement(std::string& shaderid, RectAttributes& attribs)
 {
-	this->_context = context;
-	this->shader = (*this->_context.manager.shader)[shader];
-	this->_context.window->registerListener("resize", this);
+	auto shader = (*this->context().manager.shader.lock())[shaderid];
+	this->shader() = shader;
+	auto window = this->context().window.lock();
+	window->registerListener("resize", this);
 	this->_topLeft = attribs.topLeft;
 	this->_dimensions = attribs.dimensions;
 	this->_attributes = attribs;
 	this->model.matrix = glm::mat4(1.0f);
-	this->model.location = glGetUniformLocation(this->shader->programId(), "model");
+	this->model.location = glGetUniformLocation(shader->programId(), "model");
 	if (this->model.location < 0) {
 		throw Exception("failed to locate shader uniform: model matrix", LOGGER_DETAIL_DEFAULT);
 	}
-	this->color.location = glGetAttribLocation(this->shader->programId(), "vertex_color");
+	this->color.location = glGetAttribLocation(shader->programId(), "vertex_color");
 	if (this->color.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex color", LOGGER_DETAIL_DEFAULT);
 	}
-	this->vertex.location = glGetAttribLocation(this->shader->programId(), "vertex_position");
+	this->vertex.location = glGetAttribLocation(shader->programId(), "vertex_position");
 	if (this->vertex.location < 0) {
 		throw Exception("failed to locate shader attribute: vertex position", LOGGER_DETAIL_DEFAULT);
 	}
-	glm::vec2 dimensions = this->_dimensions.resolve(this->_context.window);
+	glm::vec2 dimensions = this->_dimensions.resolve(window);
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0),
 		glm::vec3(0.0, -dimensions.y, 0.0),
@@ -560,13 +573,13 @@ void rgle::UI::RectElement::onBoxUpdate()
 
 void rgle::UI::RectElement::render()
 {
-	this->standardRender(this->shader);
+	this->standardRender(this->shaderLocked());
 }
 
 void rgle::UI::RectElement::updateGeometry()
 {
 	this->model.matrix = this->transform();
-	glm::vec2 dimensions = this->_dimensions.resolve(this->_context.window);
+	glm::vec2 dimensions = this->_dimensions.resolve(this->context().window.lock());
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0),
 		glm::vec3(0.0, -dimensions.y, 0.0),

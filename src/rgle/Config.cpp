@@ -92,15 +92,6 @@ bool rgle::Config::_validate(char c)
 	return c == '_' || c == '-' || std::isalnum(static_cast<unsigned char>(c));
 }
 
-rgle::ConfigException::ConfigException(std::string exception, Logger::Detail & detail) : Exception(exception, detail)
+rgle::ConfigException::ConfigException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::ConfigException")
 {
-}
-
-rgle::ConfigException::~ConfigException()
-{
-}
-
-std::string rgle::ConfigException::_type()
-{
-	return std::string("rgle::ConfigException");
 }
