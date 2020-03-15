@@ -891,7 +891,7 @@ void rgle::InstancedRenderer::setModelBindFunc(std::string key, std::function<vo
 {
 	auto it = this->_setMap.find(key);
 	if (it == this->_setMap.end()) {
-		Logger::warn("failed to set bind function of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
+		throw NotFoundException("failed to set bind function of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
 		it->second.bindFunc = bindfunc;
@@ -902,7 +902,7 @@ void rgle::InstancedRenderer::setModelShader(std::string key, std::shared_ptr<Sh
 {
 	auto it = this->_setMap.find(key);
 	if (it == this->_setMap.end()) {
-		Logger::warn("failed to set shader of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
+		throw NotFoundException("failed to set shader of model: " + key, LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
 		it->second.shader = shader;
@@ -913,7 +913,7 @@ void rgle::InstancedRenderer::removeModel(std::string key)
 {
 	RGLE_DEBUG_ONLY(Logger::debug("removing model from instanced renderer with key: " + key, LOGGER_DETAIL_DEFAULT);)
 	if (this->_setMap.find(key) == this->_setMap.end()) {
-		throw GraphicsException(
+		throw NotFoundException(
 			"failed to remove model with key: " + key + " from instanced renderer, key not found",
 			LOGGER_DETAIL_DEFAULT
 		);
@@ -931,7 +931,7 @@ void rgle::InstancedRenderer::removeModel(std::string key)
 size_t rgle::InstancedRenderer::addInstance(std::string key, void* payload, size_t size)
 {
 	if (this->_setMap.find(key) == this->_setMap.end()) {
-		throw GraphicsException("failed to add instance of model with key: " + key + ", key not found", LOGGER_DETAIL_DEFAULT);
+		throw NotFoundException("failed to add instance of model with key: " + key + ", key not found", LOGGER_DETAIL_DEFAULT);
 	}
 	size_t id = InstancedRenderer::_idCounter++;
 	InstanceSet* set = &this->_setMap[key];
@@ -975,12 +975,43 @@ size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
 	return this->addInstance(key, &model[0][0], 16 * sizeof(GLfloat));
 }
 
+void rgle::InstancedRenderer::updateInstance(size_t id, void * payload, size_t offset, size_t size)
+{
+	if (this->_keyLookupTable.find(id) == this->_keyLookupTable.end()) {
+		throw NotFoundException(
+			"failed to update instance: " + std::to_string(id) + ", failed to lookup key",
+			LOGGER_DETAIL_IDENTIFIER(this->id)
+		);
+	}
+	std::string& key = this->_keyLookupTable[id];
+	if (this->_setMap.find(key) == this->_setMap.end()) {
+		throw NotFoundException(
+			"failed to update instance: " + std::to_string(id) + ", instance set with key: " + key + " not found",
+			LOGGER_DETAIL_IDENTIFIER(this->id)
+		);
+	}
+	InstanceSet* set = &this->_setMap[key];
+	if (size > set->payloadSize || size == 0) {
+		throw IllegalArgumentException(
+			"invalid payload size while updating instance: " + std::to_string(id),
+			LOGGER_DETAIL_IDENTIFIER(this->id)
+		);
+	}
+	if (offset >= set->payloadSize || offset + size > set->payloadSize) {
+		throw OutOfBoundsException(LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
+	size_t idx = set->allocationMap[id];
+	void* dst = set->instanceData + idx * set->payloadSize + offset;
+	std::memcpy(dst, payload, size);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, set->ssbo);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, idx * set->payloadSize + offset, size, dst);
+}
+
 void rgle::InstancedRenderer::removeInstance(size_t id)
 {
 	std::string key = this->_keyLookupTable[id];
 	if (this->_setMap.find(key) == this->_setMap.end()) {
-		Logger::warn("failed to remove a model instance with id: " + std::to_string(id) + ", id not found", LOGGER_DETAIL_DEFAULT);
-		return;
+		throw NotFoundException("failed to remove a model instance with id: " + std::to_string(id) + ", id not found", LOGGER_DETAIL_DEFAULT);
 	}
 	InstanceSet* set = &this->_setMap[key];
 	size_t idx = set->allocationMap[id];

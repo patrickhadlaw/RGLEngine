@@ -100,3 +100,7 @@ rgle::IllegalArgumentException::IllegalArgumentException(std::string exception, 
 rgle::OutOfBoundsException::OutOfBoundsException(Logger::Detail & detail) : Exception("out of bounds exception", detail, "rgle::OutOfBoundsException")
 {
 }
+
+rgle::NotFoundException::NotFoundException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::NotFoundException")
+{
+}

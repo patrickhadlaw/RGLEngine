@@ -268,7 +268,7 @@ namespace rgle {
 
 		size_t addInstance(std::string key, void* payload, size_t size);
 		size_t addInstance(std::string key, glm::mat4 model = glm::mat4(1.0f));
-		void updateInstance(size_t id, void* payload, size_t size);
+		void updateInstance(size_t id, void* payload, size_t offset, size_t size);
 		void removeInstance(size_t id);
 
 		virtual void render();

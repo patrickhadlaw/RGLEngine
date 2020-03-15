@@ -57,6 +57,11 @@ namespace rgle {
 		IllegalArgumentException(std::string exception, Logger::Detail& detail);
 	};
 
+	class NotFoundException : public Exception {
+	public:
+		NotFoundException(std::string exception, Logger::Detail& detail);
+	};
+
 	class ApplicationException : public Exception {
 	public:
 		ApplicationException(std::string exception, Logger::Detail& detail);
