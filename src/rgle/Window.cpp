@@ -1,7 +1,7 @@
 #include "rgle/Window.h"
 
 
-std::map<GLFWwindow*, rgle::Window*> rgle::Window::_handles = std::map<GLFWwindow*, rgle::Window*>();
+std::map<GLFWwindow*, rgle::Window*> rgle::Window::_handles;
 
 rgle::Unit rgle::unitFromPostfix(std::string string)
 {
@@ -53,10 +53,6 @@ std::string rgle::postfixFromUnit(Unit unit)
 	}
 }
 
-rgle::Window::Window() : _cursor(nullptr)
-{
-}
-
 rgle::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
 	rgle::Logger::info("creating window with title: " + std::string(title), LOGGER_DETAIL_DEFAULT);
@@ -71,30 +67,30 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
-	_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
-	if (_window == nullptr) {
+	this->_window = glfwCreateWindow(width, height, title, nullptr, nullptr);
+	if (this->_window == nullptr) {
 		throw Exception("failed to create GLFW window", LOGGER_DETAIL_DEFAULT);
 	}
-	glfwMakeContextCurrent(_window);
+	glfwMakeContextCurrent(this->_window);
 
-	_grabbed = false;
+	this->_grabbed = false;
 
-	_handles[_window] = this;
+	Window::_handles[this->_window] = this;
 
-	glfwSetCursorPosCallback(_window, [](GLFWwindow * window, double xpos, double ypos) -> void {
+	glfwSetCursorPosCallback(this->_window, [](GLFWwindow * window, double xpos, double ypos) -> void {
 		MouseMoveMessage* message = new MouseMoveMessage;
 		message->mouse.x = xpos;
 		message->mouse.y = ypos;
 		Window::handleEvent(window, "mousemove", message);
 	});
-	glfwSetMouseButtonCallback(_window, [](GLFWwindow * window, int button, int action, int modifiers) -> void {
+	glfwSetMouseButtonCallback(this->_window, [](GLFWwindow * window, int button, int action, int modifiers) -> void {
 		MouseClickMessage* message = new MouseClickMessage;
 		message->mouse.button = button;
 		message->mouse.action = action;
 		message->mouse.modifier = modifiers;
 		Window::handleEvent(window, "mouseclick", message);
 	});
-	glfwSetKeyCallback(_window, [](GLFWwindow* window, int key, int scancode, int action, int mode) -> void {
+	glfwSetKeyCallback(this->_window, [](GLFWwindow* window, int key, int scancode, int action, int mode) -> void {
 		KeyboardMessage* message = new KeyboardMessage;
 		message->keyboard.key = key;
 		message->keyboard.scancode = scancode;
@@ -111,11 +107,6 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 	});
 }
 
-rgle::Window::Window(const Window & other)
-{
-	throw Exception("invalid usage of Window class, copying not allowed", LOGGER_DETAIL_DEFAULT);
-}
-
 rgle::Window::Window(Window && rvalue)
 {
 	this->_window = rvalue._window;
@@ -123,24 +114,19 @@ rgle::Window::Window(Window && rvalue)
 	rvalue._window = nullptr;
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
-	if (_handles.find(_window) == _handles.end()) {
-		throw EventException("invalid window handle", LOGGER_DETAIL_DEFAULT);
-	}
-	else {
-		_handles[_window] = this;
-	}
+	Window::_handles[_window] = this;
 }
 
 rgle::Window::~Window()
 {
-	if (_window != nullptr) {
+	if (this->_window != nullptr) {
 		if (this->_cursor != nullptr) {
 			glfwDestroyCursor(_cursor);
 		}
 		glfwDestroyWindow(_window);
-		auto it = _handles.find(_window);
-		_handles.erase(it);
-		_window = nullptr;
+		auto it = Window::_handles.find(_window);
+		Window::_handles.erase(it);
+		this->_window = nullptr;
 	}
 }
 
@@ -157,12 +143,7 @@ void rgle::Window::operator=(Window && rvalue)
 	rvalue._window = nullptr;
 	this->_grabbed = rvalue._grabbed;
 	this->_initial = rvalue._initial;
-	if (_handles.find(_window) == _handles.end()) {
-		throw EventException("invalid window handle", LOGGER_DETAIL_DEFAULT);
-	}
-	else {
-		_handles[_window] = this;
-	}
+	Window::_handles[_window] = this;
 }
 
 int rgle::Window::width()
@@ -400,11 +381,11 @@ void rgle::Window::update()
 
 void rgle::Window::handleEvent(GLFWwindow* handle, std::string eventname, EventMessage * message)
 {
-	if (_handles.find(handle) == _handles.end()) {
+	if (Window::_handles.find(handle) == Window::_handles.end()) {
 		throw EventException("invalid window handle for event broadcast", LOGGER_DETAIL_DEFAULT);
 	}
 	else {
-		Window* window = _handles[handle];
+		Window* window = Window::_handles[handle];
 		window->broadcastEvent(eventname, message);
 		if (eventname == "mousemove" && window->_grabbed) {
 			glfwSetCursorPos(window->_window, 0.0, 0.0);

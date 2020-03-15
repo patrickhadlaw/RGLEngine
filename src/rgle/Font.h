@@ -43,16 +43,14 @@ namespace rgle {
 
 		float lineHeight(int size);
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	private:
 		std::shared_ptr<Window> _window;
 		FT_Library _library;
 		FT_Face _face;
-		std::map< unsigned, std::map<char, std::shared_ptr<Glyph>> > _generated;
+		std::map<unsigned, std::map<char, std::shared_ptr<Glyph>>> _generated;
 	};
-
-	typedef std::shared_ptr<Font> sFont;
 
 	namespace FontType {
 		const std::string REGULAR = std::string("regular");
@@ -66,15 +64,15 @@ namespace rgle {
 	class FontFamily : public Resource {
 	public:
 		FontFamily();
-		FontFamily(std::string family, std::vector<std::pair<std::string, sFont>> fonts);
+		FontFamily(std::string family, std::vector<std::pair<std::string, std::shared_ptr<Font>>> fonts);
 		virtual ~FontFamily();
 
-		sFont get(const std::string& fontface);
+		std::shared_ptr<Font> get(const std::string& fontface);
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	private:
-		std::map<std::string, sFont> _fonts;
+		std::map<std::string, std::shared_ptr<Font>> _fonts;
 	};
 
 	struct TextAttributes {
@@ -93,7 +91,6 @@ namespace rgle {
 	public:
 		CharRect();
 		CharRect(
-			std::shared_ptr<Window> window,
 			std::shared_ptr<ShaderProgram> shader,
 			std::shared_ptr<Glyph> glyph,
 			UnitVector2D offset,
@@ -119,13 +116,11 @@ namespace rgle {
 		UnitValue baselineOffset;
 		UnitVector2D dimensions;
 		std::shared_ptr<Glyph> glyph;
-		std::shared_ptr<Window> window;
 	};
 
 	class Text : public UI::Element {
 	public:
-		Text();
-		Text(Context context, std::string shader, std::string fontFamily, std::string text, TextAttributes attributes = {});
+		Text(std::string shaderid, std::string fontFamily, std::string text, TextAttributes attributes = {});
 		virtual ~Text();
 
 		void onMessage(std::string eventname, EventMessage* message);
@@ -141,7 +136,7 @@ namespace rgle {
 
 		virtual void onBoxUpdate();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	protected:
 		float _scale(float value);
@@ -152,7 +147,7 @@ namespace rgle {
 			GLint location;
 			glm::mat4 matrix;
 		} _model;
-		std::vector<CharRect> _charecters;
+		std::vector<CharRect> _characters;
 		std::string _text;
 		float _pixelSize;
 		float _maxSize;

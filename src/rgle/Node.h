@@ -1,18 +1,14 @@
 #pragma once
 
-#include "rgle/Exception.h"
+#include "rgle/Utility.h"
 
 namespace rgle {
 
 	class IdentifierException : public Exception {
 	public:
 		IdentifierException(std::string exception, std::string identifier, Logger::Detail detail);
-		virtual ~IdentifierException();
-
 	protected:
-		virtual std::string _type();
-
-		std::string _identifier;
+		static Logger::Detail _makeDetail(Logger::Detail&& detail, const std::string& identifier);
 	};
 
 	namespace UUID {
@@ -24,7 +20,7 @@ namespace rgle {
 		Node();
 		virtual ~Node();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 		std::string id;
 	};
@@ -32,10 +28,6 @@ namespace rgle {
 	class LogicException : public Exception {
 	public:
 		LogicException(std::string exception, Logger::Detail detail);
-		virtual ~LogicException();
-
-	protected:
-		virtual std::string _type();
 	};
 
 	class LogicNode : public Node {
@@ -45,7 +37,7 @@ namespace rgle {
 
 		virtual void update();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 	};
 
 	typedef std::shared_ptr<LogicNode> sLogicNode;
@@ -55,7 +47,7 @@ namespace rgle {
 		Resource();
 		virtual ~Resource();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 	};
 
 	class ResourceManager : public Node {
@@ -82,7 +74,7 @@ namespace rgle {
 			throw IdentifierException("failed to look up resource", id, LOGGER_DETAIL_DEFAULT);
 		}
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	private:
 		std::vector<std::shared_ptr<Resource>> _resources;

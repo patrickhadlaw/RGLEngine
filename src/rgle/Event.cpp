@@ -1,26 +1,12 @@
 #include "rgle/Event.h"
 
 
-
-rgle::EventException::EventException()
+rgle::EventException::EventException(std::string & except, Logger::Detail & detail) : Exception(except, detail, "rgle::EventException")
 {
 }
 
-rgle::EventException::EventException(std::string & except, Logger::Detail & detail) : Exception(except, detail)
+rgle::EventException::EventException(const char * except, Logger::Detail & detail) : Exception(except, detail, "rgle::EventException")
 {
-}
-
-rgle::EventException::EventException(const char * except, Logger::Detail & detail) : Exception(except, detail)
-{
-}
-
-rgle::EventException::~EventException()
-{
-}
-
-std::string rgle::EventException::_type()
-{
-	return std::string("rgle::EventException");
 }
 
 rgle::EventMessage::EventMessage()
@@ -88,7 +74,12 @@ void rgle::EventHost::registerListener(std::string eventname, EventListener * li
 	else {
 		listener->_hosts[this].push_back(eventname);
 	}
-	_listeners[eventname].push_back(listener);
+	if (this->_listeners.find(eventname) == this->_listeners.end()) {
+		this->_listeners[eventname] = { listener };
+	}
+	else {
+		this->_listeners[eventname].push_back(listener);
+	}
 }
 
 void rgle::EventHost::removeListener(std::string eventname, EventListener * listener)

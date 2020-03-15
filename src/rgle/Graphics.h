@@ -6,12 +6,7 @@ namespace rgle {
 
 	class GraphicsException : public Exception {
 	public:
-		GraphicsException();
 		GraphicsException(std::string except, Logger::Detail& detail);
-		virtual ~GraphicsException();
-
-	protected:
-		std::string _type();
 	};
 
 	enum class ShaderModel {
@@ -20,18 +15,35 @@ namespace rgle {
 	};
 
 	struct Image {
+
+		enum class Format {
+			JPEG,
+			PNG
+		};
+
 		Image();
 		Image(std::string imagefile);
+		Image(int width, int height, int channels);
 		Image(const Image& other);
 		Image(Image&& rvalue);
 		virtual ~Image();
 
 		void operator=(const Image& other);
+		void operator=(Image&& rvalue);
+
+		void set(const size_t& x, const size_t& y, unsigned char* data, const size_t& size);
+		void set(const size_t& x, const size_t& y, const float& intensity);
+		void set(const size_t& x, const size_t& y, const glm::vec2& ia);
+		void set(const size_t& x, const size_t& y, const glm::vec3& rgb);
+		void set(const size_t& x, const size_t& y, const glm::vec4& rgba);
+
+		void write(const std::string& imagefile) const;
+		void write(const std::string& imagefile, const Format& format) const;
 
 		unsigned char* image;
 		int width;
 		int height;
-		int bpp;
+		int channels;
 	};
 	
 	class Texture {
@@ -66,8 +78,8 @@ namespace rgle {
 	struct Sampler2D {
 		Sampler2D();
 		Sampler2D(const Sampler2D& other);
-		Sampler2D(std::shared_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
-		Sampler2D(std::shared_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture);
+		Sampler2D(std::weak_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
+		Sampler2D(std::weak_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture);
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
@@ -81,7 +93,7 @@ namespace rgle {
 
 		std::shared_ptr<Texture> texture;
 
-		std::shared_ptr<ShaderProgram> shader;
+		std::weak_ptr<ShaderProgram> shader;
 	protected:
 		void _generate();
 	};
@@ -169,13 +181,13 @@ namespace rgle {
 	class Shape : public Geometry3D, public Renderable {
 	public:
 		Shape();
-		Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
-		Shape(Context context, std::string shader, std::vector<glm::vec3> verticies, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Shape(std::string shaderid, std::vector<glm::vec3> verticies, std::vector<glm::vec4> colors);
+		Shape(std::string shaderid, std::vector<glm::vec3> verticies, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Shape();
 
 		virtual void render();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 		void translate(float x, float y, float z);
 		void rotate(float x, float y, float z);
@@ -185,41 +197,41 @@ namespace rgle {
 	class Triangle : public Shape {
 	public:
 		Triangle();
-		Triangle(Context context, std::string shader, float a, float b, float theta, std::vector<glm::vec4> colors);
-		Triangle(Context context, std::string shader, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Triangle(std::string shaderid, float a, float b, float theta, std::vector<glm::vec4> colors);
+		Triangle(std::string shaderid, float a, float b, float theta, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Triangle();
 
 	protected:
-		void _construct(Context& context, std::string& shader, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
+		void _construct(std::string& shaderid, float& a, float& b, float& theta, std::vector<glm::vec4> colors);
 	};
 
 	class Rect : public Shape {
 	public:
 		Rect();
-		Rect(Context context, std::string shader, float width, float height, std::vector<glm::vec4> colors);
-		Rect(Context context, std::string shader, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
+		Rect(std::string shaderid, float width, float height, std::vector<glm::vec4> colors);
+		Rect(std::string shaderid, float width, float height, glm::vec4 color = glm::vec4(0.0, 0.0, 0.0, 1.0));
 		virtual ~Rect();
 
 		void changeDimensions(float width, float height);
 
 	protected:
-		void _construct(Context& context, std::string& shader, float& width, float& height, std::vector<glm::vec4> colors);
+		void _construct(std::string& shaderid, float& width, float& height, std::vector<glm::vec4> colors);
 	};
 
 	class Torus : public Shape {
 	public:
-		Torus(Context context, std::string shader, float& c, float& a);
+		Torus(std::string shaderid, float& c, float& a);
 		virtual ~Torus();
 
 
 	protected:
-		void _construct(Context context, std::string shader, float& a, float& b, std::vector<glm::vec4> colors);
+		void _construct(std::string shaderid, float& a, float& b, std::vector<glm::vec4> colors);
 	};
 
 	class ImageRect : public Shape {
 	public:
 		ImageRect();
-		ImageRect(Context context, std::string shader, float width, float height, std::string image, ShaderModel shadermodel = ShaderModel::DEFAULT);
+		ImageRect(std::string shaderid, float width, float height, std::string image, ShaderModel shadermodel = ShaderModel::DEFAULT);
 		virtual ~ImageRect();
 
 		void render();
@@ -241,32 +253,49 @@ namespace rgle {
 		std::vector<Material> materials;
 	};
 
-	class InstancedRenderer : public Renderable {
+	class InstancedRenderer : public RenderLayer {
 	public:
-		InstancedRenderer(Context context);
+		InstancedRenderer(std::string id, std::shared_ptr<ViewTransformer> transformer, float allocationFactor = 5.0f, size_t minAllocated = 10);
+		InstancedRenderer(const InstancedRenderer&) = delete;
 		virtual ~InstancedRenderer();
 
-		void addModel(std::string key, std::shared_ptr<Geometry3D> geometry);
+		void operator=(const InstancedRenderer&) = delete;
+
+		void addModel(std::string key, std::shared_ptr<Geometry3D> geometry, size_t payloadsize = 16 * sizeof(GLfloat));
+		void setModelBindFunc(std::string key, std::function<void()> bindfunc);
+		void setModelShader(std::string key, std::shared_ptr<ShaderProgram> shader);
 		void removeModel(std::string key);
 
+		size_t addInstance(std::string key, void* payload, size_t size);
 		size_t addInstance(std::string key, glm::mat4 model = glm::mat4(1.0f));
+		void updateInstance(size_t id, void* payload, size_t size);
 		void removeInstance(size_t id);
 
 		virtual void render();
 		virtual void update();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	private:
+		size_t _alignedSize(const size_t& size) const;
+
+		std::shared_ptr<ViewTransformer> _transformer;
 
 		struct InstanceSet {
+			std::weak_ptr<ShaderProgram> shader;
+			std::function<void()> bindFunc;
 			std::shared_ptr<Geometry3D> geometry;
 			std::map<size_t, size_t> allocationMap;
-			std::vector<glm::mat4> modelTransforms;
+			unsigned char* instanceData;
+			size_t numInstances;
+			size_t numAllocated;
+			size_t payloadSize;
 			GLuint ssbo;
 		};
-		std::map<std::string, InstanceSet> _setMap;
+		std::unordered_map<std::string, InstanceSet> _setMap;
 		std::map<size_t, std::string> _keyLookupTable;
+		float _allocationFactor;
+		size_t _minAllocated;
 
 		static RGLE_DLLEXPORTED size_t _idCounter;
 	};

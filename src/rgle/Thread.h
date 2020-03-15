@@ -12,7 +12,7 @@
 namespace rgle {
 	class ThreadException : public Exception {
 	public:
-		ThreadException();
+		ThreadException(std::string except, Logger::Detail& detail);
 	};
 
 	class ThreadPool {

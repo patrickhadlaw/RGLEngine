@@ -1,6 +1,7 @@
 #include "rgle/Thread.h"
 
-rgle::ThreadException::ThreadException()
+
+rgle::ThreadException::ThreadException(std::string except, Logger::Detail & detail) : Exception(except, detail, "rgle::ThreadException")
 {
 }
 

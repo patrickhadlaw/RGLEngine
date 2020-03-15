@@ -3,7 +3,7 @@
 
 float rgle::z_index(float z)
 {
-	return (std::exp2(z) - 1.0f) / (std::exp2(z) + 1.0f);
+	return (std::exp2(z / 1000.0f) - 1.0f) / (std::exp2(z / 1000.0f) + 1.0f);
 }
 
 rgle::Camera::Camera()
@@ -56,6 +56,7 @@ void rgle::Camera::bind(std::shared_ptr<ShaderProgram> shader)
 
 void rgle::Camera::generate(CameraType type)
 {
+	this->_view = glm::mat4(1.0f);
 	switch (type) {
 	default:
 	case ORTHOGONAL_PROJECTION:
@@ -156,9 +157,11 @@ void rgle::NoClipCamera::update(float deltaT)
 			this->unGrab();
 		}
 		else {
-			this->rotate(_mouse.deltaX / _window->height(), _mouse.deltaY / _window->width(), 0.0);
-			_mouse.deltaX = 0.0;
-			_mouse.deltaY = 0.0;
+			if (this->_mouse.deltaX != 0.0 || this->_mouse.deltaY != 0.0) {
+				this->rotate((float)_mouse.deltaX / _window->height(), (float)_mouse.deltaY / _window->width(), 0.0);
+				_mouse.deltaX = 0.0;
+				_mouse.deltaY = 0.0;
+			}
 			if (_window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
 				moveRelative(deltaT, 0.0, 0.0);
 			}
@@ -223,6 +226,10 @@ void rgle::ViewTransformer::bind(std::shared_ptr<ShaderProgram> program)
 }
 
 rgle::Viewport::Viewport()
+{
+}
+
+rgle::Viewport::Viewport(int width, int height, glm::ivec2 position) : _width(width), _height(height), _position(position)
 {
 }
 

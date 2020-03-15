@@ -28,6 +28,7 @@ glm::vec4 rgle::Fill::evaluate(float u, float v)
 		return _solid;
 		break;
 	default:
+		return glm::vec4(0.0f);
 		break;
 	}
 }

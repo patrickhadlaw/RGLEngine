@@ -10,21 +10,19 @@ namespace rgle {
 	class RenderException : public Exception {
 	public:
 		RenderException(std::string exception, Logger::Detail detail);
-		virtual ~RenderException();
-
-	protected:
-		virtual std::string _type();
 	};
 
 	class Application;
-	typedef std::shared_ptr<Application> sApplication;
 
 	struct Context {
-		std::shared_ptr<Window> window;
+		std::string id;
+		std::weak_ptr<Window> window;
 		struct {
-			std::shared_ptr<ShaderManager> shader;
-			std::shared_ptr<ResourceManager> resource;
+			std::weak_ptr<ShaderManager> shader;
+			std::weak_ptr<ResourceManager> resource;
 		} manager;
+
+		void executeInContext(std::function<void()> func);
 	};
 
 	class RenderLayer;
@@ -33,24 +31,30 @@ namespace rgle {
 		friend class RenderLayer;
 	public:
 		Renderable();
-		Renderable(const Context& context);
 		virtual ~Renderable();
 
 		virtual void update();
 		virtual void render();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
-		virtual Context& getContext();
-		virtual void setContext(Context& context);
+		Context& context();
+		const Context& context() const;
 
-		std::shared_ptr<ShaderProgram> shader;
-	protected:
+		std::weak_ptr<ShaderProgram>& shader();
+		const std::weak_ptr<ShaderProgram>& shader() const;
+
+		std::shared_ptr<ShaderProgram> shaderLocked() const;
+
+	private:
 		Context _context;
+		std::weak_ptr<ShaderProgram> _shader;
 	};
 
 	class RenderLayer : public Renderable {
 	public:
+		RenderLayer(std::string id, std::shared_ptr<ViewTransformer> transformer, std::shared_ptr<Viewport> viewport);
+		RenderLayer(std::string id, std::shared_ptr<ViewTransformer> transformer);
 		RenderLayer(std::string id);
 		virtual ~RenderLayer();
 
@@ -59,8 +63,18 @@ namespace rgle {
 
 		virtual void addRenderable(std::shared_ptr<Renderable> renderable);
 		
-		virtual std::string & typeName();
+		virtual const char* typeName() const;
 
+		std::shared_ptr<ViewTransformer>& transformer();
+		const std::shared_ptr<ViewTransformer>& transformer() const;
+
+		std::shared_ptr<Viewport>& viewport();
+		const std::shared_ptr<Viewport>& viewport() const;
+
+	protected:
+		clock_t _previousTime;
+		std::shared_ptr<ViewTransformer> _transformer;
+		std::shared_ptr<Viewport> _viewport;
 	};
 
 	class RenderableLayer : public RenderLayer {
@@ -77,17 +91,15 @@ namespace rgle {
 
 		virtual void addRenderable(std::shared_ptr<Renderable> renderable);
 
-		virtual std::string & typeName();
+		virtual const char* typeName() const;
 
 	protected:
-		clock_t _previousTime;
 		std::vector<std::shared_ptr<Renderable>> _renderables;
-		std::shared_ptr<ViewTransformer> _transformer;
-		std::shared_ptr<Viewport> _viewport;
 	};
 
 
 	class ContextManager : public Node {
+		friend struct Context;
 	public:
 		ContextManager();
 		ContextManager(std::shared_ptr<Window> window, std::string id);
@@ -113,12 +125,23 @@ namespace rgle {
 		virtual void update();
 		virtual void render();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
+
+		static Context getCurrentContext();
+		void executeInContext(std::function<void()> func);
 
 	protected:
 		std::shared_ptr<Window> _window;
 		std::shared_ptr<ShaderManager> _shaderManager;
 		std::shared_ptr<ResourceManager> _resourceManager = nullptr;
 		std::vector<std::shared_ptr<RenderLayer>> _layers;
+	private:
+		static void _executeInContext(std::function<void()> func, const Context& context);
+
+		static std::mutex _currentContextMutex;
+		static std::thread::id _contextThread;
+		static bool _contextBound;
+		static std::condition_variable _contextCondition;
+		static Context _currentContext;
 	};
 }

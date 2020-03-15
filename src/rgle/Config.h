@@ -6,10 +6,6 @@ namespace rgle {
 	class ConfigException : public Exception {
 	public:
 		ConfigException(std::string exception, Logger::Detail& detail);
-		virtual ~ConfigException();
-
-	protected:
-		virtual std::string _type();
 	};
 
 	class Config {

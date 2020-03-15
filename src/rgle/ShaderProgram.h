@@ -31,7 +31,7 @@ namespace rgle {
 		GLuint programId();
 		void use();
 
-		virtual std::string& typeName();
+		virtual const char* typeName() const;
 
 	private:
 		GLuint _programID;

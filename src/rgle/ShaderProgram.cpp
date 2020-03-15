@@ -99,9 +99,9 @@ void rgle::ShaderProgram::use()
 	glUseProgram(_programID);
 }
 
-std::string & rgle::ShaderProgram::typeName()
+const char * rgle::ShaderProgram::typeName() const
 {
-	return std::string("rgle::ShaderProgram");
+	return "rgle::ShaderProgram";
 }
 
 rgle::ShaderManager::ShaderManager()
@@ -144,7 +144,11 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string
 void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
 {
 	std::string msg = message;
-	msg = msg + " (type: " + std::to_string(type) + ", severity: " + std::to_string(severity) + ", params: " + (const char*) userParam + ')';
+	msg = msg + " (type: " + std::to_string(type) + ", severity: " + std::to_string(severity);
+	if (userParam != nullptr) {
+		msg = msg + ", params: " + (const char*)userParam;
+	}
+	msg = msg + ')';
 	if (type == GL_DEBUG_TYPE_ERROR) {
 		rgle::Logger::error(msg, LOGGER_DETAIL_DEFAULT);
 	}

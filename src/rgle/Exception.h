@@ -10,7 +10,6 @@ namespace rgle {
 
 	class Exception : public std::runtime_error {
 	public:
-		Exception();
 		Exception(std::string& except, Logger::Detail& detail);
 		Exception(const char* except, Logger::Detail& detail);
 		virtual ~Exception();
@@ -21,11 +20,13 @@ namespace rgle {
 
 	protected:
 
+		Exception(std::string& except, Logger::Detail& detail, const char* type);
+		Exception(const char* except, Logger::Detail& detail, const char* type);
+
 		virtual void _checkDoubleThrow();
 
-		virtual std::string _type();
-
 		std::string _exception;
+		std::string _typeReflected;
 		Logger::Detail _details;
 	private:
 		static int _thrown;
@@ -33,42 +34,31 @@ namespace rgle {
 
 	class NullPointerException : public Exception {
 	public:
-		NullPointerException();
 		NullPointerException(Logger::Detail& detail);
-		virtual ~NullPointerException();
+	};
 
-	protected:
-
-		virtual std::string _type();
+	class OutOfBoundsException : public Exception {
+	public:
+		OutOfBoundsException(Logger::Detail& detail);
 	};
 
 	class IOException : public Exception {
 	public:
-		IOException();
 		IOException(std::string exception, Logger::Detail& detail);
-		virtual ~IOException();
-
-	protected:
-		virtual std::string _type();
 	};
 
 	class BadCastException : public Exception {
 	public:
-		BadCastException();
 		BadCastException(std::string exception, Logger::Detail& detail);
-		virtual ~BadCastException();
+	};
 
-	protected:
-
-		virtual std::string _type();
+	class IllegalArgumentException : public Exception {
+	public:
+		IllegalArgumentException(std::string exception, Logger::Detail& detail);
 	};
 
 	class ApplicationException : public Exception {
 	public:
 		ApplicationException(std::string exception, Logger::Detail& detail);
-		virtual ~ApplicationException();
-
-	protected:
-		virtual std::string _type();
 	};
 }
