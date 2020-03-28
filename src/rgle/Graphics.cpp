@@ -103,7 +103,7 @@ rgle::Image::Image()
 	channels = -1;
 }
 
-rgle::Image::Image(std::string imagefile)
+rgle::Image::Image(std::string imagefile) : channelSize(1)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading image: " + imagefile, LOGGER_DETAIL_DEFAULT);)
 	image = stbi_load(imagefile.data(), &width, &height, &channels, STBI_rgb_alpha);
@@ -112,9 +112,13 @@ rgle::Image::Image(std::string imagefile)
 	}
 }
 
-rgle::Image::Image(int width, int height, int channels) : width(width), height(height), channels(channels)
+rgle::Image::Image(int width, int height, int channels, size_t channelSize) :
+	width(width),
+	height(height),
+	channels(channels),
+	channelSize(channelSize)
 {
-	this->image = new unsigned char[width * height * channels];
+	this->image = new unsigned char[width * height * channels * channelSize];
 }
 
 rgle::Image::Image(const Image & other)
@@ -123,10 +127,9 @@ rgle::Image::Image(const Image & other)
 	this->width = other.width;
 	this->height = other.height;
 	this->channels = other.channels;
-	this->image = new unsigned char[width * height * channels];
-	for (int i = 0; i < width * height * channels; i++) {
-		this->image[i] = other.image[i];
-	}
+	this->channelSize = other.channelSize;
+	this->image = new unsigned char[width * height * channels * channelSize];
+	std::memcpy(this->image, other.image, width * height * channels * channelSize);
 }
 
 rgle::Image::Image(Image && rvalue)
@@ -134,6 +137,7 @@ rgle::Image::Image(Image && rvalue)
 	this->width = rvalue.width;
 	this->height = rvalue.height;
 	this->channels = rvalue.channels;
+	this->channelSize = rvalue.channelSize;
 	this->image = rvalue.image;
 	rvalue.image = nullptr;
 }
@@ -163,43 +167,47 @@ void rgle::Image::operator=(Image && rvalue)
 
 void rgle::Image::set(const size_t & x, const size_t & y, unsigned char * data, const size_t & size)
 {
-	if (size != this->channels) {
+	if (size != this->channels * this->channelSize) {
 		throw IllegalArgumentException("invalid image set, payload size invalid", LOGGER_DETAIL_DEFAULT);
 	}
 	else if (x >= this->width || y >= this->height) {
 		throw OutOfBoundsException(LOGGER_DETAIL_DEFAULT);
 	}
 	else {
-		std::memcpy(this->image + (y * this->width * this->channels) + (x * this->channels), data, size);
+		std::memcpy(
+			this->image + (y * this->width * this->channels * this->channelSize) + (x * this->channels * this->channelSize),
+			data,
+			size
+		);
 	}
 }
 
-void rgle::Image::set(const size_t & x, const size_t & y, const float & intensity)
+void rgle::Image8::set(const size_t & x, const size_t & y, const float & intensity)
 {
 	unsigned char data = static_cast<unsigned char>(intensity * 255);
-	this->set(x, y, &data, 1);
+	Image::set(x, y, &data, 1);
 }
 
-void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
+void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
 {
 	unsigned char data[2] = {
 		static_cast<unsigned char>(ia.r * 255),
 		static_cast<unsigned char>(ia.g * 255)
 	};
-	this->set(x, y, data, 2);
+	Image::set(x, y, data, 2);
 }
 
-void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec3 & rgb)
+void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec3 & rgb)
 {
 	unsigned char data[3] = {
 		static_cast<unsigned char>(rgb.r * 255),
 		static_cast<unsigned char>(rgb.g * 255),
 		static_cast<unsigned char>(rgb.b * 255)
 	};
-	this->set(x, y, data, 3);
+	Image::set(x, y, data, 3);
 }
 
-void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
+void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
 {
 	unsigned char data[4] = {
 		static_cast<unsigned char>(rgba.r * 255),
@@ -207,7 +215,7 @@ void rgle::Image::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
 		static_cast<unsigned char>(rgba.b * 255),
 		static_cast<unsigned char>(rgba.a * 255)
 	};
-	this->set(x, y, data, 4);
+	Image::set(x, y, data, 4);
 }
 
 void rgle::Image::write(const std::string& imagefile) const
@@ -256,20 +264,25 @@ rgle::Image::~Image()
 	image = nullptr;
 }
 
-rgle::Texture::Texture()
+rgle::Texture::Texture() :
+	texture(GL_TEXTURE0),
+	format(Format{ GL_RGBA8, GL_RGBA }),
+	image(nullptr),
+	type(GL_UNSIGNED_BYTE),
+	width(0),
+	height(0)
 {
-	this->texture = GL_TEXTURE0;
-	this->format.internal = GL_RGBA8;
-	this->format.target = GL_RGBA;
-	this->image = nullptr;
-	this->textureID = 0;
+	glGenTextures(1, &this->textureID);
 }
 
-rgle::Texture::Texture(std::string imagefile, GLenum texture, Format format)
+rgle::Texture::Texture(std::string imagefile, GLenum texture, Format format, GLenum type) :
+	image(std::make_shared<Image>(Image(imagefile))),
+	texture(texture),
+	format(format),
+	width(image->width),
+	height(image->height),
+	type(type)
 {
-	this->format = format;
-	this->image = std::make_shared<Image>(Image(imagefile));
-	this->texture = texture;
 	this->_generate();
 }
 
@@ -278,6 +291,9 @@ rgle::Texture::Texture(const Texture & other)
 	this->image = other.image;
 	this->format = other.format;
 	this->texture = other.texture;
+	this->type = other.type;
+	this->width = other.width;
+	this->height = other.height;
 	this->_generate();
 }
 
@@ -287,14 +303,31 @@ rgle::Texture::Texture(Texture && rvalue)
 	this->format = rvalue.format;
 	this->texture = rvalue.texture;
 	this->textureID = rvalue.textureID;
+	this->type = rvalue.type;
+	this->width = rvalue.width;
+	this->height = rvalue.height;
 	rvalue.textureID = 0;
 }
 
-rgle::Texture::Texture(const std::shared_ptr<Image> & image, GLenum texture, Format format)
+rgle::Texture::Texture(std::shared_ptr<Image> image, GLenum texture, Format format, GLenum type) :
+	image(image),
+	texture(texture),
+	format(format),
+	width(image->width),
+	height(image->height),
+	type(type)
 {
-	this->format = format;
-	this->image = image;
-	this->texture = texture;
+	this->_generate();
+}
+
+rgle::Texture::Texture(size_t width, size_t height, GLenum texture, Format format, GLenum type) :
+	image(nullptr),
+	texture(texture),
+	format(format),
+	width(width),
+	height(height),
+	type(type)
+{
 	this->_generate();
 }
 
@@ -310,6 +343,9 @@ void rgle::Texture::operator=(const Texture & other)
 	this->format = other.format;
 	this->texture = other.texture;
 	this->image = std::make_shared<Image>(Image(*other.image));
+	this->type = other.type;
+	this->width = other.width;
+	this->height = other.height;
 	this->_generate();
 }
 
@@ -320,13 +356,37 @@ void rgle::Texture::operator=(Texture && rvalue)
 	this->format = rvalue.format;
 	this->texture = rvalue.texture;
 	this->textureID = rvalue.textureID;
+	this->type = rvalue.type;
+	this->width = rvalue.width;
+	this->height = rvalue.height;
 	rvalue.textureID = 0;
+}
+
+void rgle::Texture::update()
+{
+	unsigned char* buffer = nullptr;
+	if (this->image != nullptr) {
+		buffer = this->image->image;
+	}
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	glTexImage2D(GL_TEXTURE_2D,
+		0,
+		format.internal,
+		this->width,
+		this->height,
+		0,
+		format.target,
+		this->type,
+		buffer
+	);
 }
 
 void rgle::Texture::_generate()
 {
-	if (this->image == nullptr) {
-		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
+	unsigned char* buffer = nullptr;
+	if (this->image != nullptr) {
+		buffer = this->image->image;
 	}
 	glGenTextures(1, &textureID);
 	glBindTexture(GL_TEXTURE_2D, textureID);
@@ -334,12 +394,12 @@ void rgle::Texture::_generate()
 	glTexImage2D(GL_TEXTURE_2D,
 		0,
 		format.internal,
-		this->image->width,
-		this->image->height,
+		this->width,
+		this->height,
 		0,
 		format.target,
-		GL_UNSIGNED_BYTE,
-		this->image->image
+		this->type,
+		buffer
 	);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -353,15 +413,13 @@ rgle::Sampler2D::Sampler2D()
 {
 	this->enabled = true;
 	this->texture = nullptr;
-	this->samplerLocation = 0;
+	this->enableLocation = -1;
+	this->samplerLocation = -1;
 }
 
-rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture, Texture::Format format)
+rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture, Texture::Format format, std::string samplerUniform) :
+	Sampler2D(shader, std::make_shared<Texture>(Texture(std::make_shared<Image>(imagefile), texture, format)), samplerUniform)
 {
-	this->enabled = true;
-	this->shader = shader;
-	this->texture = std::make_shared<Texture>(Texture(std::make_shared<Image>(imagefile), texture, format));
-	this->_generate();
 }
 
 rgle::Sampler2D::Sampler2D(const Sampler2D & other)
@@ -369,15 +427,16 @@ rgle::Sampler2D::Sampler2D(const Sampler2D & other)
 	this->enabled = other.enabled;
 	this->shader = other.shader;
 	this->texture = other.texture;
-	this->_generate();
+	this->enableLocation = other.enableLocation;
+	this->samplerLocation = other.samplerLocation;
 }
 
-rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture)
+rgle::Sampler2D::Sampler2D(std::weak_ptr<ShaderProgram> shader, std::shared_ptr<Texture> texture, std::string samplerUniform)
 {
 	this->enabled = true;
 	this->shader = shader;
 	this->texture = texture;
-	this->_generate();
+	this->_generate(samplerUniform);
 }
 
 void rgle::Sampler2D::operator=(const Sampler2D& other)
@@ -385,7 +444,8 @@ void rgle::Sampler2D::operator=(const Sampler2D& other)
 	this->enabled = other.enabled;
 	this->shader = other.shader;
 	this->texture = other.texture;
-	this->_generate();
+	this->enableLocation = other.enableLocation;
+	this->samplerLocation = other.samplerLocation;
 }
 
 rgle::Sampler2D::~Sampler2D()
@@ -397,22 +457,21 @@ void rgle::Sampler2D::use()
 	if (this->texture == nullptr || this->shader.expired()) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
-	glUniform1i(this->enableLocation, enabled);
+	if (this->enableLocation > 0) {
+		glUniform1i(this->enableLocation, enabled);
+	}
 	glUniform1i(this->samplerLocation, 0);
 	glActiveTexture(texture->texture);
 	glBindTexture(GL_TEXTURE_2D, texture->textureID);
 }
 
-void rgle::Sampler2D::_generate()
+void rgle::Sampler2D::_generate(const std::string& samplerUniform)
 {
 	auto shader = this->shader.lock();
 	this->enableLocation = glGetUniformLocation(shader->programId(), "enable_texture");
-	if (this->enableLocation < 0) {
-		throw Exception("failed to get uniform location of: enable texture", LOGGER_DETAIL_DEFAULT);
-	}
-	this->samplerLocation = glGetUniformLocation(shader->programId(), "texture_0");
+	this->samplerLocation = glGetUniformLocation(shader->programId(), samplerUniform.c_str());
 	if (this->samplerLocation < 0) {
-		throw Exception("failed to get uniform location of: texture 0", LOGGER_DETAIL_DEFAULT);
+		throw GraphicsException("failed to get uniform location of: '" + samplerLocation + '\'', LOGGER_DETAIL_DEFAULT);
 	}
 }
 
@@ -549,6 +608,7 @@ rgle::Geometry3D::Geometry3D(const Geometry3D & other)
 	_cleanup();
 	vertex = other.vertex;
 	color = other.color;
+	uv = other.uv;
 	index = other.index;
 	model = other.model;
 	samplers = other.samplers;
@@ -560,6 +620,7 @@ rgle::Geometry3D::Geometry3D(Geometry3D && rvalue)
 	_cleanup();
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
+	uv = std::move(rvalue.uv);
 	index = std::move(rvalue.index);
 	model = std::move(rvalue.model);
 	vertexArray = std::move(rvalue.vertexArray);
@@ -576,6 +637,7 @@ void rgle::Geometry3D::operator=(const Geometry3D & other)
 	_cleanup();
 	vertex = other.vertex;
 	color = other.color;
+	uv = other.uv;
 	index = other.index;
 	model = other.model;
 	samplers = other.samplers;
@@ -587,6 +649,7 @@ void rgle::Geometry3D::operator=(Geometry3D && rvalue)
 	_cleanup();
 	vertex = std::move(rvalue.vertex);
 	color = std::move(rvalue.color);
+	uv = std::move(rvalue.uv);
 	index = std::move(rvalue.index);
 	model = std::move(rvalue.model);
 	vertexArray = std::move(rvalue.vertexArray);
@@ -750,11 +813,16 @@ rgle::ImageRect::ImageRect()
 {
 }
 
-rgle::ImageRect::ImageRect(std::string shaderid, float width, float height, std::string image, ShaderModel shadermodel)
+rgle::ImageRect::ImageRect(std::string shaderid, float width, float height, std::string image, ShaderModel shadermodel) :
+	ImageRect(Sampler2D(ContextManager::getCurrentContext().manager.shader.lock()->getStrict(shaderid), image), width, height, shadermodel)
 {
-	auto shader = (*this->context().manager.shader.lock())[shaderid];
+}
+
+rgle::ImageRect::ImageRect(Sampler2D sampler, float width, float height, ShaderModel shadermodel)
+{
+	auto shader = sampler.shader.lock();
 	this->shader() = shader;
-	this->samplers.push_back(Sampler2D(this->shader(), image));
+	this->samplers.push_back(sampler);
 	this->model.matrix = glm::mat4(1.0f);
 	if (shadermodel != ShaderModel::INSTANCED) {
 		this->model.location = glGetUniformLocation(shader->programId(), "model");
@@ -790,7 +858,7 @@ rgle::ImageRect::ImageRect(std::string shaderid, float width, float height, std:
 		2,
 		3
 	};
-	
+
 	this->generate();
 }
 
@@ -875,7 +943,7 @@ void rgle::InstancedRenderer::addModel(std::string key, std::shared_ptr<Geometry
 	set.numInstances = 0;
 	set.numAllocated = this->_minAllocated;
 	// NOTE: payload size must be aligned to nearest sizeof(vec4)
-	set.payloadSize = this->_alignedSize(payloadsize);
+	set.payloadSize = aligned_buffer_size(payloadsize);
 	set.instanceData = (unsigned char*) std::calloc(this->_minAllocated, set.payloadSize);
 	set.geometry = geometry;
 	glBindVertexArray(geometry->vertexArray);
@@ -1109,7 +1177,7 @@ const char * rgle::InstancedRenderer::typeName() const
 	return "rgle::InstancedRenderer";
 }
 
-size_t rgle::InstancedRenderer::_alignedSize(const size_t & size) const
+constexpr size_t rgle::aligned_buffer_size(const size_t & size)
 {
 	size_t rem = size % (4 * sizeof(GLfloat));
 	if (rem == 0) {
@@ -1118,4 +1186,16 @@ size_t rgle::InstancedRenderer::_alignedSize(const size_t & size) const
 	else {
 		return size + rem;
 	}
+}
+
+rgle::Image8::Image8() : Image()
+{
+}
+
+rgle::Image8::Image8(std::string imagefile) : Image(imagefile)
+{
+}
+
+rgle::Image8::Image8(int width, int height, int channels) : Image(width, height, channels, 1)
+{
 }

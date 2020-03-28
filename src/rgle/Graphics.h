@@ -9,6 +9,8 @@ namespace rgle {
 		GraphicsException(std::string except, Logger::Detail& detail);
 	};
 
+	constexpr size_t aligned_buffer_size(const size_t& size);
+
 	enum class ShaderModel {
 		DEFAULT,
 		INSTANCED
@@ -23,7 +25,7 @@ namespace rgle {
 
 		Image();
 		Image(std::string imagefile);
-		Image(int width, int height, int channels);
+		Image(int width, int height, int channels, size_t channelSize);
 		Image(const Image& other);
 		Image(Image&& rvalue);
 		virtual ~Image();
@@ -32,10 +34,6 @@ namespace rgle {
 		void operator=(Image&& rvalue);
 
 		void set(const size_t& x, const size_t& y, unsigned char* data, const size_t& size);
-		void set(const size_t& x, const size_t& y, const float& intensity);
-		void set(const size_t& x, const size_t& y, const glm::vec2& ia);
-		void set(const size_t& x, const size_t& y, const glm::vec3& rgb);
-		void set(const size_t& x, const size_t& y, const glm::vec4& rgba);
 
 		void write(const std::string& imagefile) const;
 		void write(const std::string& imagefile, const Format& format) const;
@@ -44,6 +42,20 @@ namespace rgle {
 		int width;
 		int height;
 		int channels;
+		size_t channelSize;
+	};
+
+	class Image8 : public Image {
+	public:
+		Image8();
+		Image8(std::string imagefile);
+		Image8(int width, int height, int channels);
+
+		void set(const size_t& x, const size_t& y, const float& intensity);
+		void set(const size_t& x, const size_t& y, const glm::vec2& ia);
+		void set(const size_t& x, const size_t& y, const glm::vec3& rgb);
+		void set(const size_t& x, const size_t& y, const glm::vec4& rgba);
+
 	};
 	
 	class Texture {
@@ -55,19 +67,32 @@ namespace rgle {
 		};
 
 		Texture();
-		Texture(std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
+		Texture(std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA }, GLenum type = GL_UNSIGNED_BYTE);
+		Texture(std::shared_ptr<Image> image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA }, GLenum type = GL_UNSIGNED_BYTE);
+		Texture(
+			size_t width,
+			size_t height,
+			GLenum texture = GL_TEXTURE0,
+			Format format = { GL_RGBA8, GL_RGBA },
+			GLenum type = GL_UNSIGNED_BYTE
+		);
 		Texture(const Texture& other);
 		Texture(Texture&& rvalue);
-		Texture(const std::shared_ptr<Image>& image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA });
 		virtual ~Texture();
 
 		void operator=(const Texture& other);
 		void operator=(Texture&& rvalue);
 
+		void update();
+
 		std::shared_ptr<Image> image;
 
 		GLuint textureID;
 		GLenum texture;
+		GLenum type;
+
+		size_t width;
+		size_t height;
 
 		Format format;
 
@@ -78,8 +103,18 @@ namespace rgle {
 	struct Sampler2D {
 		Sampler2D();
 		Sampler2D(const Sampler2D& other);
-		Sampler2D(std::weak_ptr<ShaderProgram> shader, std::string imagefile, GLenum texture = GL_TEXTURE0, Texture::Format format = { GL_RGBA8, GL_RGBA });
-		Sampler2D(std::weak_ptr<ShaderProgram> shader, const std::shared_ptr<Texture>& texture);
+		Sampler2D(
+			std::weak_ptr<ShaderProgram> shader,
+			std::string imagefile,
+			GLenum texture = GL_TEXTURE0,
+			Texture::Format format = { GL_RGBA8, GL_RGBA },
+			std::string samplerUniform = "texture_0"
+		);
+		Sampler2D(
+			std::weak_ptr<ShaderProgram> shader,
+			std::shared_ptr<Texture> texture,
+			std::string samplerUniform = "texture_0"
+		);
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);
@@ -95,7 +130,7 @@ namespace rgle {
 
 		std::weak_ptr<ShaderProgram> shader;
 	protected:
-		void _generate();
+		void _generate(const std::string& samplerUniform);
 	};
 
 	class Geometry3D {
@@ -232,6 +267,7 @@ namespace rgle {
 	public:
 		ImageRect();
 		ImageRect(std::string shaderid, float width, float height, std::string image, ShaderModel shadermodel = ShaderModel::DEFAULT);
+		ImageRect(Sampler2D sampler, float width, float height, ShaderModel shadermodel = ShaderModel::DEFAULT);
 		virtual ~ImageRect();
 
 		void render();
@@ -277,8 +313,6 @@ namespace rgle {
 		virtual const char* typeName() const;
 
 	private:
-		size_t _alignedSize(const size_t& size) const;
-
 		std::shared_ptr<ViewTransformer> _transformer;
 
 		struct InstanceSet {

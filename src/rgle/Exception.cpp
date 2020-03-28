@@ -104,3 +104,7 @@ rgle::OutOfBoundsException::OutOfBoundsException(Logger::Detail & detail) : Exce
 rgle::NotFoundException::NotFoundException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::NotFoundException")
 {
 }
+
+rgle::InvalidStateException::InvalidStateException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::InvalidStateException")
+{
+}

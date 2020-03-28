@@ -22,6 +22,7 @@
 #include <assert.h>
 #include <thread>
 #include <mutex>
+#include <random>
 
 #if defined _MSC_VER
 

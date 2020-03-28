@@ -11,10 +11,6 @@ namespace rgle {
 		static Logger::Detail _makeDetail(Logger::Detail&& detail, const std::string& identifier);
 	};
 
-	namespace UUID {
-		std::string generate();
-	}
-
 	class Node {
 	public:
 		Node();

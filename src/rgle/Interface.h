@@ -143,7 +143,7 @@ namespace rgle {
 
 		class Layer : public RenderLayer, public EventListener {
 		public:
-			Layer(std::string id, float ticktime = 1 / 30);
+			Layer(std::string id, float ticktime = 1 / 30.0f);
 			virtual ~Layer();
 
 			virtual bool tick();

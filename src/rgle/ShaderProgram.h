@@ -45,7 +45,11 @@ namespace rgle {
 
 		void addShader(std::shared_ptr<ShaderProgram> shader);
 
+		// @deprecated v0.2.3
 		std::shared_ptr<ShaderProgram> operator[](std::string name);
+
+		std::shared_ptr<ShaderProgram> get(std::string name) const;
+		std::shared_ptr<ShaderProgram> getStrict(std::string name) const;
 
 	private:
 		std::vector<std::shared_ptr<ShaderProgram>> _shaderPrograms;

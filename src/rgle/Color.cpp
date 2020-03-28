@@ -32,3 +32,12 @@ glm::vec4 rgle::Fill::evaluate(float u, float v)
 		break;
 	}
 }
+
+glm::vec4 rgle::Color::blend(std::initializer_list<glm::vec4> colors)
+{
+	glm::vec4 result;
+	for (const glm::vec4 color : colors) {
+		result += color;
+	}
+	return glm::vec4(result.r / result.a, result.g / result.a, result.b / result.a, result.a / colors.size());
+}

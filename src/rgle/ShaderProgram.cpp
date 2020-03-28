@@ -49,13 +49,15 @@ rgle::ShaderProgram::ShaderProgram(std::string name, std::string vertexShader, s
 	fragmentShader.c_str()
 ) {}
 
-rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader) : ShaderProgram(
-	name,
-	{
-		Shader::compileFile(vertexShader, GL_VERTEX_SHADER),
-		Shader::compileFile(fragmentShader, GL_FRAGMENT_SHADER)
-	}
-) {}
+rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader) :
+	ShaderProgram(
+		name,
+		{
+			Shader::compileFile(vertexShader, GL_VERTEX_SHADER),
+			Shader::compileFile(fragmentShader, GL_FRAGMENT_SHADER)
+		}
+	)
+{}
 
 rgle::ShaderProgram::ShaderProgram(std::string name, std::initializer_list<GLuint> shaders)
 {
@@ -139,6 +141,25 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string
 		}
 	}
 	return nullptr;
+}
+
+std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::get(std::string name) const
+{
+	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
+		if (this->_shaderPrograms[i]->id == name) {
+			return this->_shaderPrograms[i];
+		}
+	}
+	return nullptr;
+}
+
+std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::getStrict(std::string name) const
+{
+	auto result = this->get(name);
+	if (result == nullptr) {
+		throw NotFoundException("failed to lookup shader '" + name + '\'', LOGGER_DETAIL_DEFAULT);
+	}
+	return result;
 }
 
 void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)

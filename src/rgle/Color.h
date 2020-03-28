@@ -3,6 +3,10 @@
 #include "rgle/Renderable.h"
 
 namespace rgle {
+	namespace Color {
+		glm::vec4 blend(std::initializer_list<glm::vec4> colors);
+	}
+
 	class Fill {
 	public:
 		struct RadialDescriptor {
