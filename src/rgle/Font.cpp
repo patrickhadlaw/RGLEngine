@@ -275,7 +275,7 @@ rgle::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 			}
 		}
 	}
-	this->texture = std::make_shared<Texture>(Texture(this->image, GL_TEXTURE0, Texture::Format{ GL_R8, GL_RED }));
+	this->texture = std::make_shared<Texture2D>(this->image, GL_TEXTURE0, Texture2D::Format{ GL_R8, GL_RED });
 }
 
 rgle::Glyph::~Glyph()

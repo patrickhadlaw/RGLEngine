@@ -1,7 +1,7 @@
 #include "rgle/Spatial.h"
 
-const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_buffer_size(7 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint));
-const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_buffer_size(3 * sizeof(GLint) + 3 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(7 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(3 * sizeof(GLint) + 3 * sizeof(GLfloat), 3 * sizeof(GLfloat));
 const size_t rgle::SparseVoxelOctree::BLOCK_SIZE = 8 * rgle::SparseVoxelNodePayload::SIZE;
 
 const int rgle::SparseVoxelRenderer::OCTREE_BUFFER = 1;
@@ -18,11 +18,11 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	unsigned int height,
 	float fieldOfView) : _octree(octree), _resolution(glm::ivec2(width, height)), _fieldOfView(fieldOfView), RenderLayer(id)
 {
-	this->shader() = (*this->context().manager.shader.lock())[computeShaderId];
+	this->shader() = this->context().manager.shader.lock()->get(computeShaderId);
 	if (this->shader().expired()) {
 		throw NotFoundException("shader: '" + computeShaderId + "' not found", LOGGER_DETAIL_IDENTIFIER(id));
 	}
-	this->_realizeShader = (*this->context().manager.shader.lock())[realizeShaderId];
+	this->_realizeShader = this->context().manager.shader.lock()->get(realizeShaderId);
 	if (this->_realizeShader == nullptr) {
 		throw NotFoundException("shader: '" + realizeShaderId + "' not found", LOGGER_DETAIL_IDENTIFIER(id));
 	}
@@ -35,6 +35,10 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	if (this->_location.finalize < 0) {
 		throw GraphicsException("failed to locate shader uniform: 'finalize'", LOGGER_DETAIL_IDENTIFIER(id));
 	}
+	this->_location.renderResolution = glGetUniformLocation(shader->programId(), "render_resolution");
+	if (this->_location.renderResolution < 0) {
+		throw GraphicsException("failed to locate shader uniform: 'render_resolution'", LOGGER_DETAIL_IDENTIFIER(id));
+	}
 	this->_location.rootNodeOffset = glGetUniformLocation(shader->programId(), "root_node_offset");
 	if (this->_location.rootNodeOffset < 0) {
 		throw GraphicsException("failed to locate shader uniform: 'root_node_offset'", LOGGER_DETAIL_IDENTIFIER(id));
@@ -46,31 +50,38 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	this->_orthoCamera = std::make_shared<Camera>(CameraType::ORTHOGONAL_PROJECTION, this->context().window.lock());
 	this->_sparseVoxelCamera = std::make_shared<SparseVoxelCamera>(0.01f, 1000.0f, this->_fieldOfView);
 	this->transformer() = this->_sparseVoxelCamera;
-	auto image = std::make_shared<Image>(this->_resolution.x, this->_resolution.y, 1, sizeof(GLuint));
+	auto depthImage = std::make_shared<Image>(this->_resolution.x, this->_resolution.y, 1, 1, sizeof(GLuint));
+	auto outImage = std::make_shared<Image>(this->_resolution.x, this->_resolution.y, 1, 1, sizeof(GLint));
 	const GLuint uintMax = std::numeric_limits<GLuint>::max();
+	const GLint startIndex = -1;
 	for (int i = 0; i < this->_resolution.x; i++) {
 		for (int j = 0; j < this->_resolution.y; j++) {
-			image->set(i, j, (unsigned char*)&uintMax, sizeof(GLuint));
+			depthImage->set(i, j, (unsigned char*)&uintMax, sizeof(GLuint));
+			outImage->set(i, j, (unsigned char*)&startIndex, sizeof(GLint));
 		}
 	}
 	this->_depthImage = Sampler2D(
 		this->shader(),
-		std::make_shared<Texture>(
-			image,
-			GL_TEXTURE0,
-			Texture::Format{ GL_R32UI, GL_RED_INTEGER },
-			GL_UNSIGNED_INT
+		std::make_shared<PersistentTexture2D>(
+			depthImage,
+			0,
+			PersistentTexture2D::Format{ GL_R32UI, GL_RED_INTEGER },
+			GL_UNSIGNED_INT,
+			GL_READ_WRITE
 		),
 		"depth_image"
 	);
 	this->_outImage = Sampler2D(
 		this->shader(),
-		std::make_shared<Texture>(this->_resolution.x, this->_resolution.y, GL_TEXTURE0, Texture::Format{ GL_R32I, GL_RED_INTEGER }, GL_INT),
+		std::make_shared<PersistentTexture2D>(
+			outImage,
+			1,
+			PersistentTexture2D::Format{ GL_R32I, GL_RED_INTEGER },
+			GL_INT,
+			GL_WRITE_ONLY
+		),
 		"out_image"
 	);
-	glBindTexture(GL_TEXTURE_2D, this->_outImage.texture->textureID);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, this->_resolution.x, this->_resolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
-	glBindImageTexture(0, this->_outImage.texture->textureID, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
 
 	this->_imageRect = ImageRect(Sampler2D(this->_realizeShader, this->_outImage.texture), 2.0f, 2.0f);
 
@@ -140,15 +151,17 @@ void rgle::SparseVoxelRenderer::render()
 {
 	auto shader = this->shaderLocked();
 	shader->use();
+	this->bootstrap();
 	this->transformer()->bind(shader);
+	glUniform2ui(this->_location.renderResolution, this->_resolution.x, this->_resolution.y);
 	this->_octree->bind();
+	this->_depthImage.use();
 	this->_outImage.use();
 	glUniform1i(this->_location.finalize, false);
 	size_t read_size = this->_resolution.x * this->_resolution.y;
-	this->bootstrap();
 	bool first = true;
 	bool last = true;
-	glMemoryBarrier(GL_BUFFER_UPDATE_BARRIER_BIT);
+	glMemoryBarrier(GL_SHADER_STORAGE_BUFFER);
 	while (first) { // TODO: do more than first pass
 		glUniform1i(this->_location.bootstrap, first);
 		first = false;
@@ -159,25 +172,27 @@ void rgle::SparseVoxelRenderer::render()
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, META_BUFFER, this->_metaBuffer);
-		size_t dim = std::ceil(std::cbrt(read_size));
-		glDispatchCompute(dim, dim, dim);
+		//size_t dim = std::ceil(std::sqrt((double) read_size / 1024.0));
+		size_t dim = std::ceil((float)read_size / 1024.0f);
+		glDispatchCompute(dim, 1, 1);
 		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		read_size = this->swapBuffers();
+		//read_size = this->swapBuffers();
 		// TODO: check realloc
 	}
-	this->_realizeShader->use();
+	/*this->_realizeShader->use();
 	this->_octree->bind();
 	this->_orthoCamera->bind(this->_realizeShader);
-	this->_imageRect.render();
-	GLuint* tmp = new GLuint[this->_resolution.x * this->_resolution.y];
+	this->_imageRect.render();*/
+	/*GLuint* tmp = new GLuint[this->_resolution.x * this->_resolution.y];
 	Image8 img(this->_resolution.x, this->_resolution.y, 1);
-	glGetTextureImage(GL_TEXTURE_2D, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, this->_resolution.x * this->_resolution.y * sizeof(GLuint), tmp);
+	glGetTextureImage(this->_depthImage.texture->id(), 0, GL_RED, GL_UNSIGNED_INT, this->_resolution.x * this->_resolution.y * sizeof(GLuint), tmp);
 	for (int i = 0; i < this->_resolution.x; i++) {
 		for (int j = 0; j < this->_resolution.y; j++) {
-			img.image[i + j * this->_resolution.x] = static_cast<unsigned char>(((float)tmp[i + j * this->_resolution.x] / 10000000.0f) * 255.0f);
+			img.image[i + j * this->_resolution.x] = static_cast<unsigned char>((float)tmp[i + j * this->_resolution.x] / 100000.0f);
 		}
 	}
-	img.write("tmp.png");
+	std::free(tmp);
+	img.write("tmp.png");*/
 }
 
 const char * rgle::SparseVoxelRenderer::typeName() const
@@ -213,6 +228,8 @@ void rgle::SparseVoxelRenderer::bootstrap()
 {
 	// Restore the depth image
 	this->_depthImage.texture->update();
+	// Restore the output image
+	this->_outImage.texture->update();
 	glUniform1i(this->_location.rootNodeOffset, this->_octree->root()->index());
 	glUniform1f(this->_location.rootNodeSize, this->_octree->root()->size());
 	// Reset the read/write pass state
@@ -233,11 +250,12 @@ void rgle::SparseVoxelRenderer::finalize()
 
 rgle::SparseVoxelCamera::SparseVoxelCamera(float near, float far, float fieldOfView) :
 	_near(near),
+	_far(far),
 	_fieldOfView(fieldOfView),
 	_position(0.0f, 0.0f, 0.0f),
 	_direction(0.0f, 0.0f, 1.0f),
 	_up(glm::vec3(0.0f, 1.0f, 0.0f)),
-	_viewMatrix(glm::lookAt(_position, _position + _direction, _up))
+	_viewMatrix(1.0f)
 {
 }
 
@@ -364,9 +382,9 @@ unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
 
 void rgle::SparseVoxelRayPayload::mapToBuffer(unsigned char * buffer) const
 {
-	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->offset, sizeof(GLint));
-	next = (unsigned char*)std::memcpy(next + sizeof(GLuint), &this->pixel.x, 2 * sizeof(GLint));
-	std::memcpy(next + 2 * sizeof(GLint), &this->ray.x, 3 * sizeof(GLfloat));
+	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->ray.x, 3 * sizeof(GLfloat));
+	next = (unsigned char*)std::memcpy(next + 3 * sizeof(GLfloat), &this->pixel.x, 2 * sizeof(GLint));
+	std::memcpy(next + 2 * sizeof(GLint), &this->offset, sizeof(GLint));
 }
 
 rgle::SparseVoxelNode::SparseVoxelNode(SparseVoxelNode && rvalue)

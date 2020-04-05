@@ -128,7 +128,7 @@ int main(const int argc, const char* const argv[]) {
 				"sparse-voxel-realize",
 				window->width(),
 				window->height(),
-				60.0f
+				glm::radians(60.0f)
 			);
 			app.addLayer(mainLayer);
 			mainLayer->camera()->translate(glm::vec3(0.0f, 0.0f, -1.0f));
@@ -146,9 +146,9 @@ int main(const int argc, const char* const argv[]) {
 				rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT),
 				rgle::UnitVector2D(0.0, 0.0)
 			};
-			fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
-			fpsText->id = "fpsText";
-			uiLayer->addElement(fpsText);
+			//fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
+			//fpsText->id = "fpsText";
+			//uiLayer->addElement(fpsText);
 		});
 
 		Stack<30, int> framerate;
@@ -168,7 +168,7 @@ int main(const int argc, const char* const argv[]) {
 			}
 
 			if (uiLayer->tick()) {
-				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
+				//fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
 			}
 
 

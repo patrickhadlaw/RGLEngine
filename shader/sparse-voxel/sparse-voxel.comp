@@ -7,7 +7,7 @@
 
 #version 440
 
-layout(local_size_x = 10, local_size_y = 10, local_size_z = 10) in;
+layout(local_size_x = 1024) in;
 
 #define OCTREE_LEFT_TOP_FRONT 0
 #define OCTREE_RIGHT_TOP_FRONT 1
@@ -38,32 +38,36 @@ uniform float root_node_size;
 
 layout(std430, binding=1) readonly buffer octree_buffer {
 	OctreeNode nodes[];
-};
+} OctreeBuffer;
 
 struct RayState {
-	int offset;
-	ivec2 pixel;
 	vec3 ray;
+	ivec2 pixel;
+	int offset;
 };
 
 // Buffer for consuming
 layout(std430, binding=2) readonly buffer pass_read_buffer {
 	RayState read_state[];
-};
+} PassReadBuffer;
 
 // Buffer for producing
 layout(std430, binding=3) writeonly buffer pass_write_buffer {
 	RayState write_state[];
+} PassWriteBuffer;
+
+struct PassMetaData {
+	uint read_pass_size;
+	uint write_pass_size;
 };
 
-// Buffer for meta data
+// Buffer storing size of pass
 // TODO: use atomic counters instead
 layout(std430, binding=4) buffer meta_buffer {
-	int read_pass_size;
-	int write_pass_size;
-};
+	PassMetaData data;
+} MetaBuffer;
 
-layout(r32ui) uniform uimage2D depth_image;
+layout(r32ui) uniform coherent uimage2D depth_image;
 layout(r32i) uniform iimage2D out_image;
 
 // Render pass control uniforms
@@ -112,14 +116,18 @@ bool raycast_cube(vec3 lower, vec3 upper, vec3 p, vec3 v) {
 		t1z > tlower;
 }
 
+float log10(float x) {
+	return log2(x) / log2(10.0f);
+}
+
 uint serialize_depth(float depth) {
-	return uint(pow(10, UINT_MAX_LOG - (uint(log(camera_far)) + 1)) * depth);
+	return uint(pow(10, UINT_MAX_LOG - (uint(log10(camera_far)) + 1)) * depth);
 }
 
 void main() {
 	RayState state;
 
-	OctreeNode root_node = nodes[root_node_offset];
+	OctreeNode root_node = OctreeBuffer.nodes[root_node_offset];
 	OctreeNode current_node;
 	float size;
 	float depth;
@@ -127,18 +135,16 @@ void main() {
 
 	const float pixel_angle = field_of_view / render_resolution.x;
 
-	const int dim = int(ceil(pow(read_pass_size, 1.0f / 3.0f)));
-	const uint index = gl_GlobalInvocationID.x + gl_GlobalInvocationID.y * dim + gl_GlobalInvocationID.z * dim * dim;
-	if (index >= read_pass_size) {
+	if (gl_GlobalInvocationID.x >= MetaBuffer.data.read_pass_size) {
 		return;
 	}
 
 	// Aquire ray state for ith iteration of pass
-	state = read_state[index];
+	state = PassReadBuffer.read_state[gl_GlobalInvocationID.x];
 	offset = bootstrap ? root_node_offset : state.offset;
 	state.ray = view * state.ray;
 
-	current_node = nodes[offset];
+	current_node = OctreeBuffer.nodes[offset];
 	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
 	depth = length(current_node.position - camera_position);
 	float r = sin(pixel_angle) * length(current_node.position - camera_position);
@@ -152,27 +158,30 @@ void main() {
 	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, state.ray);
 	const bool write = hit && !ray_done;
 
-	int previous_write_size = atomicAdd(write_pass_size, write ? 8 : 0);
+	uint previous_write_size = atomicAdd(MetaBuffer.data.write_pass_size, write ? 8 : 0);
 	barrier();
 
 	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid
 	if (write) {
-		write_state[previous_write_size] = RayState(current_node.next, state.pixel, state.ray);
-		write_state[previous_write_size + 1] = RayState(current_node.next + 1, state.pixel, state.ray);
-		write_state[previous_write_size + 2] = RayState(current_node.next + 2, state.pixel, state.ray);
-		write_state[previous_write_size + 3] = RayState(current_node.next + 3, state.pixel, state.ray);
-		write_state[previous_write_size + 4] = RayState(current_node.next + 4, state.pixel, state.ray);
-		write_state[previous_write_size + 5] = RayState(current_node.next + 5, state.pixel, state.ray);
-		write_state[previous_write_size + 6] = RayState(current_node.next + 6, state.pixel, state.ray);
-		write_state[previous_write_size + 7] = RayState(current_node.next + 7, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size] = RayState(current_node.next, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(current_node.next + 1, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(current_node.next + 2, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(current_node.next + 3, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(current_node.next + 4, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(current_node.next + 5, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(current_node.next + 6, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(current_node.next + 7, state.pixel, state.ray);
 		memoryBarrierBuffer();
 	}
 	
 	uint initial_depth = serialize_depth(depth);
+
+	imageStore(depth_image, ivec2(gl_GlobalInvocationID.x % render_resolution.x, gl_GlobalInvocationID.x / render_resolution.x), uvec4(gl_GlobalInvocationID.x));
+	//barrier();
 	
-	if (true) {
-		uint result_depth = imageAtomicMin(depth_image, state.pixel, initial_depth);
-		if (result_depth == depth) {
+	if (ray_done && hit) {
+		uint result_depth = 1234;//imageAtomicMin(depth_image, state.pixel, initial_depth);
+		if (result_depth == initial_depth) {
 			imageStore(out_image, state.pixel, ivec4(offset));
 		}
 	}

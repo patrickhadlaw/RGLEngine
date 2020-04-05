@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Color.h"
+#include "rgle/Image.h"
 
 namespace rgle {
 
@@ -9,112 +9,29 @@ namespace rgle {
 		GraphicsException(std::string except, Logger::Detail& detail);
 	};
 
-	constexpr size_t aligned_buffer_size(const size_t& size);
+	// Gets the padded size of a uniform storage block
+	// @remarks
+	// Uniform storage blocks are rounded to the largest base alignment of any of its members,
+	// rounded to the nearest sizeof(vec4)
+	size_t aligned_std140_size(const size_t& size, const size_t& largestMember);
+	// Gets the padded size of a shader storage block
+	// @remarks
+	// Shader storage blocks are rounded to the largest base alignment of any of its members
+	size_t aligned_std430_size(const size_t& size, const size_t& largestMember);
 
 	enum class ShaderModel {
 		DEFAULT,
 		INSTANCED
 	};
 
-	struct Image {
-
-		enum class Format {
-			JPEG,
-			PNG
-		};
-
-		Image();
-		Image(std::string imagefile);
-		Image(int width, int height, int channels, size_t channelSize);
-		Image(const Image& other);
-		Image(Image&& rvalue);
-		virtual ~Image();
-
-		void operator=(const Image& other);
-		void operator=(Image&& rvalue);
-
-		void set(const size_t& x, const size_t& y, unsigned char* data, const size_t& size);
-
-		void write(const std::string& imagefile) const;
-		void write(const std::string& imagefile, const Format& format) const;
-
-		unsigned char* image;
-		int width;
-		int height;
-		int channels;
-		size_t channelSize;
-	};
-
-	class Image8 : public Image {
-	public:
-		Image8();
-		Image8(std::string imagefile);
-		Image8(int width, int height, int channels);
-
-		void set(const size_t& x, const size_t& y, const float& intensity);
-		void set(const size_t& x, const size_t& y, const glm::vec2& ia);
-		void set(const size_t& x, const size_t& y, const glm::vec3& rgb);
-		void set(const size_t& x, const size_t& y, const glm::vec4& rgba);
-
-	};
-	
-	class Texture {
-	public:
-
-		struct Format {
-			GLint internal;
-			GLint target;
-		};
-
-		Texture();
-		Texture(std::string imagefile, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA }, GLenum type = GL_UNSIGNED_BYTE);
-		Texture(std::shared_ptr<Image> image, GLenum texture = GL_TEXTURE0, Format format = { GL_RGBA8, GL_RGBA }, GLenum type = GL_UNSIGNED_BYTE);
-		Texture(
-			size_t width,
-			size_t height,
-			GLenum texture = GL_TEXTURE0,
-			Format format = { GL_RGBA8, GL_RGBA },
-			GLenum type = GL_UNSIGNED_BYTE
-		);
-		Texture(const Texture& other);
-		Texture(Texture&& rvalue);
-		virtual ~Texture();
-
-		void operator=(const Texture& other);
-		void operator=(Texture&& rvalue);
-
-		void update();
-
-		std::shared_ptr<Image> image;
-
-		GLuint textureID;
-		GLenum texture;
-		GLenum type;
-
-		size_t width;
-		size_t height;
-
-		Format format;
-
-	private:
-		void _generate();
-	};
-
 	struct Sampler2D {
 		Sampler2D();
-		Sampler2D(const Sampler2D& other);
-		Sampler2D(
-			std::weak_ptr<ShaderProgram> shader,
-			std::string imagefile,
-			GLenum texture = GL_TEXTURE0,
-			Texture::Format format = { GL_RGBA8, GL_RGBA },
-			std::string samplerUniform = "texture_0"
-		);
 		Sampler2D(
 			std::weak_ptr<ShaderProgram> shader,
 			std::shared_ptr<Texture> texture,
 			std::string samplerUniform = "texture_0"
 		);
+		Sampler2D(const Sampler2D& other);
 		virtual ~Sampler2D();
 
 		void operator=(const Sampler2D& other);

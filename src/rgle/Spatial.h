@@ -137,9 +137,9 @@ namespace rgle {
 	};
 
 	struct SparseVoxelRayPayload {
-		GLint offset;
-		glm::ivec2 pixel;
 		glm::vec3 ray;
+		glm::ivec2 pixel;
+		GLint offset;
 
 		void mapToBuffer(unsigned char* buffer) const;
 
@@ -216,6 +216,7 @@ namespace rgle {
 		struct {
 			GLint rootNodeOffset;
 			GLint rootNodeSize;
+			GLint renderResolution;
 			GLint bootstrap;
 			GLint finalize;
 		} _location;

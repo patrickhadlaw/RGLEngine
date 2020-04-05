@@ -4,19 +4,19 @@
 GLuint rgle::Shader::compileFile(std::string shaderfile, GLenum type)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading shader file: " + shaderfile, LOGGER_DETAIL_DEFAULT);)
-	std::string vertexCode;
+	std::string file;
 	std::ifstream ifstream(shaderfile, std::ios::in);
 	if (ifstream.is_open()) {
 		std::string line = "";
 		while (getline(ifstream, line)) {
-			vertexCode += "\n" + line;
+			file += "\n" + line;
 		}
 		ifstream.close();
 	}
 	else {
 		throw IOException("could not open file: " + std::string(shaderfile), LOGGER_DETAIL_DEFAULT);
 	}
-	return rgle::Shader::compile(vertexCode, type);
+	return rgle::Shader::compile(file, type);
 }
 
 GLuint rgle::Shader::compile(std::string shadercode, GLenum type)
@@ -25,8 +25,8 @@ GLuint rgle::Shader::compile(std::string shadercode, GLenum type)
 	GLuint shaderId = glCreateShader(type);
 	GLint result = GL_FALSE;
 	int logLength;
-	char const* vertexPointer = shadercode.c_str();
-	glShaderSource(shaderId, 1, &vertexPointer, nullptr);
+	char const* ptr = shadercode.c_str();
+	glShaderSource(shaderId, 1, &ptr, nullptr);
 	glCompileShader(shaderId);
 
 	glGetShaderiv(shaderId, GL_COMPILE_STATUS, &result);
