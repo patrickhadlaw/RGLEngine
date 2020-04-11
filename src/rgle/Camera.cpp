@@ -15,9 +15,7 @@ rgle::Camera::Camera()
 
 rgle::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
 {
-	if (window == nullptr) {
-		throw std::runtime_error("Error: null window handle passed");
-	}
+	RGLE_DEBUG_ASSERT(window != nullptr)
 	this->_window = window;
 	this->_type = type;
 

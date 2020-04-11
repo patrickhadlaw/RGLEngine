@@ -138,7 +138,7 @@ void rgle::Sampler2D::use()
 		glUniform1i(this->enableLocation, enabled);
 	}
 	glUniform1i(this->samplerLocation, this->texture->index());
-	this->texture->use();
+	this->texture->bind();
 }
 
 void rgle::Sampler2D::_generate(const std::string& samplerUniform)
@@ -444,26 +444,22 @@ void rgle::Geometry3D::standardFill(Fill colorFill)
 
 void rgle::Geometry3D::updateVertexBuffer()
 {
-	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
+	glNamedBufferSubData(vertex.buffer, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
 void rgle::Geometry3D::updateIndexBuffer()
 {
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index.buffer);
-	glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(GLushort) * index.list.size(), index.list.data());
+	glNamedBufferSubData(index.buffer, 0, sizeof(GLushort) * index.list.size(), index.list.data());
 }
 
 void rgle::Geometry3D::updateColorBuffer()
 {
-	glBindBuffer(GL_ARRAY_BUFFER, color.buffer);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * color.list.size() * 4, color.list.data());
+	glNamedBufferSubData(color.buffer, 0, sizeof(GLfloat) * color.list.size() * 4, color.list.data());
 }
 
 void rgle::Geometry3D::updateUVBuffer()
 {
-	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
-	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * uv.list.size() * 2, uv.list.data());
+	glNamedBufferSubData(vertex.buffer, 0, sizeof(GLfloat) * uv.list.size() * 2, uv.list.data());
 }
 
 void rgle::Geometry3D::_cleanup()
@@ -635,8 +631,6 @@ void rgle::InstancedRenderer::addModel(std::string key, std::shared_ptr<Geometry
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, set.ssbo);
 	this->_setMap[key] = set;
 	glBufferData(GL_SHADER_STORAGE_BUFFER, set.numAllocated * set.payloadSize, set.instanceData, GL_DYNAMIC_DRAW);
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->_setMap[key].ssbo);
-
 }
 
 void rgle::InstancedRenderer::setModelBindFunc(std::string key, std::function<void()> bindfunc)

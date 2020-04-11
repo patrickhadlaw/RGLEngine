@@ -5,7 +5,7 @@
 //
 //	-
 
-#version 440
+#version 450
 
 layout(local_size_x = 1024) in;
 
@@ -28,7 +28,8 @@ const uint UINT_MAX_LOG = 9;
 
 struct OctreeNode {
 	vec4 color;
-	vec3 position;
+	// NOTE: only position.xyz are used, use a vec4 here to avoid alignment issues
+	vec4 position;
 	uint depth;
 	int next;
 };
@@ -41,7 +42,8 @@ layout(std430, binding=1) readonly buffer octree_buffer {
 } OctreeBuffer;
 
 struct RayState {
-	vec3 ray;
+	// NOTE: only ray.xyz are used, use a vec4 here to avoid alignment issues
+	vec4 ray;
 	ivec2 pixel;
 	int offset;
 };
@@ -68,7 +70,7 @@ layout(std430, binding=4) buffer meta_buffer {
 } MetaBuffer;
 
 layout(r32ui) uniform coherent uimage2D depth_image;
-layout(r32i) uniform iimage2D out_image;
+layout(r32i) uniform coherent iimage2D out_image;
 
 // Render pass control uniforms
 uniform bool bootstrap;				// Flag to bootstrap initial pass, signals shader to shoot all rays at octree root
@@ -91,11 +93,11 @@ vec3 project(vec3 u, vec3 v) {
 }
 
 vec3 cube_lower_bound(OctreeNode node, float size) {
-	return node.position - (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
+	return node.position.xyz - (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
 }
 
 vec3 cube_upper_bound(OctreeNode node, float size) {
-	return node.position + (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
+	return node.position.xyz + (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
 }
 
 // Returns true if cube bounded by lower and upper is hit by ray p + vt
@@ -135,27 +137,26 @@ void main() {
 
 	const float pixel_angle = field_of_view / render_resolution.x;
 
-	if (gl_GlobalInvocationID.x >= MetaBuffer.data.read_pass_size) {
-		return;
-	}
+	const bool valid_invocation = gl_GlobalInvocationID.x < MetaBuffer.data.read_pass_size;
 
-	// Aquire ray state for ith iteration of pass
-	state = PassReadBuffer.read_state[gl_GlobalInvocationID.x];
-	offset = bootstrap ? root_node_offset : state.offset;
-	state.ray = view * state.ray;
+	// Aquire ray state for ith invocation of pass
+	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(vec4(0.0f), ivec2(-1. -1), -1);
+	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
+	vec3 ray = view * state.ray.xyz;
 
 	current_node = OctreeBuffer.nodes[offset];
 	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
-	depth = length(current_node.position - camera_position);
-	float r = sin(pixel_angle) * length(current_node.position - camera_position);
+	depth = length(current_node.position.xyz - camera_position);
+	float r = sin(pixel_angle) * length(current_node.position.xyz - camera_position);
 	const bool ray_done =
 		size < r ||
 		current_node.color.a < EPSILON ||
-		dot(camera_direction, current_node.position - camera_position) < camera_near - size ||
+		dot(camera_direction, current_node.position.xyz - camera_position) < camera_near - size ||
 		depth > camera_far + size ||
+		current_node.next < 0 ||
 		finalize;
 	
-	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, state.ray);
+	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, ray) && valid_invocation;
 	const bool write = hit && !ray_done;
 
 	uint previous_write_size = atomicAdd(MetaBuffer.data.write_pass_size, write ? 8 : 0);
@@ -163,27 +164,23 @@ void main() {
 
 	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid
 	if (write) {
-		PassWriteBuffer.write_state[previous_write_size] = RayState(current_node.next, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(current_node.next + 1, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(current_node.next + 2, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(current_node.next + 3, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(current_node.next + 4, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(current_node.next + 5, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(current_node.next + 6, state.pixel, state.ray);
-		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(current_node.next + 7, state.pixel, state.ray);
+		PassWriteBuffer.write_state[previous_write_size] = RayState(state.ray, state.pixel, current_node.next);
+		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(state.ray, state.pixel, current_node.next + 1);
+		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(state.ray, state.pixel, current_node.next + 2);
+		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(state.ray, state.pixel, current_node.next + 3);
+		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(state.ray, state.pixel, current_node.next + 4);
+		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(state.ray, state.pixel, current_node.next + 5);
+		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(state.ray, state.pixel, current_node.next + 6);
+		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(state.ray, state.pixel, current_node.next + 7);
 		memoryBarrierBuffer();
 	}
 	
-	uint initial_depth = serialize_depth(depth);
-
-	imageStore(depth_image, ivec2(gl_GlobalInvocationID.x % render_resolution.x, gl_GlobalInvocationID.x / render_resolution.x), uvec4(gl_GlobalInvocationID.x));
-	//barrier();
+	uint write_depth = serialize_depth(depth);
 	
-	if (ray_done && hit) {
-		uint result_depth = 1234;//imageAtomicMin(depth_image, state.pixel, initial_depth);
-		if (result_depth == initial_depth) {
-			imageStore(out_image, state.pixel, ivec4(offset));
+	if (ray_done && hit && current_node.color.a >= EPSILON) {
+		uint previous_depth = imageAtomicMin(depth_image, state.pixel, write_depth);
+		if (write_depth <= previous_depth) {
+			imageAtomicExchange(out_image, state.pixel, offset);
 		}
 	}
-	barrier();
 }

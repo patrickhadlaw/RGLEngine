@@ -94,7 +94,9 @@ namespace rgle {
 	static Unit unitFromPostfix(std::string string);
 	static std::string postfixFromUnit(Unit unit);
 
-	class Window : public EventHost {
+	void glfw_error_callback(int code, const char* message);
+
+	class Window : public EventHost, public Node {
 		friend struct Context;
 	public:
 
@@ -161,6 +163,7 @@ namespace rgle {
 		GLFWwindow* _window;
 		GLFWcursor* _cursor;
 		static std::map<GLFWwindow*, Window*> _handles;
+		static bool _initialized;
 	};
 
 	struct UnitValue {

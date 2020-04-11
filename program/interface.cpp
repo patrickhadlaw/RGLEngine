@@ -70,12 +70,6 @@ int main(const int argc, const char* const argv[]) {
 
 		auto window = std::make_shared<rgle::Window>(width, height, "RGLEngine");
 
-		glewExperimental = true;
-		GLenum err = glewInit();
-		if (err != GLEW_OK) {
-			throw rgle::Exception("failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), LOGGER_DETAIL_DEFAULT);
-		}
-
 		rgle::Application app = rgle::Application("rgle", window);
 
 		app.initialize();
@@ -226,6 +220,7 @@ int main(const int argc, const char* const argv[]) {
 			}
 			
 			app.update();
+
 			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
 				camera->grab();
 			}

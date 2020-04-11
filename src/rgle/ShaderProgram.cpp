@@ -91,12 +91,12 @@ rgle::ShaderProgram::~ShaderProgram()
 {
 }
 
-GLuint rgle::ShaderProgram::programId()
+GLuint rgle::ShaderProgram::programId() const
 {
 	return _programID;
 }
 
-void rgle::ShaderProgram::use()
+void rgle::ShaderProgram::use() const
 {
 	glUseProgram(_programID);
 }
@@ -104,6 +104,22 @@ void rgle::ShaderProgram::use()
 const char * rgle::ShaderProgram::typeName() const
 {
 	return "rgle::ShaderProgram";
+}
+
+GLint rgle::ShaderProgram::uniform(const std::string & name) const
+{
+	return glGetUniformLocation(this->programId(), name.c_str());
+}
+
+GLint rgle::ShaderProgram::uniformStrict(const std::string & name) const
+{
+	GLint result = this->uniform(name);
+	if (result < 0) {
+		throw NotFoundException("failed to locate uniform '" + name + "' in program '" + this->id + '\'', LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
+	else {
+		return result;
+	}
 }
 
 rgle::ShaderManager::ShaderManager()

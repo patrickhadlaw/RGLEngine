@@ -249,7 +249,7 @@ void rgle::Texture::update()
 	rgle::Logger::warn("unimplemented method called", LOGGER_DETAIL_DEFAULT);
 }
 
-void rgle::Texture::use()
+void rgle::Texture::bind()
 {
 	rgle::Logger::warn("unimplemented method called", LOGGER_DETAIL_DEFAULT);
 }
@@ -342,7 +342,7 @@ void rgle::Texture2D::update()
 	);
 }
 
-void rgle::Texture2D::use()
+void rgle::Texture2D::bind()
 {
 	glActiveTexture(this->_texture);
 	glBindTexture(GL_TEXTURE_2D, this->id());
@@ -421,9 +421,25 @@ void rgle::PersistentTexture2D::update()
 	);
 }
 
-void rgle::PersistentTexture2D::use()
+void rgle::PersistentTexture2D::bind()
+{
+	glActiveTexture(GL_TEXTURE0 + this->index());
+	glBindTexture(GL_TEXTURE_2D, this->id());
+}
+
+void rgle::PersistentTexture2D::bindImage2D()
 {
 	glBindImageTexture(this->index(), this->id(), 0, GL_FALSE, 0, this->_access, this->_format.internal);
+}
+
+GLenum & rgle::PersistentTexture2D::access()
+{
+	return this->_access;
+}
+
+const GLenum & rgle::PersistentTexture2D::access() const
+{
+	return this->_access;
 }
 
 void rgle::PersistentTexture2D::_initialize()
@@ -435,5 +451,12 @@ void rgle::PersistentTexture2D::_initialize()
 		this->image()->width,
 		this->image()->height
 	);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
 	this->update();
 }

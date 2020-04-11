@@ -50,7 +50,7 @@ namespace rgle {
 		SparseVoxelNode* child(OctreeIndex::X x, OctreeIndex::Y y, OctreeIndex::Z z) const;
 		SparseVoxelNode* parent() const;
 
-		void insertChildren(glm::vec4 colors[8]);
+		void insertChildren(std::array<glm::vec4, 8> colors);
 
 		bool leaf() const;
 		bool root() const;
@@ -151,20 +151,57 @@ namespace rgle {
 		SparseVoxelCamera(float near, float far, float fieldOfView);
 		virtual ~SparseVoxelCamera();
 
+		virtual void update(float deltaT);
 		virtual void bind(std::shared_ptr<ShaderProgram> program);
 
+		void translate(const float& x, const float& y, const float& z);
 		void translate(const glm::vec3& by);
+		void rotate(const float& pitch, const float& yaw, const float& roll);
+
+		float& fieldOfView();
+		const float& fieldOfView() const;
+
+		const glm::vec3& position() const;
+		const glm::vec3& direction() const;
+		const glm::vec3& up() const;
+		const glm::vec3& right() const;
 
 	private:
+		const glm::mat3 _updatedView() const;
+
 		glm::vec3 _position;
 		glm::vec3 _direction;
 		glm::vec3 _up;
+		glm::vec3 _right;
 		float _fieldOfView;
 		float _near;
 		float _far;
-		glm::mat3 _viewMatrix;
+		glm::mat3 _view;
 	};
 
+	class NoClipSparseVoxelCamera : public SparseVoxelCamera, public EventListener {
+	public:
+		NoClipSparseVoxelCamera(float near, float far, float fieldOfView, std::shared_ptr<Window> window);
+
+		virtual void onMessage(std::string eventname, EventMessage* message);
+
+		virtual void update(float deltaT);
+
+		virtual void grab();
+		virtual void unGrab();
+
+		void move(float forward, float horizontal, float vertical);
+
+	private:
+		struct {
+			double deltaX = 0.0f;
+			double deltaY = 0.0f;
+		} _mouse;
+		std::weak_ptr<Window> _window;
+	};
+
+	// A renderer utilizing a pass based traversal through a GPU octree
+	// @todo use the smallest possible octree root to avoid unessesary passes
 	class SparseVoxelRenderer : public RenderLayer {
 	public:
 		static const int OCTREE_BUFFER;
@@ -179,7 +216,8 @@ namespace rgle {
 			std::string realizeShaderId,
 			unsigned int width,
 			unsigned int height,
-			float fieldOfView
+			std::shared_ptr<SparseVoxelCamera> camera,
+			size_t maxPassesPerFrame = 10
 		);
 		SparseVoxelRenderer(const SparseVoxelRenderer&) = delete;
 		virtual ~SparseVoxelRenderer();
@@ -207,25 +245,29 @@ namespace rgle {
 		GLuint _metaBuffer;
 		void* _bootstrapData;
 		glm::ivec2 _numWorkGroups;
-		size_t _readPassSize;
-		size_t _writePassSize;
+		size_t _currentPassSize;
 		size_t _passAllocatedSize;
 		uint32_t _index;
 		glm::ivec2 _resolution;
-		float _fieldOfView;
+		size_t _maxPassesPerFrame;
+		std::chrono::system_clock::time_point _lastTime;
+
+		std::shared_ptr<PersistentTexture2D> _depthTexture;
+		std::shared_ptr<PersistentTexture2D> _outTexture;
+		ImageRect _imageRect;
+
+		std::shared_ptr<ShaderProgram> _realizeShader;
+		std::shared_ptr<SparseVoxelCamera> _camera;
+		std::shared_ptr<SparseVoxelOctree> _octree;
+
 		struct {
 			GLint rootNodeOffset;
 			GLint rootNodeSize;
 			GLint renderResolution;
 			GLint bootstrap;
 			GLint finalize;
+			GLint depthImage;
+			GLint outImage;
 		} _location;
-		Sampler2D _depthImage;
-		Sampler2D _outImage;
-		ImageRect _imageRect;
-		std::shared_ptr<Camera> _orthoCamera;
-		std::shared_ptr<ShaderProgram> _realizeShader;
-		std::shared_ptr<SparseVoxelCamera> _sparseVoxelCamera;
-		std::shared_ptr<SparseVoxelOctree> _octree;
 	};
 }

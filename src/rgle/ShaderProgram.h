@@ -28,10 +28,13 @@ namespace rgle {
 		ShaderProgram(std::string name, std::initializer_list<GLuint> shaders);
 		~ShaderProgram();
 
-		GLuint programId();
-		void use();
+		GLuint programId() const;
+		void use() const;
 
 		virtual const char* typeName() const;
+
+		GLint uniform(const std::string& name) const;
+		GLint uniformStrict(const std::string& name) const;
 
 	private:
 		GLuint _programID;

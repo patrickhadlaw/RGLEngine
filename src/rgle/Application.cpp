@@ -30,7 +30,15 @@ rgle::Application::~Application()
 
 void rgle::Application::initialize()
 {
-	rgle::Logger::info("Initializing application", LOGGER_DETAIL_DEFAULT);
+	rgle::Logger::info("Initializing application: " + this->id, LOGGER_DETAIL_IDENTIFIER(this->id));
+	const char* vendor = (const char*)glGetString(GL_VENDOR);
+	rgle::Logger::info(std::string("OpenGL Vendor[") + vendor + ']', LOGGER_DETAIL_IDENTIFIER(this->id));
+	const char* renderer = (const char*)glGetString(GL_RENDERER);
+	rgle::Logger::info(std::string("OpenGL Renderer[") + renderer + ']', LOGGER_DETAIL_IDENTIFIER(this->id));
+	const char* version = (const char*)glGetString(GL_VERSION);
+	rgle::Logger::info(std::string("OpenGL Version[") + version + ']', LOGGER_DETAIL_IDENTIFIER(this->id));
+	const char* glslVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+	rgle::Logger::info(std::string("GLSL Version[") + glslVersion + ']', LOGGER_DETAIL_IDENTIFIER(this->id));
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(rgle::debugCallback, 0);
 	glClearColor(1.0, 1.0, 1.0, 1.0);

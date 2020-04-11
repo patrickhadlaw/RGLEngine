@@ -60,7 +60,7 @@ namespace rgle {
 		void operator=(Texture&& rvalue);
 
 		virtual void update();
-		virtual void use();
+		virtual void bind();
 
 		GLuint& id();
 		const GLuint& id() const;
@@ -75,8 +75,6 @@ namespace rgle {
 		GLuint _id;
 		int _index;
 		std::shared_ptr<Image> _image;
-
-		void _generate(const bool& storage);
 	};
 
 	class Texture2D : public Texture {
@@ -103,7 +101,7 @@ namespace rgle {
 		void operator=(Texture2D&& rvalue);
 
 		virtual void update();
-		virtual void use();
+		virtual void bind();
 
 	private:
 		void _initialize();
@@ -127,7 +125,12 @@ namespace rgle {
 		void operator=(PersistentTexture2D&& rvalue);
 
 		virtual void update();
-		virtual void use();
+		virtual void bind();
+
+		virtual void bindImage2D();
+
+		GLenum& access();
+		const GLenum& access() const;
 
 	private:
 		void _initialize();

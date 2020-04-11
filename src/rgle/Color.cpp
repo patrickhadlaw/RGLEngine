@@ -35,7 +35,7 @@ glm::vec4 rgle::Fill::evaluate(float u, float v)
 
 glm::vec4 rgle::Color::blend(std::initializer_list<glm::vec4> colors)
 {
-	glm::vec4 result;
+	glm::vec4 result = glm::vec4(0.0f);
 	for (const glm::vec4 color : colors) {
 		result += color;
 	}

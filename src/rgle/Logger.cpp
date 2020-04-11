@@ -13,6 +13,14 @@ std::string rgle::Logger::timeString(std::chrono::time_point<std::chrono::system
 	return ss.str();
 }
 
+std::string rgle::Logger::detailString(Detail & detail)
+{
+	return std::string("|File[") + detail.file +
+		"]|Func[" + detail.func +
+		"]|Line[" + std::to_string(detail.line) +
+		"]" + (detail.id.empty() ? "" : std::string("|ID[") + detail.id + ']');
+}
+
 void rgle::Logger::message(std::string message)
 {
 	std::cout << message << std::endl;
@@ -77,9 +85,8 @@ std::string rgle::Logger::_print(std::string header, std::string& message, Detai
 	std::string time = Logger::timeString(detail.timestamp);
 	std::cout << time << '|';
 	Console::coloredPrint(color, header);
-	std::string result = std::string("|") + detail.file + '|' + detail.func + '|' + std::to_string(detail.line);
-	result += detail.id.empty() ? "" : std::string("|ID: ") + detail.id + "|";
-	result += std::string(": ") + message;
+	std::string result = detailString(detail);
+	result += std::string("|: ") + message;
 	std::cout << result << std::endl;
 	result = time + '|' + header + result;
 	return result;

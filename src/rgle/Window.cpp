@@ -2,6 +2,7 @@
 
 
 std::map<GLFWwindow*, rgle::Window*> rgle::Window::_handles;
+bool rgle::Window::_initialized = false;
 
 rgle::Unit rgle::unitFromPostfix(std::string string)
 {
@@ -53,6 +54,13 @@ std::string rgle::postfixFromUnit(Unit unit)
 	}
 }
 
+void rgle::glfw_error_callback(int code, const char * message)
+{
+	std::stringstream ss;
+	ss << "GLFW Error[" << code << "], " << message;
+	Logger::error(ss.str(), LOGGER_DETAIL_DEFAULT);
+}
+
 rgle::Window::Window(const int width, const int height, const char* title) : _cursor(nullptr)
 {
 	rgle::Logger::info("creating window with title: " + std::string(title), LOGGER_DETAIL_DEFAULT);
@@ -62,7 +70,7 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -76,6 +84,17 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 	this->_grabbed = false;
 
 	Window::_handles[this->_window] = this;
+
+	if (!Window::_initialized) {
+		Logger::debug("initializing GLEW", LOGGER_DETAIL_IDENTIFIER(this->id));
+		glewExperimental = true;
+		GLenum err = glewInit();
+		if (err != GLEW_OK) {
+			throw rgle::Exception("failed to initialize GLEW: " + std::string((const char*)glewGetErrorString(err)), LOGGER_DETAIL_DEFAULT);
+		}
+		glfwSetErrorCallback(glfw_error_callback);
+		Window::_initialized = true;
+	}
 
 	glfwSetCursorPosCallback(this->_window, [](GLFWwindow * window, double xpos, double ypos) -> void {
 		MouseMoveMessage* message = new MouseMoveMessage;
@@ -127,6 +146,9 @@ rgle::Window::~Window()
 		auto it = Window::_handles.find(_window);
 		Window::_handles.erase(it);
 		this->_window = nullptr;
+		if (Window::_handles.empty()) {
+			glfwTerminate();
+		}
 	}
 }
 

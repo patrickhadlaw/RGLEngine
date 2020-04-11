@@ -13,10 +13,14 @@ namespace rgle {
 	// @remarks
 	// Uniform storage blocks are rounded to the largest base alignment of any of its members,
 	// rounded to the nearest sizeof(vec4)
+	// @note that the exception to this rule is 3 component vectors (which are treated as 4
+	// component vectors), avoid using them in uniform blocks
 	size_t aligned_std140_size(const size_t& size, const size_t& largestMember);
 	// Gets the padded size of a shader storage block
 	// @remarks
 	// Shader storage blocks are rounded to the largest base alignment of any of its members
+	// @note that the exception to this rule is 3 component vectors (which are treated as 4
+	// component vectors), avoid using them in storage blocks
 	size_t aligned_std430_size(const size_t& size, const size_t& largestMember);
 
 	enum class ShaderModel {

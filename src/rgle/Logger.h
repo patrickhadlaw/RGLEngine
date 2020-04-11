@@ -27,6 +27,7 @@ namespace rgle {
 		};
 
 		static std::string timeString(std::chrono::time_point<std::chrono::system_clock>& timestamp);
+		static std::string detailString(Detail& detail);
 
 		static void message(std::string message);
 		static void info(std::string message, Detail& detail);

@@ -37,12 +37,11 @@ std::string rgle::Exception::except()
 
 std::string rgle::Exception::print()
 {
-	std::string time = Logger::timeString(_details.timestamp);
+	std::string time = Logger::timeString(this->_details.timestamp);
 	std::cout << time << '|';
 	Console::coloredPrint(Console::Color::RED, "EXCEPTION");
-	std::string result = std::string("|") + this->_typeReflected + '|' + _details.file + '|' + _details.func + '|' + std::to_string(_details.line);
-	result += _details.id.empty() ? "" : std::string("|ID: ") + _details.id;
-	result += std::string(": ") + _exception;
+	std::string result = std::string("|") + this->_typeReflected + Logger::detailString(this->_details);
+	result += std::string("|: ") + _exception;
 	std::cout << result << std::endl;
 	result = time + "|EXCEPTION" + result;
 	return result;

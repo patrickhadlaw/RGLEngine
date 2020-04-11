@@ -46,6 +46,7 @@ namespace rgle {
 	class CollectingQueue {
 	public:
 		CollectingQueue() {}
+		CollectingQueue(const Range<Type>& range) : _queue{ range } {}
 
 		void push(const Type& value) {
 			if (this->_queue.empty()) {

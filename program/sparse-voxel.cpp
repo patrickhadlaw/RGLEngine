@@ -55,12 +55,6 @@ int main(const int argc, const char* const argv[]) {
 
 		auto window = std::make_shared<rgle::Window>(width, height, "RGLEngine");
 
-		glewExperimental = true;
-		GLenum err = glewInit();
-		if (err != GLEW_OK) {
-			throw rgle::Exception("failed to initialize glew: " + std::string((const char*)glewGetErrorString(err)), LOGGER_DETAIL_DEFAULT);
-		}
-
 		rgle::Application app = rgle::Application("rgle", window);
 
 		app.initialize();
@@ -114,12 +108,15 @@ int main(const int argc, const char* const argv[]) {
 		app.addResource(roboto);
 
 		std::shared_ptr<rgle::SparseVoxelOctree> octree;
+		std::shared_ptr<rgle::NoClipSparseVoxelCamera> camera;
 		std::shared_ptr<rgle::SparseVoxelRenderer> mainLayer;
 		std::shared_ptr<rgle::UI::Layer> uiLayer;
 		std::shared_ptr<rgle::Text> fpsText;
 
-		app.executeInContext([&app, &window, &octree, &mainLayer, &uiLayer, &fpsText]() {
+		app.executeInContext([&app, &window, &octree, &camera, &mainLayer, &uiLayer, &fpsText]() {
 			octree = std::make_shared<rgle::SparseVoxelOctree>();
+
+			camera = std::make_shared<rgle::NoClipSparseVoxelCamera>(0.01f, 1000.0f, glm::radians(60.0f), window);
 
 			mainLayer = std::make_shared<rgle::SparseVoxelRenderer>(
 				"mainLayer",
@@ -128,27 +125,37 @@ int main(const int argc, const char* const argv[]) {
 				"sparse-voxel-realize",
 				window->width(),
 				window->height(),
-				glm::radians(60.0f)
+				camera
 			);
 			app.addLayer(mainLayer);
-			mainLayer->camera()->translate(glm::vec3(0.0f, 0.0f, -1.0f));
+			camera->translate(glm::vec3(-0.25f, -0.25f, -1.0f));
+			camera->rotate(0.1f, 0.0f, 0.0f);
 			octree->root()->size() = 0.25f;
-			octree->root()->color() = glm::vec4(1.0f, 1.0f, 0.0f, 1.0f);
+			octree->root()->color() = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
 			octree->root()->update();
-			octree->flush();
+			octree->root()->insertChildren({
+				glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+				glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+				glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+				glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+				glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+				glm::vec4(1.0f, 0.0f, 1.0f, 1.0f),
+				glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+				glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+			});
 
 			uiLayer = std::make_shared<rgle::UI::Layer>("ui");
 			app.addLayer(uiLayer);
 
 			rgle::TextAttributes attrib{
 				rgle::FontType::BOLD,
-				rgle::UnitValue::parse("16pt"),
+				rgle::UnitValue::parse("8pt"),
 				rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT),
 				rgle::UnitVector2D(0.0, 0.0)
 			};
-			//fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
-			//fpsText->id = "fpsText";
-			//uiLayer->addElement(fpsText);
+			fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
+			fpsText->id = "fpsText";
+			uiLayer->addElement(fpsText);
 		});
 
 		Stack<30, int> framerate;
@@ -168,11 +175,14 @@ int main(const int argc, const char* const argv[]) {
 			}
 
 			if (uiLayer->tick()) {
-				//fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
+				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
 			}
 
-
 			app.update();
+
+			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+				camera->grab();
+			}
 		}
 	}
 	catch (rgle::Exception& e) {

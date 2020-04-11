@@ -198,6 +198,9 @@ void rgle::ContextManager::update()
 
 void rgle::ContextManager::render()
 {
+	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+		Logger::warn("incomplete framebuffer!", LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
 	for (int i = 0; i < _layers.size(); i++) {
 		_layers[i]->render();
 	}

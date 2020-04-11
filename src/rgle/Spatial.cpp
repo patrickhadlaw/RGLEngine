@@ -1,7 +1,7 @@
 #include "rgle/Spatial.h"
 
-const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(7 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
-const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(3 * sizeof(GLint) + 3 * sizeof(GLfloat), 3 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(8 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(3 * sizeof(GLint) + 4 * sizeof(GLfloat), 4 * sizeof(GLfloat));
 const size_t rgle::SparseVoxelOctree::BLOCK_SIZE = 8 * rgle::SparseVoxelNodePayload::SIZE;
 
 const int rgle::SparseVoxelRenderer::OCTREE_BUFFER = 1;
@@ -16,40 +16,26 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	std::string realizeShaderId,
 	unsigned int width,
 	unsigned int height,
-	float fieldOfView) : _octree(octree), _resolution(glm::ivec2(width, height)), _fieldOfView(fieldOfView), RenderLayer(id)
+	std::shared_ptr<SparseVoxelCamera> camera,
+	size_t maxPassesPerFrame) :
+	_octree(octree),
+	_resolution(glm::ivec2(width, height)),
+	_camera(camera),
+	_maxPassesPerFrame(maxPassesPerFrame),
+	_lastTime(std::chrono::system_clock::now()),
+	RenderLayer(id)
 {
-	this->shader() = this->context().manager.shader.lock()->get(computeShaderId);
-	if (this->shader().expired()) {
-		throw NotFoundException("shader: '" + computeShaderId + "' not found", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_realizeShader = this->context().manager.shader.lock()->get(realizeShaderId);
-	if (this->_realizeShader == nullptr) {
-		throw NotFoundException("shader: '" + realizeShaderId + "' not found", LOGGER_DETAIL_IDENTIFIER(id));
-	}
+	this->shader() = this->context().manager.shader.lock()->getStrict(computeShaderId);
+	this->_realizeShader = this->context().manager.shader.lock()->getStrict(realizeShaderId);
 	auto shader = this->shaderLocked();
-	this->_location.bootstrap = glGetUniformLocation(shader->programId(), "bootstrap");
-	if (this->_location.bootstrap < 0) {
-		throw GraphicsException("failed to locate shader uniform: 'bootstrap'", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_location.finalize = glGetUniformLocation(shader->programId(), "finalize");
-	if (this->_location.finalize < 0) {
-		throw GraphicsException("failed to locate shader uniform: 'finalize'", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_location.renderResolution = glGetUniformLocation(shader->programId(), "render_resolution");
-	if (this->_location.renderResolution < 0) {
-		throw GraphicsException("failed to locate shader uniform: 'render_resolution'", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_location.rootNodeOffset = glGetUniformLocation(shader->programId(), "root_node_offset");
-	if (this->_location.rootNodeOffset < 0) {
-		throw GraphicsException("failed to locate shader uniform: 'root_node_offset'", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_location.rootNodeSize = glGetUniformLocation(shader->programId(), "root_node_size");
-	if (this->_location.rootNodeSize < 0) {
-		throw GraphicsException("failed to locate shader uniform: 'root_node_size'", LOGGER_DETAIL_IDENTIFIER(id));
-	}
-	this->_orthoCamera = std::make_shared<Camera>(CameraType::ORTHOGONAL_PROJECTION, this->context().window.lock());
-	this->_sparseVoxelCamera = std::make_shared<SparseVoxelCamera>(0.01f, 1000.0f, this->_fieldOfView);
-	this->transformer() = this->_sparseVoxelCamera;
+	this->_location.bootstrap = shader->uniformStrict("bootstrap");
+	this->_location.finalize = shader->uniformStrict("finalize");
+	this->_location.renderResolution = shader->uniformStrict("render_resolution");
+	this->_location.rootNodeOffset = shader->uniformStrict("root_node_offset");
+	this->_location.rootNodeSize = shader->uniformStrict("root_node_size");
+	this->_location.depthImage = shader->uniformStrict("depth_image");
+	this->_location.outImage = shader->uniformStrict("out_image");
+	this->transformer() = this->_camera;
 	auto depthImage = std::make_shared<Image>(this->_resolution.x, this->_resolution.y, 1, 1, sizeof(GLuint));
 	auto outImage = std::make_shared<Image>(this->_resolution.x, this->_resolution.y, 1, 1, sizeof(GLint));
 	const GLuint uintMax = std::numeric_limits<GLuint>::max();
@@ -60,30 +46,23 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 			outImage->set(i, j, (unsigned char*)&startIndex, sizeof(GLint));
 		}
 	}
-	this->_depthImage = Sampler2D(
-		this->shader(),
-		std::make_shared<PersistentTexture2D>(
-			depthImage,
-			0,
-			PersistentTexture2D::Format{ GL_R32UI, GL_RED_INTEGER },
-			GL_UNSIGNED_INT,
-			GL_READ_WRITE
-		),
-		"depth_image"
+	this->_depthTexture = std::make_shared<PersistentTexture2D>(
+		depthImage,
+		1,
+		PersistentTexture2D::Format{ GL_R32UI, GL_RED_INTEGER },
+		GL_UNSIGNED_INT,
+		GL_READ_WRITE
 	);
-	this->_outImage = Sampler2D(
-		this->shader(),
-		std::make_shared<PersistentTexture2D>(
-			outImage,
-			1,
-			PersistentTexture2D::Format{ GL_R32I, GL_RED_INTEGER },
-			GL_INT,
-			GL_WRITE_ONLY
-		),
-		"out_image"
+	this->_outTexture = std::make_shared<PersistentTexture2D>(
+		outImage,
+		0,
+		PersistentTexture2D::Format{ GL_R32I, GL_RED_INTEGER },
+		GL_INT,
+		GL_WRITE_ONLY
 	);
 
-	this->_imageRect = ImageRect(Sampler2D(this->_realizeShader, this->_outImage.texture), 2.0f, 2.0f);
+	this->_imageRect = ImageRect(Sampler2D(this->_realizeShader, this->_outTexture), 2.0f, 2.0f);
+	this->_imageRect.model.matrix[3][2] = 0.0f;
 
 	glGenBuffers(1, &this->_passReadBuffer);
 	glGenBuffers(1, &this->_passWriteBuffer);
@@ -93,9 +72,10 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 	this->_bootstrapData = std::malloc(this->_resolution.x * this->_resolution.y * SparseVoxelRayPayload::SIZE);
 	SparseVoxelRayPayload payload;
-	glm::vec2 pixelAngle(this->_fieldOfView / this->_resolution.x, this->_fieldOfView / this->_resolution.y);
+	glm::vec2 pixelAngle(this->_camera->fieldOfView() / this->_resolution.x, this->_camera->fieldOfView() / this->_resolution.y);
 	glm::ivec2 center(this->_resolution.x / 2, this->_resolution.y / 2);
 	unsigned char* ptr = (unsigned char*)this->_bootstrapData;
 	for (int i = 0; i < this->_resolution.x; i++) {
@@ -129,22 +109,30 @@ size_t rgle::SparseVoxelRenderer::swapBuffers()
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 2 * sizeof(GLuint), payload);
 	GLuint temp = this->_passReadBuffer;
 	this->_passReadBuffer = this->_passWriteBuffer;
+	this->_passWriteBuffer = temp;
+	if (nextReadSize * 8 >= this->_passAllocatedSize) {
+		this->reallocPassBuffers(8.0f);
+	}
 	return nextReadSize;
 }
 
 std::shared_ptr<rgle::SparseVoxelCamera>& rgle::SparseVoxelRenderer::camera()
 {
-	return this->_sparseVoxelCamera;
+	return this->_camera;
 }
 
 const std::shared_ptr<rgle::SparseVoxelCamera>& rgle::SparseVoxelRenderer::camera() const
 {
-	return this->_sparseVoxelCamera;
+	return this->_camera;
 }
 
 void rgle::SparseVoxelRenderer::update()
 {
+	auto currentTime = std::chrono::system_clock::now();
+	auto diff = currentTime - this->_lastTime;
 	this->_octree->flush();
+	this->_camera->update(diff.count() / 1000000.0f);
+	this->_lastTime = currentTime;
 }
 
 void rgle::SparseVoxelRenderer::render()
@@ -155,44 +143,36 @@ void rgle::SparseVoxelRenderer::render()
 	this->transformer()->bind(shader);
 	glUniform2ui(this->_location.renderResolution, this->_resolution.x, this->_resolution.y);
 	this->_octree->bind();
-	this->_depthImage.use();
-	this->_outImage.use();
+	glUniform1i(this->_location.depthImage, this->_depthTexture->index());
+	this->_depthTexture->bindImage2D();
+	glUniform1i(this->_location.outImage, this->_outTexture->index());
+	this->_outTexture->bindImage2D();
 	glUniform1i(this->_location.finalize, false);
-	size_t read_size = this->_resolution.x * this->_resolution.y;
 	bool first = true;
-	bool last = true;
-	glMemoryBarrier(GL_SHADER_STORAGE_BUFFER);
-	while (first) { // TODO: do more than first pass
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	int i = 0;
+	while (i < this->_maxPassesPerFrame && this->_currentPassSize > 0) {
 		glUniform1i(this->_location.bootstrap, first);
 		first = false;
-		if (last) {
+		if (i == this->_maxPassesPerFrame - 1) {
 			this->finalize();
 		}
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, META_BUFFER, this->_metaBuffer);
-		//size_t dim = std::ceil(std::sqrt((double) read_size / 1024.0));
-		size_t dim = std::ceil((float)read_size / 1024.0f);
+		size_t dim = std::ceil((float)this->_currentPassSize / 1024.0f);
 		glDispatchCompute(dim, 1, 1);
-		glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-		//read_size = this->swapBuffers();
-		// TODO: check realloc
-	}
-	/*this->_realizeShader->use();
-	this->_octree->bind();
-	this->_orthoCamera->bind(this->_realizeShader);
-	this->_imageRect.render();*/
-	/*GLuint* tmp = new GLuint[this->_resolution.x * this->_resolution.y];
-	Image8 img(this->_resolution.x, this->_resolution.y, 1);
-	glGetTextureImage(this->_depthImage.texture->id(), 0, GL_RED, GL_UNSIGNED_INT, this->_resolution.x * this->_resolution.y * sizeof(GLuint), tmp);
-	for (int i = 0; i < this->_resolution.x; i++) {
-		for (int j = 0; j < this->_resolution.y; j++) {
-			img.image[i + j * this->_resolution.x] = static_cast<unsigned char>((float)tmp[i + j * this->_resolution.x] / 100000.0f);
+		if (i != this->_maxPassesPerFrame - 1) {
+			this->_currentPassSize = this->swapBuffers();
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 		}
+		i++;
 	}
-	std::free(tmp);
-	img.write("tmp.png");*/
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	this->_realizeShader->use();
+	this->_octree->bind();
+	this->_imageRect.render();
 }
 
 const char * rgle::SparseVoxelRenderer::typeName() const
@@ -205,20 +185,18 @@ void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 	if (factor <= 0.0f) {
 		throw GraphicsException("invalid sparse voxel allocation factor: " + std::to_string(factor) + " expected factor greater than zero", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
-	else if (this->_passAllocatedSize * factor < std::max(this->_readPassSize, this->_writePassSize)) {
+	else if (this->_passAllocatedSize * factor < this->_currentPassSize) {
 		throw GraphicsException("failed to reallocate sparse voxel pass buffers, reallocation too small", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
-		void* buffer = std::malloc(std::max(this->_readPassSize, this->_writePassSize) * SparseVoxelRayPayload::SIZE);
+		void* buffer = std::malloc(this->_currentPassSize * SparseVoxelRayPayload::SIZE);
 		size_t size = this->_passAllocatedSize * factor;
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_readPassSize * SparseVoxelRayPayload::SIZE, buffer);
+		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, buffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_readPassSize * SparseVoxelRayPayload::SIZE, buffer);
+		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, buffer);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
-		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_writePassSize * SparseVoxelRayPayload::SIZE, buffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_writePassSize * SparseVoxelRayPayload::SIZE, buffer);
 		this->_passAllocatedSize = size;
 		std::free(buffer);
 	}
@@ -227,20 +205,18 @@ void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 void rgle::SparseVoxelRenderer::bootstrap()
 {
 	// Restore the depth image
-	this->_depthImage.texture->update();
+	this->_depthTexture->update();
 	// Restore the output image
-	this->_outImage.texture->update();
+	this->_outTexture->update();
 	glUniform1i(this->_location.rootNodeOffset, this->_octree->root()->index());
 	glUniform1f(this->_location.rootNodeSize, this->_octree->root()->size());
 	// Reset the read/write pass state
-	// TODO: use a persistent map
-	this->_readPassSize = this->_resolution.x * this->_resolution.y;
-	this->_writePassSize = 0;
+	this->_currentPassSize = this->_resolution.x * this->_resolution.y;
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_metaBuffer);
-	GLuint meta[2] = { this->_readPassSize, this->_writePassSize };
+	GLuint meta[2] = { this->_currentPassSize, 0 };
 	glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(GLuint), meta, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_readPassSize * SparseVoxelRayPayload::SIZE, this->_bootstrapData);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, this->_bootstrapData);
 }
 
 void rgle::SparseVoxelRenderer::finalize()
@@ -255,12 +231,18 @@ rgle::SparseVoxelCamera::SparseVoxelCamera(float near, float far, float fieldOfV
 	_position(0.0f, 0.0f, 0.0f),
 	_direction(0.0f, 0.0f, 1.0f),
 	_up(glm::vec3(0.0f, 1.0f, 0.0f)),
-	_viewMatrix(1.0f)
+	_right(glm::cross(_direction, _up)),
+	_view(_updatedView())
 {
 }
 
 rgle::SparseVoxelCamera::~SparseVoxelCamera()
 {
+}
+
+void rgle::SparseVoxelCamera::update(float deltaT)
+{
+	this->_view = this->_updatedView();
 }
 
 void rgle::SparseVoxelCamera::bind(std::shared_ptr<ShaderProgram> program)
@@ -270,12 +252,68 @@ void rgle::SparseVoxelCamera::bind(std::shared_ptr<ShaderProgram> program)
 	glUniform1f(glGetUniformLocation(program->programId(), "camera_near"), this->_near);
 	glUniform1f(glGetUniformLocation(program->programId(), "camera_far"), this->_far);
 	glUniform1f(glGetUniformLocation(program->programId(), "field_of_view"), this->_fieldOfView);
-	glUniformMatrix3fv(glGetUniformLocation(program->programId(), "view"), 1, GL_FALSE, &this->_viewMatrix[0][0]);
+	glUniformMatrix3fv(glGetUniformLocation(program->programId(), "view"), 1, GL_FALSE, &this->_view[0][0]);
+}
+
+void rgle::SparseVoxelCamera::translate(const float& x, const float& y, const float& z)
+{
+	this->translate(glm::vec3(x, y, z));
 }
 
 void rgle::SparseVoxelCamera::translate(const glm::vec3 & by)
 {
 	this->_position += by;
+}
+
+void rgle::SparseVoxelCamera::rotate(const float& pitch, const float& yaw, const float& roll)
+{
+	glm::vec3 direction = this->_direction;
+	this->_direction = glm::normalize(
+		glm::angleAxis(pitch, this->_up) *
+		glm::angleAxis(yaw, this->_right) *
+		glm::angleAxis(roll, direction)
+	) * this->_direction;
+	this->_up = glm::normalize(
+		glm::angleAxis(pitch, this->_up) *
+		glm::angleAxis(yaw, this->_right) *
+		glm::angleAxis(roll, direction)
+	) * this->_up;
+	this->_right = glm::cross(this->_direction, this->_up);
+}
+
+float & rgle::SparseVoxelCamera::fieldOfView()
+{
+	return this->_fieldOfView;
+}
+
+const float & rgle::SparseVoxelCamera::fieldOfView() const
+{
+	return this->_fieldOfView;
+}
+
+const glm::vec3 & rgle::SparseVoxelCamera::position() const
+{
+	return this->_position;
+}
+
+const glm::vec3 & rgle::SparseVoxelCamera::direction() const
+{
+	return this->_direction;
+}
+
+const glm::vec3 & rgle::SparseVoxelCamera::up() const
+{
+	return this->_up;
+}
+
+const glm::vec3 & rgle::SparseVoxelCamera::right() const
+{
+	return this->_right;
+}
+
+const glm::mat3 rgle::SparseVoxelCamera::_updatedView() const
+{
+	return glm::lookAt(glm::vec3(0.0f), -this->_direction, this->_up);
 }
 
 rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
@@ -286,13 +324,13 @@ rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
 		GL_SHADER_STORAGE_BUFFER,
 		this->_size * BLOCK_SIZE,
 		nullptr,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT
 	);
 	this->_octreeData = (unsigned char*)glMapBufferRange(
 		GL_SHADER_STORAGE_BUFFER,
 		0,
 		this->_size * BLOCK_SIZE,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT//| GL_MAP_FLUSH_EXPLICIT_BIT
 	);
 	if (this->_octreeData == nullptr) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
@@ -302,7 +340,6 @@ rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
 	this->_root->_depth = 0;
 	this->_root->_index = 0;
 	this->_root->update();
-	this->flush();
 }
 
 rgle::SparseVoxelOctree::~SparseVoxelOctree()
@@ -322,10 +359,9 @@ rgle::SparseVoxelNode * rgle::SparseVoxelOctree::root() const
 
 void rgle::SparseVoxelOctree::flush()
 {
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_octreeBuffer);
 	while (!this->_modifiedBlocks.empty()) {
 		Range<size_t> flushRange = this->_modifiedBlocks.pop();
-		glFlushMappedBufferRange(GL_SHADER_STORAGE_BUFFER, flushRange.lower * BLOCK_SIZE, flushRange.length() * BLOCK_SIZE);
+		//glFlushMappedNamedBufferRange(this->_octreeBuffer, flushRange.lower * BLOCK_SIZE, flushRange.length() * BLOCK_SIZE);
 	}
 }
 
@@ -362,19 +398,23 @@ void rgle::SparseVoxelOctree::_realloc(float factor)
 		GL_SHADER_STORAGE_BUFFER,
 		newsize * BLOCK_SIZE,
 		nullptr,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT
 	);
-	this->_octreeData = (unsigned char*)glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_MAP_PERSISTENT_BIT);
+	this->_octreeData = (unsigned char*)glMapNamedBufferRange(
+		this->_octreeBuffer,
+		0,
+		this->_size * BLOCK_SIZE,
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT//| GL_MAP_FLUSH_EXPLICIT_BIT
+	);
 	std::memcpy(this->_octreeData, data, this->_size * BLOCK_SIZE);
-	glFlushMappedBufferRange(GL_SHADER_STORAGE_BUFFER, 0, this->_size * SparseVoxelNodePayload::SIZE);
+	this->_modifiedBlocks = CollectingQueue(Range<size_t>{ 0, this->_size });
 	this->_size = newsize;
-	this->_modifiedBlocks.clear();
 	free(data);
 }
 
 unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
 {
-	if (at >= this->_top) {
+	if (at >= this->_top * 8) {
 		throw OutOfBoundsException(LOGGER_DETAIL_DEFAULT);
 	}
 	return this->_octreeData + at * SparseVoxelNodePayload::SIZE;
@@ -383,7 +423,8 @@ unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
 void rgle::SparseVoxelRayPayload::mapToBuffer(unsigned char * buffer) const
 {
 	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->ray.x, 3 * sizeof(GLfloat));
-	next = (unsigned char*)std::memcpy(next + 3 * sizeof(GLfloat), &this->pixel.x, 2 * sizeof(GLint));
+	// NOTE: offset by vec4 to avoid using vec3 in SSBO (vec3's are difficult to work with in interface blocks)
+	next = (unsigned char*)std::memcpy(next + 4 * sizeof(GLfloat), &this->pixel.x, 2 * sizeof(GLint));
 	std::memcpy(next + 2 * sizeof(GLint), &this->offset, sizeof(GLint));
 }
 
@@ -428,7 +469,7 @@ rgle::SparseVoxelNode * rgle::SparseVoxelNode::parent() const
 	return this->_parent;
 }
 
-void rgle::SparseVoxelNode::insertChildren(glm::vec4 colors[8])
+void rgle::SparseVoxelNode::insertChildren(std::array<glm::vec4, 8> colors)
 {
 	if (!this->leaf()) {
 		throw InvalidStateException("failed to create octree children, they already exist", LOGGER_DETAIL_DEFAULT);
@@ -528,6 +569,7 @@ rgle::SparseVoxelNode::SparseVoxelNode(SparseVoxelOctree * octree) :
 	_position(0.0f, 0.0f, 0.0f),
 	_size(0.0f),
 	_children(nullptr),
+	_parent(nullptr),
 	_octree(octree)
 {
 }
@@ -566,7 +608,8 @@ void rgle::SparseVoxelNodePayload::mapToBuffer(unsigned char * buffer) const
 {
 	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->color.x, 4 * sizeof(GLfloat));
 	next = (unsigned char*)std::memcpy(next + 4 * sizeof(GLfloat), &this->position.x, 3 * sizeof(GLfloat));
-	next = (unsigned char*)std::memcpy(next + 3 * sizeof(GLfloat), &this->depth, sizeof(GLuint));
+	// NOTE: offset by vec4 to avoid using vec3 in SSBO (vec3's are difficult to work with in interface blocks)
+	next = (unsigned char*)std::memcpy(next + 4 * sizeof(GLfloat), &this->depth, sizeof(GLuint));
 	std::memcpy(next + sizeof(GLuint), &this->next, sizeof(GLint));
 }
 
@@ -580,4 +623,81 @@ void rgle::OctreeIndex::from_index(const size_t & index, X & x, Y & y, Z & z)
 	x = index % 2 == 0 ? X::LEFT : X::RIGHT;
 	y = index % 4 < 2 ? Y::BOTTOM : Y::TOP;
 	z = index < 4 ? Z::BACK : Z::FRONT;
+}
+
+rgle::NoClipSparseVoxelCamera::NoClipSparseVoxelCamera(float near, float far, float fieldOfView, std::shared_ptr<Window> window) :
+	_window(window),
+	SparseVoxelCamera(near, far, fieldOfView)
+{
+	if (this->_window.expired()) {
+		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
+	}
+	window->registerListener("mousemove", this);
+}
+
+void rgle::NoClipSparseVoxelCamera::onMessage(std::string eventname, EventMessage * message)
+{
+	if (eventname == "mousemove") {
+		MouseMoveMessage* mousemove = dynamic_cast<MouseMoveMessage*>(message);
+		this->_mouse.deltaX = mousemove->mouse.x;
+		this->_mouse.deltaY = mousemove->mouse.y;
+	}
+}
+
+void rgle::NoClipSparseVoxelCamera::update(float deltaT)
+{
+	auto window = this->_window.lock();
+	if (window->grabbed()) {
+		int state = window->getKey(GLFW_KEY_ESCAPE);
+		if (state == GLFW_PRESS) {
+			this->unGrab();
+		}
+		else {
+			if (this->_mouse.deltaX != 0.0 || this->_mouse.deltaY != 0.0) {
+				this->rotate(-deltaT * ((float)this->_mouse.deltaX / window->height()), deltaT * ((float)this->_mouse.deltaY / window->width()), 0.0);
+				this->_mouse.deltaX = 0.0;
+				this->_mouse.deltaY = 0.0;
+			}
+			if (window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
+				this->move(deltaT, 0.0, 0.0);
+			}
+			if (window->getKey(GLFW_KEY_A) == GLFW_PRESS) {
+				this->move(0.0, -deltaT, 0.0);
+			}
+			if (window->getKey(GLFW_KEY_S) == GLFW_PRESS) {
+				this->move(-deltaT, 0.0, 0.0);
+			}
+			if (window->getKey(GLFW_KEY_D) == GLFW_PRESS) {
+				this->move(0.0, deltaT, 0.0);
+			}
+			if (window->getKey(GLFW_KEY_SPACE) == GLFW_PRESS) {
+				this->move(0.0, 0.0, deltaT);
+			}
+			if (window->getKey(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+				this->move(0.0, 0.0, -deltaT);
+			}
+			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
+				this->rotate(0.0, 0.0, -deltaT);
+			}
+			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
+				this->rotate(0.0, 0.0, deltaT);
+			}
+		}
+	}
+	SparseVoxelCamera::update(deltaT);
+}
+
+void rgle::NoClipSparseVoxelCamera::grab()
+{
+	this->_window.lock()->grabCursor();
+}
+
+void rgle::NoClipSparseVoxelCamera::unGrab()
+{
+	this->_window.lock()->ungrabCursor();
+}
+
+void rgle::NoClipSparseVoxelCamera::move(float forward, float horizontal, float vertical)
+{
+	this->translate(this->direction() * forward + this->right() * horizontal + this->up() * vertical);
 }
