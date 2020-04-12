@@ -197,6 +197,7 @@ namespace rgle {
 			double deltaX = 0.0f;
 			double deltaY = 0.0f;
 		} _mouse;
+		float _speed = 0.1f;
 		std::weak_ptr<Window> _window;
 	};
 
@@ -207,7 +208,7 @@ namespace rgle {
 		static const int OCTREE_BUFFER;
 		static const int PASS_READ_BUFFER;
 		static const int PASS_WRITE_BUFFER;
-		static const int META_BUFFER;
+		static const int PASS_WRTIE_COUNTER;
 
 		SparseVoxelRenderer(
 			std::string id,
@@ -242,7 +243,7 @@ namespace rgle {
 	private:
 		GLuint _passReadBuffer;
 		GLuint _passWriteBuffer;
-		GLuint _metaBuffer;
+		GLuint _writeCounterBuffer;
 		void* _bootstrapData;
 		glm::ivec2 _numWorkGroups;
 		size_t _currentPassSize;
@@ -266,6 +267,7 @@ namespace rgle {
 			GLint renderResolution;
 			GLint bootstrap;
 			GLint finalize;
+			GLint readPassSize;
 			GLint depthImage;
 			GLint outImage;
 		} _location;

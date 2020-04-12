@@ -7,7 +7,7 @@ const size_t rgle::SparseVoxelOctree::BLOCK_SIZE = 8 * rgle::SparseVoxelNodePayl
 const int rgle::SparseVoxelRenderer::OCTREE_BUFFER = 1;
 const int rgle::SparseVoxelRenderer::PASS_READ_BUFFER = 2;
 const int rgle::SparseVoxelRenderer::PASS_WRITE_BUFFER = 3;
-const int rgle::SparseVoxelRenderer::META_BUFFER = 4;
+const int rgle::SparseVoxelRenderer::PASS_WRTIE_COUNTER = 0;
 
 rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	std::string id,
@@ -33,6 +33,7 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	this->_location.renderResolution = shader->uniformStrict("render_resolution");
 	this->_location.rootNodeOffset = shader->uniformStrict("root_node_offset");
 	this->_location.rootNodeSize = shader->uniformStrict("root_node_size");
+	this->_location.readPassSize = shader->uniformStrict("read_pass_size");
 	this->_location.depthImage = shader->uniformStrict("depth_image");
 	this->_location.outImage = shader->uniformStrict("out_image");
 	this->transformer() = this->_camera;
@@ -66,13 +67,16 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 
 	glGenBuffers(1, &this->_passReadBuffer);
 	glGenBuffers(1, &this->_passWriteBuffer);
-	glGenBuffers(1, &this->_metaBuffer);
+	glGenBuffers(1, &this->_writeCounterBuffer);
 	this->_passAllocatedSize = this->_resolution.x * this->_resolution.y * 8;
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
 	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
+	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
 	this->_bootstrapData = std::malloc(this->_resolution.x * this->_resolution.y * SparseVoxelRayPayload::SIZE);
 	SparseVoxelRayPayload payload;
 	glm::vec2 pixelAngle(this->_camera->fieldOfView() / this->_resolution.x, this->_camera->fieldOfView() / this->_resolution.y);
@@ -96,17 +100,17 @@ rgle::SparseVoxelRenderer::~SparseVoxelRenderer()
 {
 	glDeleteBuffers(1, &this->_passReadBuffer);
 	glDeleteBuffers(1, &this->_passWriteBuffer);
-	glDeleteBuffers(1, &this->_metaBuffer);
+	glDeleteBuffers(1, &this->_writeCounterBuffer);
 	std::free(this->_bootstrapData);
 }
 
 size_t rgle::SparseVoxelRenderer::swapBuffers()
 {
 	GLuint nextReadSize;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_metaBuffer);
-	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, sizeof(GLuint), sizeof(GLuint), &nextReadSize);
-	size_t payload[2] = { nextReadSize, 0 };
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, 2 * sizeof(GLuint), payload);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
+	glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &nextReadSize);
+	const GLuint zero = 0;
+	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
 	GLuint temp = this->_passReadBuffer;
 	this->_passReadBuffer = this->_passWriteBuffer;
 	this->_passWriteBuffer = temp;
@@ -153,6 +157,7 @@ void rgle::SparseVoxelRenderer::render()
 	int i = 0;
 	while (i < this->_maxPassesPerFrame && this->_currentPassSize > 0) {
 		glUniform1i(this->_location.bootstrap, first);
+		glUniform1ui(this->_location.readPassSize, this->_currentPassSize);
 		first = false;
 		if (i == this->_maxPassesPerFrame - 1) {
 			this->finalize();
@@ -160,7 +165,7 @@ void rgle::SparseVoxelRenderer::render()
 
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, META_BUFFER, this->_metaBuffer);
+		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, this->_writeCounterBuffer);
 		size_t dim = std::ceil((float)this->_currentPassSize / 1024.0f);
 		glDispatchCompute(dim, 1, 1);
 		if (i != this->_maxPassesPerFrame - 1) {
@@ -189,16 +194,23 @@ void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 		throw GraphicsException("failed to reallocate sparse voxel pass buffers, reallocation too small", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
-		void* buffer = std::malloc(this->_currentPassSize * SparseVoxelRayPayload::SIZE);
 		size_t size = this->_passAllocatedSize * factor;
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-		glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, buffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-		glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, buffer);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_COPY_READ_BUFFER, this->_passReadBuffer);
+		glBindBuffer(GL_COPY_WRITE_BUFFER, this->_passWriteBuffer);
+		glCopyBufferSubData(
+			GL_COPY_READ_BUFFER,
+			GL_COPY_WRITE_BUFFER,
+			0, 0,
+			this->_currentPassSize * SparseVoxelNodePayload::SIZE
+		);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 		this->_passAllocatedSize = size;
-		std::free(buffer);
+		GLuint temp = this->_passReadBuffer;
+		this->_passReadBuffer = this->_passWriteBuffer;
+		this->_passWriteBuffer = temp;
 	}
 }
 
@@ -212,9 +224,9 @@ void rgle::SparseVoxelRenderer::bootstrap()
 	glUniform1f(this->_location.rootNodeSize, this->_octree->root()->size());
 	// Reset the read/write pass state
 	this->_currentPassSize = this->_resolution.x * this->_resolution.y;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_metaBuffer);
-	GLuint meta[2] = { this->_currentPassSize, 0 };
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 2 * sizeof(GLuint), meta, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
+	GLuint zero = 0;
+	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, this->_bootstrapData);
 }
@@ -231,7 +243,7 @@ rgle::SparseVoxelCamera::SparseVoxelCamera(float near, float far, float fieldOfV
 	_position(0.0f, 0.0f, 0.0f),
 	_direction(0.0f, 0.0f, 1.0f),
 	_up(glm::vec3(0.0f, 1.0f, 0.0f)),
-	_right(glm::cross(_direction, _up)),
+	_right(glm::cross(_up, _direction)),
 	_view(_updatedView())
 {
 }
@@ -278,7 +290,7 @@ void rgle::SparseVoxelCamera::rotate(const float& pitch, const float& yaw, const
 		glm::angleAxis(yaw, this->_right) *
 		glm::angleAxis(roll, direction)
 	) * this->_up;
-	this->_right = glm::cross(this->_direction, this->_up);
+	this->_right = glm::cross(this->_up, this->_direction);
 }
 
 float & rgle::SparseVoxelCamera::fieldOfView()
@@ -390,26 +402,31 @@ size_t rgle::SparseVoxelOctree::_aquireBlock()
 void rgle::SparseVoxelOctree::_realloc(float factor)
 {
 	size_t newsize = std::max(MIN_ALLOCATED, (size_t) factor * this->_size);
-	unsigned char* data = (unsigned char*)std::malloc(this->_size * BLOCK_SIZE);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_octreeBuffer);
-	glGetBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_size * BLOCK_SIZE, data);
-	glInvalidateBufferData(GL_SHADER_STORAGE_BUFFER);
+	GLuint newbuffer;
+	glGenBuffers(1, &newbuffer);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, newbuffer);
 	glBufferStorage(
 		GL_SHADER_STORAGE_BUFFER,
 		newsize * BLOCK_SIZE,
 		nullptr,
 		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT
 	);
+	glBindBuffer(GL_COPY_READ_BUFFER, this->_octreeBuffer);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, newbuffer);
+	glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, 0, 0, this->_size * BLOCK_SIZE);
+	glDeleteBuffers(1, &this->_octreeBuffer);
+	this->_octreeBuffer = newbuffer;
 	this->_octreeData = (unsigned char*)glMapNamedBufferRange(
 		this->_octreeBuffer,
 		0,
 		this->_size * BLOCK_SIZE,
 		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT//| GL_MAP_FLUSH_EXPLICIT_BIT
 	);
-	std::memcpy(this->_octreeData, data, this->_size * BLOCK_SIZE);
+	if (this->_octreeData == nullptr) {
+		throw GraphicsException("failed to memory map octree buffer", LOGGER_DETAIL_IDENTIFIER(this->id));
+	}
 	this->_modifiedBlocks = CollectingQueue(Range<size_t>{ 0, this->_size });
 	this->_size = newsize;
-	free(data);
 }
 
 unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
@@ -654,33 +671,34 @@ void rgle::NoClipSparseVoxelCamera::update(float deltaT)
 		}
 		else {
 			if (this->_mouse.deltaX != 0.0 || this->_mouse.deltaY != 0.0) {
-				this->rotate(-deltaT * ((float)this->_mouse.deltaX / window->height()), deltaT * ((float)this->_mouse.deltaY / window->width()), 0.0);
+				this->rotate(-deltaT * ((float)this->_mouse.deltaX / window->height()), -deltaT * ((float)this->_mouse.deltaY / window->width()), 0.0);
 				this->_mouse.deltaX = 0.0;
 				this->_mouse.deltaY = 0.0;
 			}
+			float move = deltaT * this->_speed;
 			if (window->getKey(GLFW_KEY_W) == GLFW_PRESS) {
-				this->move(deltaT, 0.0, 0.0);
+				this->move(move, 0.0, 0.0);
 			}
 			if (window->getKey(GLFW_KEY_A) == GLFW_PRESS) {
-				this->move(0.0, -deltaT, 0.0);
+				this->move(0.0, -move, 0.0);
 			}
 			if (window->getKey(GLFW_KEY_S) == GLFW_PRESS) {
-				this->move(-deltaT, 0.0, 0.0);
+				this->move(-move, 0.0, 0.0);
 			}
 			if (window->getKey(GLFW_KEY_D) == GLFW_PRESS) {
-				this->move(0.0, deltaT, 0.0);
+				this->move(0.0, move, 0.0);
 			}
 			if (window->getKey(GLFW_KEY_SPACE) == GLFW_PRESS) {
-				this->move(0.0, 0.0, deltaT);
+				this->move(0.0, 0.0, move);
 			}
 			if (window->getKey(GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-				this->move(0.0, 0.0, -deltaT);
+				this->move(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, -deltaT);
+				this->rotate(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, deltaT);
+				this->rotate(0.0, 0.0, move);
 			}
 		}
 	}

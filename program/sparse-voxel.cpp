@@ -133,16 +133,20 @@ int main(const int argc, const char* const argv[]) {
 			octree->root()->size() = 0.25f;
 			octree->root()->color() = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
 			octree->root()->update();
-			octree->root()->insertChildren({
-				glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
-				glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
-				glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
-				glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
-				glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
-				glm::vec4(1.0f, 0.0f, 1.0f, 1.0f),
-				glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
-				glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-			});
+			rgle::SparseVoxelNode* node = octree->root();
+			for (int i = 0; i < 100; i++) {
+				node->insertChildren({
+					glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+					glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+					glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+					glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+					glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+					glm::vec4(1.0f, 0.0f, 1.0f, 1.0f),
+					glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+					glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+				});
+				node = node->child(rgle::OctreeIndex::LEFT, rgle::OctreeIndex::TOP, rgle::OctreeIndex::FRONT);
+			}
 
 			uiLayer = std::make_shared<rgle::UI::Layer>("ui");
 			app.addLayer(uiLayer);

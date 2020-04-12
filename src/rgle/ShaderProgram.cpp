@@ -190,6 +190,7 @@ void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 		rgle::Logger::error(msg, LOGGER_DETAIL_DEFAULT);
 	}
 	else {
-		RGLE_DEBUG_ONLY(rgle::Logger::debug(msg, LOGGER_DETAIL_DEFAULT);)
+		// TODO: implement GL debug log
+		//RGLE_DEBUG_ONLY(rgle::Logger::debug(msg, LOGGER_DETAIL_DEFAULT);)
 	}
 }

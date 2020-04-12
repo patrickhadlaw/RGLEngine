@@ -5,7 +5,7 @@
 //
 //	-
 
-#version 450
+#version 460
 
 layout(local_size_x = 1024) in;
 
@@ -58,16 +58,8 @@ layout(std430, binding=3) writeonly buffer pass_write_buffer {
 	RayState write_state[];
 } PassWriteBuffer;
 
-struct PassMetaData {
-	uint read_pass_size;
-	uint write_pass_size;
-};
-
-// Buffer storing size of pass
-// TODO: use atomic counters instead
-layout(std430, binding=4) buffer meta_buffer {
-	PassMetaData data;
-} MetaBuffer;
+uniform uint read_pass_size;
+layout(binding = 0) uniform atomic_uint write_pass_counter;
 
 layout(r32ui) uniform coherent uimage2D depth_image;
 layout(r32i) uniform coherent iimage2D out_image;
@@ -137,7 +129,7 @@ void main() {
 
 	const float pixel_angle = field_of_view / render_resolution.x;
 
-	const bool valid_invocation = gl_GlobalInvocationID.x < MetaBuffer.data.read_pass_size;
+	const bool valid_invocation = gl_GlobalInvocationID.x < read_pass_size;
 
 	// Aquire ray state for ith invocation of pass
 	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(vec4(0.0f), ivec2(-1. -1), -1);
@@ -159,7 +151,7 @@ void main() {
 	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, ray) && valid_invocation;
 	const bool write = hit && !ray_done;
 
-	uint previous_write_size = atomicAdd(MetaBuffer.data.write_pass_size, write ? 8 : 0);
+	uint previous_write_size = atomicCounterAdd(write_pass_counter, write ? 8 : 0);
 	barrier();
 
 	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid

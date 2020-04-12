@@ -1,4 +1,4 @@
-#version 450
+#version 460
 
 struct OctreeNode {
 	vec4 color;
@@ -14,7 +14,7 @@ layout(std430, binding=1) readonly buffer octree_buffer {
 
 in vec2 uv_coords;
 
-layout(r32i) uniform isampler2D texture_0;
+uniform isampler2D texture_0;
 
 out vec4 frag_color;
 
