@@ -110,7 +110,7 @@ size_t rgle::SparseVoxelRenderer::swapBuffers()
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
 	glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &nextReadSize);
 	const GLuint zero = 0;
-	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
 	GLuint temp = this->_passReadBuffer;
 	this->_passReadBuffer = this->_passWriteBuffer;
 	this->_passWriteBuffer = temp;
@@ -277,17 +277,17 @@ void rgle::SparseVoxelCamera::translate(const glm::vec3 & by)
 	this->_position += by;
 }
 
-void rgle::SparseVoxelCamera::rotate(const float& pitch, const float& yaw, const float& roll)
+void rgle::SparseVoxelCamera::rotate(const float& yaw, const float& pitch, const float& roll)
 {
 	glm::vec3 direction = this->_direction;
 	this->_direction = glm::normalize(
-		glm::angleAxis(pitch, this->_up) *
-		glm::angleAxis(yaw, this->_right) *
+		glm::angleAxis(yaw, this->_up) *
+		glm::angleAxis(pitch, this->_right) *
 		glm::angleAxis(roll, direction)
 	) * this->_direction;
 	this->_up = glm::normalize(
-		glm::angleAxis(pitch, this->_up) *
-		glm::angleAxis(yaw, this->_right) *
+		glm::angleAxis(yaw, this->_up) *
+		glm::angleAxis(pitch, this->_right) *
 		glm::angleAxis(roll, direction)
 	) * this->_up;
 	this->_right = glm::cross(this->_up, this->_direction);
@@ -325,7 +325,7 @@ const glm::vec3 & rgle::SparseVoxelCamera::right() const
 
 const glm::mat3 rgle::SparseVoxelCamera::_updatedView() const
 {
-	return glm::lookAt(glm::vec3(0.0f), -this->_direction, this->_up);
+	return glm::lookAt(glm::vec3(0.0f), -this->_direction, -this->_up);
 }
 
 rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
@@ -695,10 +695,10 @@ void rgle::NoClipSparseVoxelCamera::update(float deltaT)
 				this->move(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, -move);
+				this->rotate(0.0, 0.0, move);
 			}
 			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, move);
+				this->rotate(0.0, 0.0, -move);
 			}
 		}
 	}

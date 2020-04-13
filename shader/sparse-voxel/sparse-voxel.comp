@@ -9,15 +9,6 @@
 
 layout(local_size_x = 1024) in;
 
-#define OCTREE_LEFT_TOP_FRONT 0
-#define OCTREE_RIGHT_TOP_FRONT 1
-#define OCTREE_LEFT_TOP_BACK 2
-#define OCTREE_RIGHT_TOP_BACK 3
-#define OCTREE_LEFT_BOTTOM_FRONT 4
-#define OCTREE_RIGHT_BOTTOM_FRONT 5
-#define OCTREE_LEFT_BOTTOM_BACK 6
-#define OCTREE_RIGHT_BOTTOM_BACK 7
-
 const vec3 BASIS_X = vec3(1.0f, 0.0f, 0.0f);
 const vec3 BASIS_Y = vec3(0.0f, 1.0f, 0.0f);
 const vec3 BASIS_Z = vec3(0.0f, 0.0f, 1.0f);
@@ -94,20 +85,20 @@ vec3 cube_upper_bound(OctreeNode node, float size) {
 
 // Returns true if cube bounded by lower and upper is hit by ray p + vt
 bool raycast_cube(vec3 lower, vec3 upper, vec3 p, vec3 v) {
-	float t0x = (lower.x - p.x) / v.x;
-	float t0y = (lower.y - p.y) / v.y;
-	float t0z = (lower.z - p.z) / v.z;
-	float t1x = (upper.x - p.x) / v.x;
-	float t1y = (upper.y - p.y) / v.y;
-	float t1z = (upper.z - p.z) / v.z;
-	float tlower = max(t0x, max(t0y, t0z));
-	float tupper = min(t1x, min(t1y, t1z));
-	return t0x < tupper &&
-		t0y < tupper &&
-		t0z < tupper &&
-		t1x > tlower &&
-		t1y > tlower &&
-		t1z > tlower;
+	vec2 tx = vec2((lower.x - p.x) / v.x, (upper.x - p.x) / v.x);
+	tx = vec2(min(tx.x, tx.y), max(tx.x, tx.y));
+	vec2 ty = vec2((lower.y - p.y) / v.y, (upper.y - p.y) / v.y);
+	ty = vec2(min(ty.x, ty.y), max(ty.x, ty.y));
+	vec2 tz = vec2((lower.z - p.z) / v.z, (upper.z - p.z) / v.z);
+	tz = vec2(min(tz.x, tz.y), max(tz.x, tz.y));
+	float tlower = max(tx.x, max(ty.x, tz.x));
+	float tupper = min(tx.y, min(ty.y, tz.y));
+	return tx.x <= tupper &&
+		ty.x <= tupper &&
+		tz.x <= tupper &&
+		tx.y >= tlower &&
+		ty.y >= tlower &&
+		tz.y >= tlower;
 }
 
 float log10(float x) {
@@ -127,7 +118,7 @@ void main() {
 	float depth;
 	int offset;
 
-	const float pixel_angle = field_of_view / render_resolution.x;
+	const float pixel_angle = field_of_view / float(render_resolution.x);
 
 	const bool valid_invocation = gl_GlobalInvocationID.x < read_pass_size;
 
@@ -152,7 +143,6 @@ void main() {
 	const bool write = hit && !ray_done;
 
 	uint previous_write_size = atomicCounterAdd(write_pass_counter, write ? 8 : 0);
-	barrier();
 
 	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid
 	if (write) {
@@ -174,5 +164,7 @@ void main() {
 		if (write_depth <= previous_depth) {
 			imageAtomicExchange(out_image, state.pixel, offset);
 		}
+	} else {
+		//imageStore(depth_image, state.pixel, uvec4(raycast_cube(vec3(-1.0f, -1.0f, -1.0f), vec3(1.0f, 1.0f, 1.0f), vec3(0.0f, 0.0f, -1.1f), vec3(-0.707f, 0.01f, 0.707f))));
 	}
 }

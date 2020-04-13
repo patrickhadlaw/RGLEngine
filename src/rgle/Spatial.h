@@ -156,7 +156,7 @@ namespace rgle {
 
 		void translate(const float& x, const float& y, const float& z);
 		void translate(const glm::vec3& by);
-		void rotate(const float& pitch, const float& yaw, const float& roll);
+		void rotate(const float& yaw, const float& pitch, const float& roll);
 
 		float& fieldOfView();
 		const float& fieldOfView() const;

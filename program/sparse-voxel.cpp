@@ -128,8 +128,9 @@ int main(const int argc, const char* const argv[]) {
 				camera
 			);
 			app.addLayer(mainLayer);
-			camera->translate(glm::vec3(-0.25f, -0.25f, -1.0f));
-			camera->rotate(0.1f, 0.0f, 0.0f);
+			camera->translate(glm::vec3(0.0f, 0.0f, -5.0f));
+			//camera->rotate(glm::radians(15.0f), 0.0f, 0.0f);
+			camera->move(1.0f, 0.0f, 0.0f);
 			octree->root()->size() = 0.25f;
 			octree->root()->color() = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
 			octree->root()->update();
