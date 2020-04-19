@@ -242,9 +242,9 @@ rgle::SparseVoxelCamera::SparseVoxelCamera(float near, float far, float fieldOfV
 	_fieldOfView(fieldOfView),
 	_position(0.0f, 0.0f, 0.0f),
 	_direction(0.0f, 0.0f, 1.0f),
-	_up(glm::vec3(0.0f, 1.0f, 0.0f)),
+	_up(0.0f, 1.0f, 0.0f),
 	_right(glm::cross(_up, _direction)),
-	_view(_updatedView())
+	_rotation(1.0f, 0.0f, 0.0f, 0.0f)
 {
 }
 
@@ -254,7 +254,6 @@ rgle::SparseVoxelCamera::~SparseVoxelCamera()
 
 void rgle::SparseVoxelCamera::update(float deltaT)
 {
-	this->_view = this->_updatedView();
 }
 
 void rgle::SparseVoxelCamera::bind(std::shared_ptr<ShaderProgram> program)
@@ -264,7 +263,13 @@ void rgle::SparseVoxelCamera::bind(std::shared_ptr<ShaderProgram> program)
 	glUniform1f(glGetUniformLocation(program->programId(), "camera_near"), this->_near);
 	glUniform1f(glGetUniformLocation(program->programId(), "camera_far"), this->_far);
 	glUniform1f(glGetUniformLocation(program->programId(), "field_of_view"), this->_fieldOfView);
-	glUniformMatrix3fv(glGetUniformLocation(program->programId(), "view"), 1, GL_FALSE, &this->_view[0][0]);
+	glUniform4f(
+		glGetUniformLocation(program->programId(), "rotation_quat"),
+		this->_rotation.x,
+		this->_rotation.y,
+		this->_rotation.z,
+		this->_rotation.w
+	);
 }
 
 void rgle::SparseVoxelCamera::translate(const float& x, const float& y, const float& z)
@@ -279,18 +284,15 @@ void rgle::SparseVoxelCamera::translate(const glm::vec3 & by)
 
 void rgle::SparseVoxelCamera::rotate(const float& yaw, const float& pitch, const float& roll)
 {
-	glm::vec3 direction = this->_direction;
-	this->_direction = glm::normalize(
+	this->_rotation = glm::normalize(
 		glm::angleAxis(yaw, this->_up) *
 		glm::angleAxis(pitch, this->_right) *
-		glm::angleAxis(roll, direction)
-	) * this->_direction;
-	this->_up = glm::normalize(
-		glm::angleAxis(yaw, this->_up) *
-		glm::angleAxis(pitch, this->_right) *
-		glm::angleAxis(roll, direction)
-	) * this->_up;
-	this->_right = glm::cross(this->_up, this->_direction);
+		glm::angleAxis(roll, this->_direction) *
+		this->_rotation
+	);
+	this->_direction = glm::normalize(this->_rotation * glm::vec3(0.0f, 0.0f, 1.0f));
+	this->_up = glm::normalize(this->_rotation * glm::vec3(0.0f, 1.0f, 0.0f));
+	this->_right = glm::normalize(glm::cross(this->_up, this->_direction));
 }
 
 float & rgle::SparseVoxelCamera::fieldOfView()
@@ -321,11 +323,6 @@ const glm::vec3 & rgle::SparseVoxelCamera::up() const
 const glm::vec3 & rgle::SparseVoxelCamera::right() const
 {
 	return this->_right;
-}
-
-const glm::mat3 rgle::SparseVoxelCamera::_updatedView() const
-{
-	return glm::lookAt(glm::vec3(0.0f), -this->_direction, -this->_up);
 }
 
 rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
@@ -671,7 +668,7 @@ void rgle::NoClipSparseVoxelCamera::update(float deltaT)
 		}
 		else {
 			if (this->_mouse.deltaX != 0.0 || this->_mouse.deltaY != 0.0) {
-				this->rotate(-deltaT * ((float)this->_mouse.deltaX / window->height()), -deltaT * ((float)this->_mouse.deltaY / window->width()), 0.0);
+				this->rotate(deltaT * ((float)this->_mouse.deltaX / window->height()), deltaT * ((float)this->_mouse.deltaY / window->width()), 0.0);
 				this->_mouse.deltaX = 0.0;
 				this->_mouse.deltaY = 0.0;
 			}

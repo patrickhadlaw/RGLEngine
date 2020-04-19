@@ -61,24 +61,47 @@ uniform bool finalize;				// Flag to finalize final pass, signals shader to gene
 
 // Camera uniforms
 uniform vec3 camera_position;		// Camera position, used as origin for rays
-uniform vec3 camera_direction;
-uniform float camera_near;
-uniform float camera_far;
+uniform vec3 camera_direction;		// Camera direction vector, used for clipping
+uniform float camera_near;			// Camera near clip
+uniform float camera_far;			// Camera far clip
 uniform float field_of_view;		// Field of view of camera in radians
-uniform mat3 view;
+uniform vec4 rotation_quat;			// Rotation quaternion
 
 // Render uniforms
 uniform uvec2 render_resolution;	// Output render resolution
+
+// Quaternion multiplication
+vec4 quat_multiply(vec4 q1, vec4 q2) {
+	return vec4(
+		(q1.w * q2.x) + (q1.x * q2.w) + (q1.y * q2.z) - (q1.z * q2.y),
+		(q1.w * q2.y) - (q1.x * q2.z) + (q1.y * q2.w) + (q1.z * q2.x),
+		(q1.w * q2.z) + (q1.x * q2.y) - (q1.y * q2.x) + (q1.z * q2.w),
+		(q1.w * q2.w) - (q1.x * q2.x) - (q1.y * q2.y) - (q1.z * q2.z)
+	);
+}
+
+// Compute the inverse of a given quaternion
+vec4 quat_inverse(vec4 q) {
+	return vec4(-q.xyz, q.w) / length(q);
+}
+
+// Transform a position with a given quaternion
+vec3 quat_transform(vec3 p, vec4 q) {
+	//return quat_multiply(quat_inverse(q), quat_multiply(vec4(p.xyz, 0.0f), q)).xyz;
+	return quat_multiply(quat_multiply(q, vec4(p.xyz, 0.0f)), quat_inverse(q)).xyz;
+}
 
 // Project vector u onto v
 vec3 project(vec3 u, vec3 v) {
 	return (dot(u, v) / dot(v, v)) * v;
 }
 
+// Compute the lower bound of a given octree node
 vec3 cube_lower_bound(OctreeNode node, float size) {
 	return node.position.xyz - (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
 }
 
+// Compute the upper bound of a given octree node
 vec3 cube_upper_bound(OctreeNode node, float size) {
 	return node.position.xyz + (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
 }
@@ -125,7 +148,7 @@ void main() {
 	// Aquire ray state for ith invocation of pass
 	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(vec4(0.0f), ivec2(-1. -1), -1);
 	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
-	vec3 ray = view * state.ray.xyz;
+	vec3 ray = quat_transform(state.ray.xyz, rotation_quat);
 
 	current_node = OctreeBuffer.nodes[offset];
 	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);

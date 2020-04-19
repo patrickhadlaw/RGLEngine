@@ -134,7 +134,7 @@ void rgle::Sampler2D::use()
 	if (this->texture == nullptr || this->shader.expired()) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
-	if (this->enableLocation > 0) {
+	if (this->enableLocation >= 0) {
 		glUniform1i(this->enableLocation, enabled);
 	}
 	glUniform1i(this->samplerLocation, this->texture->index());

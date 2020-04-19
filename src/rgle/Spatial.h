@@ -167,16 +167,14 @@ namespace rgle {
 		const glm::vec3& right() const;
 
 	private:
-		const glm::mat3 _updatedView() const;
-
 		glm::vec3 _position;
 		glm::vec3 _direction;
 		glm::vec3 _up;
 		glm::vec3 _right;
+		glm::quat _rotation;
 		float _fieldOfView;
 		float _near;
 		float _far;
-		glm::mat3 _view;
 	};
 
 	class NoClipSparseVoxelCamera : public SparseVoxelCamera, public EventListener {
