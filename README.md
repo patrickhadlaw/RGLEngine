@@ -1,6 +1,7 @@
 # RGLEngine
 
-OpenGL real-time renderer.
+OpenGL real-time rendering engine.
+
 Features:
 * Render simple shapes
 * Render images and textures
@@ -10,6 +11,7 @@ Features:
 * Clickable UI elements (using triangle-raycast)
 * Noclip camera transformation based on mouse and keyboard input
 * Host-listener event system for capturing events such as window resize, keyboard key press, bounding box change, ...
+* Sparse Voxel Octree renderer -> a raytracing algorithm runnable in real-time
 * More to come...
 
 Controls are:
@@ -22,7 +24,7 @@ Controls are:
 ## Prerequisites
 
 * CMake 3.0.0+
-* OpenGL
+* OpenGL 4.6
 
 ## Authors
 
@@ -44,12 +46,10 @@ $ cmake .. -G <CMake Generator>
 # Build using generated files (ie run make for Unix Makefiles generator)
 ```
 
-## Run instructions: 
+## Screenshots
 
-```
-$ cd <project-dir>/RGLEngine/bin
-$ ./interface [window-width] [window-height]
-```
+### Interface
+![interface](/screenshots/interface.png?raw=true "Interface")
 
-## Screenshot
-![screenshot1](/screenshot1.PNG?raw=true "Screenshot")
+### Sparse Voxel Octree
+![sparse-voxel](/screenshots/sparse-voxel.png?raw=true "Sparse Voxel Octree")
