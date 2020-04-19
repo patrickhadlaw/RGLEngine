@@ -1,3 +1,5 @@
 #pragma once
 
-#include "Application.h"
+#include "rgle/Application.h"
+#include "rgle/Spatial.h"
+#include "rgle/Config.h"

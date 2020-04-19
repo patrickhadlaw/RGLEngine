@@ -1,21 +1,6 @@
-// interface.cpp
+// sparse-voxel.cpp
 
 #include "rgle.h"
-
-void cleanup() {
-	glfwTerminate();
-}
-
-glm::vec4 randomColor() {
-	return glm::vec4(
-		(float)(rand() % 255) / 255,
-		(float)(rand() % 255) / 255,
-		(float)(rand() % 255) / 255,
-		1.0
-	);
-}
-
-const float UI_TICK = 1.0f / 20.0f;
 
 template<size_t N, typename Type>
 class Stack {
@@ -98,6 +83,18 @@ int main(const int argc, const char* const argv[]) {
 			rgle::installed_filename("shader/interface.frag")
 		);
 		app.addShader(interface);
+		auto shaders = { rgle::Shader::compileFile(rgle::installed_filename("shader/sparse-voxel/sparse-voxel.comp"), GL_COMPUTE_SHADER) };
+		auto sparseVoxel = std::make_shared<rgle::ShaderProgram>(
+			"sparse-voxel",
+			shaders
+		);
+		app.addShader(sparseVoxel);
+		auto sparseVoxelRealize = std::make_shared<rgle::ShaderProgram>(
+			"sparse-voxel-realize",
+			rgle::installed_filename("shader/sparse-voxel/sparse-voxel-realize.vert"),
+			rgle::installed_filename("shader/sparse-voxel/sparse-voxel-realize.frag")
+		);
+		app.addShader(sparseVoxelRealize);
 
 		auto roboto = std::shared_ptr<rgle::FontFamily>(new rgle::FontFamily("roboto", {
 			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Regular.ttf")) },
@@ -110,115 +107,80 @@ int main(const int argc, const char* const argv[]) {
 
 		app.addResource(roboto);
 
-		std::shared_ptr<rgle::RenderableLayer> mainLayer;
+		std::shared_ptr<rgle::SparseVoxelOctree> octree;
+		std::shared_ptr<rgle::NoClipSparseVoxelCamera> camera;
+		std::shared_ptr<rgle::SparseVoxelRenderer> mainLayer;
 		std::shared_ptr<rgle::UI::Layer> uiLayer;
-		std::shared_ptr<rgle::NoClipCamera> camera;
-		std::shared_ptr<rgle::UI::BasicButton> basicButton;
 		std::shared_ptr<rgle::Text> fpsText;
-		std::shared_ptr<rgle::Text> clickText;
 
-		app.executeInContext([&app, &window, &mainLayer, &uiLayer, &camera, &basicButton, &fpsText, &clickText]() {
-			camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
-			camera->translate(-0.1, 0.0, -0.5);
-			camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
+		app.executeInContext([&app, &window, &octree, &camera, &mainLayer, &uiLayer, &fpsText]() {
+			octree = std::make_shared<rgle::SparseVoxelOctree>();
 
-			mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
+			camera = std::make_shared<rgle::NoClipSparseVoxelCamera>(0.01f, 1000.0f, glm::radians(60.0f), window);
+
+			mainLayer = std::make_shared<rgle::SparseVoxelRenderer>(
+				"mainLayer",
+				octree,
+				"sparse-voxel",
+				"sparse-voxel-realize",
+				window->width(),
+				window->height(),
+				camera
+			);
 			app.addLayer(mainLayer);
+			camera->translate(glm::vec3(0.0f, 0.0f, -5.0f));
+			octree->root()->size() = 0.25f;
+			octree->root()->color() = glm::vec4(1.0f, 0.5f, 0.0f, 1.0f);
+			octree->root()->update();
+			rgle::SparseVoxelNode* node = octree->root();
+			for (int i = 0; i < 100; i++) {
+				node->insertChildren({
+					glm::vec4(0.0f, 0.0f, 0.0f, 1.0f),
+					glm::vec4(0.0f, 0.0f, 1.0f, 1.0f),
+					glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+					glm::vec4(0.0f, 1.0f, 1.0f, 1.0f),
+					glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+					glm::vec4(1.0f, 0.0f, 1.0f, 1.0f),
+					glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+					glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+				});
+				node = node->child(rgle::OctreeIndex::LEFT, rgle::OctreeIndex::TOP, rgle::OctreeIndex::FRONT);
+			}
 
-			uiLayer = std::make_shared<rgle::UI::Layer>("ui", UI_TICK);
+			uiLayer = std::make_shared<rgle::UI::Layer>("ui");
 			app.addLayer(uiLayer);
 
-			srand(clock());
-			auto triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
-				"basic3D",
-				1.0,
-				1.0,
-				glm::radians(60.0f),
-				{ randomColor(), randomColor(), randomColor() }
-			));
-			triangleA->id = "triangleA";
-			mainLayer->addRenderable(triangleA);
-
-			auto rect = std::make_shared<rgle::ImageRect>("textured3D", 1.0, 1.0, rgle::installed_filename("res/sky.png"));
-			rect->translate(0.0, 2.0, 0.0);
-			triangleA->id = "rect";
-			mainLayer->addRenderable(rect);
-
-			auto triangleB = std::make_shared<rgle::Triangle>(
-				"basic3D",
-				1.0,
-				1.0,
-				glm::radians(60.0f),
-				glm::vec4(0.0, 0.5, 0.75, 1.0)
-				);
-			triangleB->id = "triangleB";
-			mainLayer->addRenderable(triangleB);
-			triangleB->rotate(0.0, 0.0, glm::radians(60.0f));
-			triangleB->translate(0.0, 0.0, 1.0);
-
-			rgle::TextAttributes attrib{ rgle::FontType::BOLD, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) };
+			rgle::TextAttributes attrib{
+				rgle::FontType::BOLD,
+				rgle::UnitValue::parse("8pt"),
+				rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT),
+				rgle::UnitVector2D(0.0, 0.0)
+			};
 			fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
 			fpsText->id = "fpsText";
 			uiLayer->addElement(fpsText);
-			auto wrapTest = std::make_shared<rgle::Text>(
-				"text",
-				"roboto",
-				"Hello world! This is a test of word wrapping, will it wrap, mabye.",
-				rgle::TextAttributes{ rgle::FontType::LIGHT, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) }
-			);
-			wrapTest->id = "wrapTest";
-			uiLayer->addElement(wrapTest);
-			clickText = std::make_shared<rgle::Text>("text", "roboto", "Clicked: 0", attrib);
-			clickText->id = "clickText";
-			uiLayer->addElement(clickText);
-
-			basicButton = std::make_shared<rgle::UI::BasicButton>("interface", "roboto", "Click Me!");
-			basicButton->id = "basicButton";
-			uiLayer->addElement(basicButton);
-
-			auto alignerAttribs = rgle::UI::LinearAlignerAttributes{};
-			alignerAttribs.spacing = rgle::UnitValue{ 10.0, rgle::Unit::PT };
-			alignerAttribs.topLeft.x = rgle::UnitValue{ 10.0f, rgle::Unit::PT };
-			auto aligner = std::shared_ptr<rgle::UI::LinearAligner>(new rgle::UI::LinearAligner({
-				fpsText,
-				wrapTest,
-				clickText,
-				basicButton
-				}, alignerAttribs));
-			aligner->id = "aligner";
-			uiLayer->addLogicNode(aligner);
 		});
 
 		Stack<30, int> framerate;
-		int numClicked = 0;
-		bool updateText = false;
-
-		rgle::EventCallback<rgle::MouseStateMessage> clickListener([&numClicked, &updateText](rgle::MouseStateMessage* message) {
-			numClicked++;
-			updateText = true;
-		});
-
-		basicButton->registerListener("onclick", &clickListener);
+		clock_t lastTime = clock();
 
 		while (!window->shouldClose()) {
 
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 			app.render();
-			float period = mainLayer->getFrameDelay();
+
+			float period = (float) (clock() - lastTime) / CLOCKS_PER_SEC;
 			if (period != 0.0) {
-				int value = (int)(1 / mainLayer->getFrameDelay());
+				lastTime = clock();
+				int value = (int)(1.0f / period);
 				framerate.push(value);
 			}
-			
+
 			if (uiLayer->tick()) {
 				fpsText->update(std::string("Framerate: ") + std::to_string(static_cast<int>(framerate.sum() / framerate.size())));
 			}
-			if (updateText) {
-				clickText->update(std::string("Clicked: ") + std::to_string(numClicked));
-				updateText = false;
-			}
-			
+
 			app.update();
 
 			if (!uiLayer->raycastHit() && window->getMouseButton(GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
@@ -227,22 +189,18 @@ int main(const int argc, const char* const argv[]) {
 		}
 	}
 	catch (rgle::Exception& e) {
-		cleanup();
 		std::cin.get();
 		return -1;
 	}
 	catch (std::exception& e) {
 		rgle::Exception except = rgle::Exception(e.what(), LOGGER_DETAIL_DEFAULT);
-		cleanup();
 		std::cin.get();
 		return -1;
 	}
 	catch (...) {
 		rgle::Exception except = rgle::Exception("UNHANDLED EXCEPTION", LOGGER_DETAIL_DEFAULT);
-		cleanup();
 		std::cin.get();
 		return -1;
 	}
-	cleanup();
 	return 0;
 }

@@ -1,0 +1,193 @@
+//	Sparse Voxel Octree pass compute shader
+//	Each invocation of this shader traverses down
+//	the sparse voxel octree, coloring the output
+//	image
+//
+//	-
+
+#version 460
+
+layout(local_size_x = 1024) in;
+
+const vec3 BASIS_X = vec3(1.0f, 0.0f, 0.0f);
+const vec3 BASIS_Y = vec3(0.0f, 1.0f, 0.0f);
+const vec3 BASIS_Z = vec3(0.0f, 0.0f, 1.0f);
+
+const float EPSILON = 0.01f;
+
+const uint UINT_MAX_LOG = 9;
+
+struct OctreeNode {
+	vec4 color;
+	// NOTE: only position.xyz are used, use a vec4 here to avoid alignment issues
+	vec4 position;
+	uint depth;
+	int next;
+};
+
+uniform int root_node_offset;
+uniform float root_node_size;
+
+layout(std430, binding=1) readonly buffer octree_buffer {
+	OctreeNode nodes[];
+} OctreeBuffer;
+
+struct RayState {
+	// NOTE: only ray.xyz are used, use a vec4 here to avoid alignment issues
+	vec4 ray;
+	ivec2 pixel;
+	int offset;
+};
+
+// Buffer for consuming
+layout(std430, binding=2) readonly buffer pass_read_buffer {
+	RayState read_state[];
+} PassReadBuffer;
+
+// Buffer for producing
+layout(std430, binding=3) writeonly buffer pass_write_buffer {
+	RayState write_state[];
+} PassWriteBuffer;
+
+uniform uint read_pass_size;
+layout(binding = 0) uniform atomic_uint write_pass_counter;
+
+layout(r32ui) uniform coherent uimage2D depth_image;
+layout(r32i) uniform coherent iimage2D out_image;
+
+// Render pass control uniforms
+uniform bool bootstrap;				// Flag to bootstrap initial pass, signals shader to shoot all rays at octree root
+uniform bool finalize;				// Flag to finalize final pass, signals shader to generate result image
+
+// Camera uniforms
+uniform vec3 camera_position;		// Camera position, used as origin for rays
+uniform vec3 camera_direction;		// Camera direction vector, used for clipping
+uniform float camera_near;			// Camera near clip
+uniform float camera_far;			// Camera far clip
+uniform float field_of_view;		// Field of view of camera in radians
+uniform vec4 rotation_quat;			// Rotation quaternion
+
+// Render uniforms
+uniform uvec2 render_resolution;	// Output render resolution
+
+// Quaternion multiplication
+vec4 quat_multiply(vec4 q1, vec4 q2) {
+	return vec4(
+		(q1.w * q2.x) + (q1.x * q2.w) + (q1.y * q2.z) - (q1.z * q2.y),
+		(q1.w * q2.y) - (q1.x * q2.z) + (q1.y * q2.w) + (q1.z * q2.x),
+		(q1.w * q2.z) + (q1.x * q2.y) - (q1.y * q2.x) + (q1.z * q2.w),
+		(q1.w * q2.w) - (q1.x * q2.x) - (q1.y * q2.y) - (q1.z * q2.z)
+	);
+}
+
+// Compute the inverse of a given quaternion
+vec4 quat_inverse(vec4 q) {
+	return vec4(-q.xyz, q.w) / length(q);
+}
+
+// Transform a position with a given quaternion
+vec3 quat_transform(vec3 p, vec4 q) {
+	//return quat_multiply(quat_inverse(q), quat_multiply(vec4(p.xyz, 0.0f), q)).xyz;
+	return quat_multiply(quat_multiply(q, vec4(p.xyz, 0.0f)), quat_inverse(q)).xyz;
+}
+
+// Project vector u onto v
+vec3 project(vec3 u, vec3 v) {
+	return (dot(u, v) / dot(v, v)) * v;
+}
+
+// Compute the lower bound of a given octree node
+vec3 cube_lower_bound(OctreeNode node, float size) {
+	return node.position.xyz - (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
+}
+
+// Compute the upper bound of a given octree node
+vec3 cube_upper_bound(OctreeNode node, float size) {
+	return node.position.xyz + (size / 2) * (BASIS_X + BASIS_Y + BASIS_Z);
+}
+
+// Returns true if cube bounded by lower and upper is hit by ray p + vt
+bool raycast_cube(vec3 lower, vec3 upper, vec3 p, vec3 v) {
+	vec2 tx = vec2((lower.x - p.x) / v.x, (upper.x - p.x) / v.x);
+	tx = vec2(min(tx.x, tx.y), max(tx.x, tx.y));
+	vec2 ty = vec2((lower.y - p.y) / v.y, (upper.y - p.y) / v.y);
+	ty = vec2(min(ty.x, ty.y), max(ty.x, ty.y));
+	vec2 tz = vec2((lower.z - p.z) / v.z, (upper.z - p.z) / v.z);
+	tz = vec2(min(tz.x, tz.y), max(tz.x, tz.y));
+	float tlower = max(tx.x, max(ty.x, tz.x));
+	float tupper = min(tx.y, min(ty.y, tz.y));
+	return tx.x <= tupper &&
+		ty.x <= tupper &&
+		tz.x <= tupper &&
+		tx.y >= tlower &&
+		ty.y >= tlower &&
+		tz.y >= tlower;
+}
+
+float log10(float x) {
+	return log2(x) / log2(10.0f);
+}
+
+uint serialize_depth(float depth) {
+	return uint(pow(10, UINT_MAX_LOG - (uint(log10(camera_far)) + 1)) * depth);
+}
+
+void main() {
+	RayState state;
+
+	OctreeNode root_node = OctreeBuffer.nodes[root_node_offset];
+	OctreeNode current_node;
+	float size;
+	float depth;
+	int offset;
+
+	const float pixel_angle = field_of_view / float(render_resolution.x);
+
+	const bool valid_invocation = gl_GlobalInvocationID.x < read_pass_size;
+
+	// Aquire ray state for ith invocation of pass
+	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(vec4(0.0f), ivec2(-1. -1), -1);
+	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
+	vec3 ray = quat_transform(state.ray.xyz, rotation_quat);
+
+	current_node = OctreeBuffer.nodes[offset];
+	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
+	depth = length(current_node.position.xyz - camera_position);
+	float r = sin(pixel_angle) * length(current_node.position.xyz - camera_position);
+	const bool ray_done =
+		size < r ||
+		current_node.color.a < EPSILON ||
+		dot(camera_direction, current_node.position.xyz - camera_position) < camera_near - size ||
+		depth > camera_far + size ||
+		current_node.next < 0 ||
+		finalize;
+	
+	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, ray) && valid_invocation;
+	const bool write = hit && !ray_done;
+
+	uint previous_write_size = atomicCounterAdd(write_pass_counter, write ? 8 : 0);
+
+	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid
+	if (write) {
+		PassWriteBuffer.write_state[previous_write_size] = RayState(state.ray, state.pixel, current_node.next);
+		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(state.ray, state.pixel, current_node.next + 1);
+		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(state.ray, state.pixel, current_node.next + 2);
+		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(state.ray, state.pixel, current_node.next + 3);
+		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(state.ray, state.pixel, current_node.next + 4);
+		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(state.ray, state.pixel, current_node.next + 5);
+		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(state.ray, state.pixel, current_node.next + 6);
+		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(state.ray, state.pixel, current_node.next + 7);
+		memoryBarrierBuffer();
+	}
+	
+	uint write_depth = serialize_depth(depth);
+	
+	if (ray_done && hit && current_node.color.a >= EPSILON) {
+		uint previous_depth = imageAtomicMin(depth_image, state.pixel, write_depth);
+		if (write_depth <= previous_depth) {
+			imageAtomicExchange(out_image, state.pixel, offset);
+		}
+	} else {
+		//imageStore(depth_image, state.pixel, uvec4(raycast_cube(vec3(-1.0f, -1.0f, -1.0f), vec3(1.0f, 1.0f, 1.0f), vec3(0.0f, 0.0f, -1.1f), vec3(-0.707f, 0.01f, 0.707f))));
+	}
+}
