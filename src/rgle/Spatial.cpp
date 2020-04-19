@@ -333,13 +333,13 @@ rgle::SparseVoxelOctree::SparseVoxelOctree() : _top(0), _size(MIN_ALLOCATED)
 		GL_SHADER_STORAGE_BUFFER,
 		this->_size * BLOCK_SIZE,
 		nullptr,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT
 	);
 	this->_octreeData = (unsigned char*)glMapBufferRange(
 		GL_SHADER_STORAGE_BUFFER,
 		0,
 		this->_size * BLOCK_SIZE,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT//| GL_MAP_FLUSH_EXPLICIT_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
 	);
 	if (this->_octreeData == nullptr) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
@@ -368,10 +368,12 @@ rgle::SparseVoxelNode * rgle::SparseVoxelOctree::root() const
 
 void rgle::SparseVoxelOctree::flush()
 {
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_octreeBuffer);
 	while (!this->_modifiedBlocks.empty()) {
 		Range<size_t> flushRange = this->_modifiedBlocks.pop();
-		//glFlushMappedNamedBufferRange(this->_octreeBuffer, flushRange.lower * BLOCK_SIZE, flushRange.length() * BLOCK_SIZE);
+		glFlushMappedBufferRange(GL_SHADER_STORAGE_BUFFER, flushRange.lower * BLOCK_SIZE, flushRange.length() * BLOCK_SIZE);
 	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
 const char * rgle::SparseVoxelOctree::typeName() const
@@ -406,7 +408,7 @@ void rgle::SparseVoxelOctree::_realloc(float factor)
 		GL_SHADER_STORAGE_BUFFER,
 		newsize * BLOCK_SIZE,
 		nullptr,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT
 	);
 	glBindBuffer(GL_COPY_READ_BUFFER, this->_octreeBuffer);
 	glBindBuffer(GL_COPY_WRITE_BUFFER, newbuffer);
@@ -416,8 +418,8 @@ void rgle::SparseVoxelOctree::_realloc(float factor)
 	this->_octreeData = (unsigned char*)glMapNamedBufferRange(
 		this->_octreeBuffer,
 		0,
-		this->_size * BLOCK_SIZE,
-		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_COHERENT_BIT//| GL_MAP_FLUSH_EXPLICIT_BIT
+		newsize * BLOCK_SIZE,
+		GL_MAP_PERSISTENT_BIT | GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT
 	);
 	if (this->_octreeData == nullptr) {
 		throw GraphicsException("failed to memory map octree buffer", LOGGER_DETAIL_IDENTIFIER(this->id));
