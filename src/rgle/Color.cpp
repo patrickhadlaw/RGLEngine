@@ -14,7 +14,7 @@ rgle::Fill::~Fill()
 {
 }
 
-glm::vec4 rgle::Fill::evaluate(float u, float v)
+glm::vec4 rgle::Fill::evaluate(float, float)
 {
 	switch (this->_type)
 	{

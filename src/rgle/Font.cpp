@@ -84,8 +84,8 @@ rgle::CharRect::CharRect(std::shared_ptr<ShaderProgram> shader, std::shared_ptr<
 		throw Exception("failed to locate shader attribute: texture coordinates", LOGGER_DETAIL_DEFAULT);
 	}
 	this->model.enabled = false;
-	float width = this->dimensions.x.resolve(window, Window::X);
-	float height = this->dimensions.y.resolve(window, Window::Y);
+	float resolvedWidth = this->dimensions.x.resolve(window, Window::X);
+	float resolvedHeight = this->dimensions.y.resolve(window, Window::Y);
 	glm::vec3 scaled = glm::vec3(
 		offset.x.resolve(window),
 		-offset.y.resolve(window, Window::Y) + baselineOffset.resolve(window, Window::Y),
@@ -93,9 +93,9 @@ rgle::CharRect::CharRect(std::shared_ptr<ShaderProgram> shader, std::shared_ptr<
 	);
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0) + scaled,
-		glm::vec3(width, 0.0, 0.0) + scaled,
-		glm::vec3(0.0, height, 0.0) + scaled,
-		glm::vec3(width, height, 0.0) + scaled
+		glm::vec3(resolvedWidth, 0.0, 0.0) + scaled,
+		glm::vec3(0.0, resolvedHeight, 0.0) + scaled,
+		glm::vec3(resolvedWidth, resolvedHeight, 0.0) + scaled
 	};
 	float uvWidth = (float)glyph->border.width / glyph->image->width;
 	float uvHeight = (float)glyph->border.height / glyph->image->height;
@@ -208,8 +208,8 @@ void rgle::CharRect::operator=(CharRect && rvalue)
 void rgle::CharRect::recalculate()
 {
 	auto window = this->context().window.lock();
-	float width = this->dimensions.x.resolve(window, Window::X);
-	float height = this->dimensions.y.resolve(window, Window::Y);
+	float resolvedWidth = this->dimensions.x.resolve(window, Window::X);
+	float resolvedHeight = this->dimensions.y.resolve(window, Window::Y);
 	glm::vec3 scaled = glm::vec3(
 		offset.x.resolve(window),
 		-offset.y.resolve(window, Window::Y) + baselineOffset.resolve(window, Window::Y),
@@ -217,9 +217,9 @@ void rgle::CharRect::recalculate()
 	);
 	this->vertex.list = {
 		glm::vec3(0.0, 0.0, 0.0) + scaled,
-		glm::vec3(width, 0.0, 0.0) + scaled,
-		glm::vec3(0.0, height, 0.0) + scaled,
-		glm::vec3(width, height, 0.0) + scaled
+		glm::vec3(resolvedWidth, 0.0, 0.0) + scaled,
+		glm::vec3(0.0, resolvedHeight, 0.0) + scaled,
+		glm::vec3(resolvedWidth, resolvedHeight, 0.0) + scaled
 	};
 	glBindBuffer(GL_ARRAY_BUFFER, vertex.buffer);
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
@@ -264,8 +264,8 @@ rgle::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metrics)
 	this->image->height = next_power_n<2>(this->border.height);
 	this->image->channels = 1;
 	this->image->image = new unsigned char[this->image->width * this->image->channels * this->image->height];
-	for (int i = 0; i < this->image->width; i++) {
-		for (int j = 0; j < this->image->height; j++) {
+	for (size_t i = 0; i < this->image->width; i++) {
+		for (size_t j = 0; j < this->image->height; j++) {
 			int index = this->image->channels * (i + j * this->image->width);
 			if (static_cast<unsigned int>(i) < this->border.width && static_cast<unsigned int>(j) < this->border.height) {
 				this->image->image[index] = bitmap.buffer[j * this->border.width + i];
@@ -323,11 +323,11 @@ rgle::Text::~Text()
 {
 }
 
-void rgle::Text::onMessage(std::string eventname, EventMessage * message)
+void rgle::Text::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "resize") {
 		this->_model.matrix = this->transform();
-		for (int i = 0; i < this->_characters.size(); i++) {
+		for (size_t i = 0; i < this->_characters.size(); i++) {
 			this->_characters[i].recalculate();
 		}
 	}
@@ -351,24 +351,28 @@ void rgle::Text::generate(std::string text, TextAttributes attributes)
 		this->_characters.clear();
 		this->_characters.reserve(text.length());
 		UnitVector2D offset = UnitVector2D(0.0f, _scale(_maxSize), _attributes.fontSize.unit);
-		int wordIndex = 0;
+		size_t wordIndex = 0;
 		bool firstWord = true;
-		for (int i = 0; i < text.length(); i++) {
+		for (size_t i = 0; i < text.length(); i++) {
 			std::shared_ptr<Glyph>& glyph = font->_generated[pointSize][text[i]];
 			float baselineOffset = _scale(((float)glyph->bbox.yMin / (glyph->bbox.yMax - glyph->bbox.yMin)) * glyph->border.height);
 			this->_characters.push_back(CharRect(
 				shader,
 				glyph,
 				offset,
-				_elementAttributes.zIndex,
+				this->_elementAttributes.zIndex,
 				UnitValue{ baselineOffset, _attributes.fontSize.unit },
-				UnitVector2D(_scale(glyph->border.width), _scale(glyph->border.height), _attributes.fontSize.unit)
+				UnitVector2D(
+					this->_scale(static_cast<float>(glyph->border.width)),
+					this->_scale(static_cast<float>(glyph->border.height)),
+					this->_attributes.fontSize.unit
+				)
 			));
 			if (_attributes.wrapWord) {
-				_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
+				this->_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
 			}
 			else {
-				_getOffsetWrapWidth(offset, glyph);
+				this->_getOffsetWrapWidth(offset, glyph);
 			}
 			if (_attributes.dimensions.x.isZero()) {
 				if (offset.x.greaterThan(_dimensions.x, window)) {
@@ -386,14 +390,14 @@ void rgle::Text::update(std::string text)
 		auto window = this->context().window.lock();
 		auto shader = this->shaderLocked();
 		UnitVector2D offset = UnitVector2D(0.0f, this->_scale(this->_maxSize), this->_attributes.fontSize.unit);
-		int wordIndex = 0;
+		size_t wordIndex = 0;
 		bool firstWord = true;
 		float resolvedSize = _attributes.fontSize.resolve(window, Window::Y);
 		int pointSize = static_cast<int>(window->pointValue(window->height() * resolvedSize, Window::Y));
 		if (font->_generated.find(pointSize) == font->_generated.end()) {
 			font->generate(pointSize);
 		}
-		for (int i = 0; i < text.length(); i++) {
+		for (size_t i = 0; i < text.length(); i++) {
 			std::shared_ptr<Glyph> glyph = font->_generated[pointSize][text[i]];
 			if (i < this->_text.length()) {
 				if (text[i] != this->_text[i] || this->_characters[i].glyph->size != this->_attributes.fontSize.value) {
@@ -402,8 +406,12 @@ void rgle::Text::update(std::string text)
 						glyph,
 						offset,
 						this->_elementAttributes.zIndex,
-						UnitValue{ static_cast<float>(-(glyph->border.height - glyph->metrics.horiBearingY / 64)), this->_attributes.fontSize.unit },
-						UnitVector2D(this->_scale(glyph->border.width), this->_scale(glyph->border.height), this->_attributes.fontSize.unit)
+						UnitValue{ -static_cast<float>(glyph->border.height - glyph->metrics.horiBearingY / 64), this->_attributes.fontSize.unit },
+						UnitVector2D(
+							this->_scale(static_cast<float>(glyph->border.width)),
+							this->_scale(static_cast<float>(glyph->border.height)),
+							this->_attributes.fontSize.unit
+						)
 					);
 				}
 			}
@@ -413,9 +421,13 @@ void rgle::Text::update(std::string text)
 					glyph,
 					offset,
 					this->_elementAttributes.zIndex,
-					UnitValue{ static_cast<float>(-(glyph->border.height - glyph->metrics.horiBearingY / 64)), this->_attributes.fontSize.unit },
-					UnitVector2D(this->_scale(glyph->border.width), this->_scale(glyph->border.height), this->_attributes.fontSize.unit))
-				);
+					UnitValue{ -static_cast<float>(glyph->border.height - glyph->metrics.horiBearingY / 64), this->_attributes.fontSize.unit },
+					UnitVector2D(
+						this->_scale(static_cast<float>(glyph->border.width)),
+						this->_scale(static_cast<float>(glyph->border.height)),
+						this->_attributes.fontSize.unit
+					)
+				));
 			}
 			if (this->_attributes.wrapWord) {
 				this->_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
@@ -446,17 +458,24 @@ void rgle::Text::append(std::string text, TextAttributes attributes)
 		int pointSize = static_cast<int>(window->pointValue(window->height() * resolvedSize, Window::Y));
 		this->_maxSize = std::max(font->lineHeight(pointSize), this->_maxSize);
 		UnitVector2D offset = UnitVector2D(0.0f, this->_scale(this->_maxSize), this->_attributes.fontSize.unit);
-		int wordIndex = 0;
+		size_t wordIndex = 0;
 		bool firstWord = true;
-		for (int i = 0; i < len; i++) {
+		for (size_t i = 0; i < len; i++) {
 			std::shared_ptr<Glyph> glyph = font->_generated[pointSize][text[i]];
 			this->_characters.push_back(CharRect(
 				shader,
 				glyph,
 				offset,
 				this->_elementAttributes.zIndex,
-				UnitValue{ this->_scale(-(glyph->border.height - glyph->metrics.horiBearingY / 64)), this->_attributes.fontSize.unit },
-				UnitVector2D(this->_scale(glyph->border.width), this->_scale(glyph->border.height), this->_attributes.fontSize.unit)
+				UnitValue{
+					this->_scale(-static_cast<float>(glyph->border.height - glyph->metrics.horiBearingY / 64)),
+					this->_attributes.fontSize.unit
+				},
+				UnitVector2D(
+					this->_scale(static_cast<float>(glyph->border.width)),
+					this->_scale(static_cast<float>(glyph->border.height)),
+					this->_attributes.fontSize.unit
+				)
 			));
 			if (attributes.wrapWord) {
 				this->_getOffsetWrapWord(offset, glyph, wordIndex, i, firstWord);
@@ -482,7 +501,7 @@ void rgle::Text::append(std::string text)
 void rgle::Text::render()
 {
 	glUniformMatrix4fv(this->_model.location, 1, GL_FALSE, &this->_model.matrix[0][0]);
-	for (int i = 0; i < this->_characters.size(); i++) {
+	for (size_t i = 0; i < this->_characters.size(); i++) {
 		this->_characters[i].render();
 	}
 }
@@ -517,10 +536,15 @@ void rgle::Text::_getOffsetWrapWidth(UnitVector2D & offset, std::shared_ptr<Glyp
 		}
 	}
 	else if (this->_attributes.dimensions.x.isZero()) {
-		offset.x += UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+		offset.x += UnitValue{
+			this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)),
+			this->_attributes.fontSize.unit
+		};
 	}
-	else if ((offset.x + UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit }).lessThan(this->_attributes.dimensions.x, window)) {
-		offset.x += UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+	else if ((offset.x + UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit })
+		.lessThan(this->_attributes.dimensions.x, window))
+	{
+		offset.x += UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit };
 	}
 	else {
 		offset.x = this->_topLeft.x;
@@ -531,10 +555,14 @@ void rgle::Text::_getOffsetWrapWidth(UnitVector2D & offset, std::shared_ptr<Glyp
 	}
 }
 
-void rgle::Text::_getOffsetWrapWord(UnitVector2D & offset, std::shared_ptr<Glyph>& glyph, int& wordIndex, int& index, bool& firstWord)
+void rgle::Text::_getOffsetWrapWord(
+	UnitVector2D & offset,
+	std::shared_ptr<Glyph> & glyph,
+	size_t & wordIndex,
+	size_t & index,
+	bool & firstWord)
 {
 	auto window = this->context().window.lock();
-	float resolved = offset.x.resolve(window);
 	if (glyph->charecter == '\n') {
 		offset.x = this->_topLeft.x;
 		wordIndex = index + 1;
@@ -545,23 +573,25 @@ void rgle::Text::_getOffsetWrapWord(UnitVector2D & offset, std::shared_ptr<Glyph
 		firstWord = true;
 	}
 	else if (this->_attributes.dimensions.x.isZero()) {
-		offset.x += UnitValue{ _scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+		offset.x += UnitValue{ _scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit };
 	}
 	else if (glyph->charecter == ' ' || glyph->charecter == '\t') {
 		if (!firstWord) {
-			offset.x += UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+			offset.x += UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit };
 		}
 		else if (wordIndex == index) {
 			
 		}
 		else {
 			firstWord = false;
-			offset.x += UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+			offset.x += UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit };
 		}
 		wordIndex = index + 1;
 	}
-	else if ((offset.x + UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit }).lessThan(this->_attributes.dimensions.x, window)) {
-		offset.x += UnitValue{ this->_scale(glyph->glyph->advance.x >> 16), this->_attributes.fontSize.unit };
+	else if ((offset.x + UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit })
+		.lessThan(this->_attributes.dimensions.x, window))
+	{
+		offset.x += UnitValue{ this->_scale(static_cast<float>(glyph->glyph->advance.x >> 16)), this->_attributes.fontSize.unit };
 	}
 	else {
 		if (firstWord) {
@@ -571,7 +601,7 @@ void rgle::Text::_getOffsetWrapWord(UnitVector2D & offset, std::shared_ptr<Glyph
 		else {
 			offset.x = this->_topLeft.x;
 			offset.y += UnitValue{ this->_scale(this->_maxSize), this->_attributes.fontSize.unit };
-			for (int i = wordIndex; i <= index; i++) {
+			for (size_t i = wordIndex; i <= index; i++) {
 				this->_characters[i].offset = offset;
 				this->_characters[i].recalculate();
 				this->_getOffsetWrapWidth(offset, this->_characters[i].glyph);
@@ -590,7 +620,7 @@ rgle::FontFamily::FontFamily()
 rgle::FontFamily::FontFamily(std::string family, std::vector<std::pair<std::string, std::shared_ptr<Font>>> fonts)
 {
 	id = family;
-	for (int i = 0; i < fonts.size(); i++) {
+	for (size_t i = 0; i < fonts.size(); i++) {
 		this->_fonts[fonts[i].first] = fonts[i].second;
 	}
 }

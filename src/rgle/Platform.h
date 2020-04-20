@@ -23,19 +23,27 @@
 #include <thread>
 #include <mutex>
 #include <random>
+#include <type_traits>
 
-#if defined _MSC_VER
+#include <GL\glew.h>
+#include <GL\GL.h>
+#include <GLFW\glfw3.h>
+#define GLM_FORCE_SILENT_WARNINGS
+#include <glm\glm.hpp>
+#include <glm\gtc\matrix_transform.hpp>
+#include <glm\gtc\quaternion.hpp>
+#include <ft2build.h>
+#include <freetype\ftglyph.h>
+#include FT_FREETYPE_H
 
-#ifdef RGLE_DLL_BUILD_MODE
-#define RGLE_DLLEXPORTED  __declspec(dllexport)
+#ifdef _MSC_VER
+	#ifdef RGLE_DLL_BUILD_MODE
+		#define RGLE_DLLEXPORTED  __declspec(dllexport)
+	#else
+		#define RGLE_DLLEXPORTED  __declspec(dllimport)
+	#endif
 #else
-#define RGLE_DLLEXPORTED  __declspec(dllimport)
-#endif
-
-#else
-
-#define RGLE_DLLEXPORTED
-
+	#define RGLE_DLLEXPORTED
 #endif
 
 namespace rgle {
@@ -48,9 +56,9 @@ namespace rgle {
 		NONE
 	};
 
-	LogLevel get_loglevel_from_string(std::string loglevel);
+	std::string get_executable_path();
 
-	std::string installed_filename(std::string filename);
+	LogLevel get_loglevel_from_string(std::string loglevel);
 
 	namespace Platform {
 		void initialize();
@@ -75,21 +83,22 @@ namespace rgle {
 		static RGLE_DLLEXPORTED std::atomic_bool _loggerWrite;
 		static RGLE_DLLEXPORTED std::atomic<LogLevel> _logLevel;
 		static RGLE_DLLEXPORTED Config _config;
+		static RGLE_DLLEXPORTED std::atomic_bool _initialized;
 	};
 }
 
 #ifdef NDEBUG
-#define RGLE_DEBUG_ONLY(x)
+	#define RGLE_DEBUG_ONLY(x)
 #else
-#define RGLE_DEBUG_ONLY(x) x
+	#define RGLE_DEBUG_ONLY(x) x
 #endif
 
 #ifdef TARGET_OS_MAC
-#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+	#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #elif defined __linux__
-#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+	#define RGLE_FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #elif defined _WIN32 || defined _WIN64
-#define RGLE_FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
+	#define RGLE_FILENAME (strrchr(__FILE__, '\\') ? strrchr(__FILE__, '\\') + 1 : __FILE__)
 #else
-#error "Unknown platform..."
+	#error "Unknown platform..."
 #endif

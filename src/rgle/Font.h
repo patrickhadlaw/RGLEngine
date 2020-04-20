@@ -141,7 +141,7 @@ namespace rgle {
 	protected:
 		float _scale(float value);
 		void _getOffsetWrapWidth(UnitVector2D& offset, std::shared_ptr<Glyph>& glyph);
-		void _getOffsetWrapWord(UnitVector2D& offset, std::shared_ptr<Glyph>& glyph, int& wordIndex, int& index, bool& firstWord);
+		void _getOffsetWrapWord(UnitVector2D& offset, std::shared_ptr<Glyph>& glyph, size_t& wordIndex, size_t& index, bool& firstWord);
 
 		struct {
 			GLint location;

@@ -55,7 +55,7 @@ rgle::ResourceManager::~ResourceManager()
 
 void rgle::ResourceManager::addResource(std::shared_ptr<Resource> resource)
 {
-	for (int i = 0; i < _resources.size(); i++) {
+	for (size_t i = 0; i < _resources.size(); i++) {
 		if (resource->id == _resources[i]->id) {
 			throw IdentifierException("resource already exists", resource->id, LOGGER_DETAIL_DEFAULT);
 		}

@@ -3,7 +3,7 @@
 
 int rgle::Exception::_thrown = 0;
 
-rgle::Exception::Exception(const char * except, Logger::Detail & detail) :
+rgle::Exception::Exception(const char * except, Logger::Detail detail) :
 	_exception(except),
 	_details(detail),
 	_typeReflected("rgle::Exception"),
@@ -14,7 +14,7 @@ rgle::Exception::Exception(const char * except, Logger::Detail & detail) :
 	Logger::except(this);
 }
 
-rgle::Exception::Exception(std::string & except, Logger::Detail & detail) :
+rgle::Exception::Exception(std::string except, Logger::Detail detail) :
 	_exception(except),
 	_details(detail),
 	_typeReflected("rgle::Exception"),
@@ -47,7 +47,7 @@ std::string rgle::Exception::print()
 	return result;
 }
 
-rgle::Exception::Exception(std::string & except, Logger::Detail & detail, const char * type) :
+rgle::Exception::Exception(std::string & except, Logger::Detail detail, const char * type) :
 	_exception(except),
 	_details(detail),
 	_typeReflected(type),
@@ -58,7 +58,7 @@ rgle::Exception::Exception(std::string & except, Logger::Detail & detail, const 
 	Logger::except(this);
 }
 
-rgle::Exception::Exception(const char * except, Logger::Detail & detail, const char * type) :
+rgle::Exception::Exception(const char * except, Logger::Detail detail, const char * type) :
 	_exception(except),
 	_details(detail),
 	_typeReflected(type),
@@ -76,34 +76,34 @@ void rgle::Exception::_checkDoubleThrow()
 	}
 }
 
-rgle::NullPointerException::NullPointerException(Logger::Detail & detail) : Exception("null pointer exception", detail, "rgle::NullPointerException")
+rgle::NullPointerException::NullPointerException(Logger::Detail detail) : Exception("null pointer exception", detail, "rgle::NullPointerException")
 {
 }
 
-rgle::IOException::IOException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::IOException")
+rgle::IOException::IOException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::IOException")
 {
 }
 
-rgle::BadCastException::BadCastException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::BadCastException")
+rgle::BadCastException::BadCastException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::BadCastException")
 {
 }
 
-rgle::ApplicationException::ApplicationException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::ApplicationException")
+rgle::ApplicationException::ApplicationException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::ApplicationException")
 {
 }
 
-rgle::IllegalArgumentException::IllegalArgumentException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::IllegalArgumentException")
+rgle::IllegalArgumentException::IllegalArgumentException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::IllegalArgumentException")
 {
 }
 
-rgle::OutOfBoundsException::OutOfBoundsException(Logger::Detail & detail) : Exception("out of bounds exception", detail, "rgle::OutOfBoundsException")
+rgle::OutOfBoundsException::OutOfBoundsException(Logger::Detail detail) : Exception("out of bounds exception", detail, "rgle::OutOfBoundsException")
 {
 }
 
-rgle::NotFoundException::NotFoundException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::NotFoundException")
+rgle::NotFoundException::NotFoundException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::NotFoundException")
 {
 }
 
-rgle::InvalidStateException::InvalidStateException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::InvalidStateException")
+rgle::InvalidStateException::InvalidStateException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::InvalidStateException")
 {
 }

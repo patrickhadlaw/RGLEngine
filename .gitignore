@@ -2,7 +2,8 @@
 bin/*
 !bin/.gitkeep
 lib/*
-!lib/.gitkeep
+!lib/CMakeLists.txt
+build/*
 
 # Prerequisites
 *.d

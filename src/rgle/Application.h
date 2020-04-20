@@ -17,7 +17,7 @@ namespace rgle {
 
 		virtual void initialize();
 
-		virtual std::shared_ptr<ContextManager> getContextManager(std::string id);
+		virtual std::shared_ptr<ContextManager> getContextManager(std::string managerid);
 
 	protected:
 		std::vector<std::shared_ptr<ContextManager>> _contexts;

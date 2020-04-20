@@ -10,8 +10,8 @@ namespace rgle {
 
 	class Exception : public std::runtime_error {
 	public:
-		Exception(std::string& except, Logger::Detail& detail);
-		Exception(const char* except, Logger::Detail& detail);
+		Exception(std::string except, Logger::Detail detail);
+		Exception(const char* except, Logger::Detail detail);
 		virtual ~Exception();
 
 		virtual std::string except();
@@ -20,8 +20,8 @@ namespace rgle {
 
 	protected:
 
-		Exception(std::string& except, Logger::Detail& detail, const char* type);
-		Exception(const char* except, Logger::Detail& detail, const char* type);
+		Exception(std::string& except, Logger::Detail detail, const char* type);
+		Exception(const char* except, Logger::Detail detail, const char* type);
 
 		virtual void _checkDoubleThrow();
 
@@ -34,41 +34,41 @@ namespace rgle {
 
 	class NullPointerException : public Exception {
 	public:
-		NullPointerException(Logger::Detail& detail);
+		NullPointerException(Logger::Detail detail);
 	};
 
 	class OutOfBoundsException : public Exception {
 	public:
-		OutOfBoundsException(Logger::Detail& detail);
+		OutOfBoundsException(Logger::Detail detail);
 	};
 
 	class IOException : public Exception {
 	public:
-		IOException(std::string exception, Logger::Detail& detail);
+		IOException(std::string exception, Logger::Detail detail);
 	};
 
 	class BadCastException : public Exception {
 	public:
-		BadCastException(std::string exception, Logger::Detail& detail);
+		BadCastException(std::string exception, Logger::Detail detail);
 	};
 
 	class IllegalArgumentException : public Exception {
 	public:
-		IllegalArgumentException(std::string exception, Logger::Detail& detail);
+		IllegalArgumentException(std::string exception, Logger::Detail detail);
 	};
 
 	class InvalidStateException : public Exception {
 	public:
-		InvalidStateException(std::string exception, Logger::Detail& detail);
+		InvalidStateException(std::string exception, Logger::Detail detail);
 	};
 
 	class NotFoundException : public Exception {
 	public:
-		NotFoundException(std::string exception, Logger::Detail& detail);
+		NotFoundException(std::string exception, Logger::Detail detail);
 	};
 
 	class ApplicationException : public Exception {
 	public:
-		ApplicationException(std::string exception, Logger::Detail& detail);
+		ApplicationException(std::string exception, Logger::Detail detail);
 	};
 }

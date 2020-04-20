@@ -5,11 +5,13 @@
 std::string rgle::Logger::_logFile = Logger::_getDefaultLogFilename();
 std::ofstream rgle::Logger::_outputStream = std::ofstream();
 
-std::string rgle::Logger::timeString(std::chrono::time_point<std::chrono::system_clock>& timestamp)
+std::string rgle::Logger::timeString(std::chrono::time_point<std::chrono::system_clock> timestamp)
 {
 	auto itt = std::chrono::system_clock::to_time_t(timestamp);
+	tm buf;
+	gmtime_s(&buf, &itt);
 	std::stringstream ss;
-	ss << std::put_time(gmtime(&itt), "%FT%TZ");
+	ss << std::put_time(&buf, "%FT%TZ");
 	return ss.str();
 }
 
@@ -27,28 +29,28 @@ void rgle::Logger::message(std::string message)
 	Logger::write(message);
 }
 
-void rgle::Logger::info(std::string message, Detail & detail)
+void rgle::Logger::info(std::string message, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::INFO) {
 		Logger::write(Logger::_print("INFO", message, detail, Console::Color::CYAN));
 	}
 }
 
-void rgle::Logger::debug(std::string message, Detail & detail)
+void rgle::Logger::debug(std::string message, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::DEBUG) {
 		Logger::write(Logger::_print("DEBUG", message, detail));
 	}
 }
 
-void rgle::Logger::warn(std::string warning, Detail & detail)
+void rgle::Logger::warn(std::string warning, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::WARN) {
 		Logger::write(Logger::_print("WARN", warning, detail, Console::Color::YELLOW));
 	}
 }
 
-void rgle::Logger::error(std::string error, Detail & detail)
+void rgle::Logger::error(std::string error, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::ERROR) {
 		Logger::write(Logger::_print("ERROR", error, detail, Console::Color::RED));

@@ -171,9 +171,10 @@ namespace rgle {
 		float value = 0.0f;
 		Unit unit = Unit::ND;
 
-		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
-		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
+		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X) const;
+		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X) const;
 	};
+
 	enum class Operation {
 		VALUE,
 		ADDITION,
@@ -181,6 +182,7 @@ namespace rgle {
 		MULTIPLICATION,
 		DIVISION
 	};
+
 	class UnitExpression {
 	public:
 		UnitExpression();
@@ -195,33 +197,33 @@ namespace rgle {
 		void operator=(const UnitExpression& other);
 		void operator=(UnitExpression&& rvalue);
 
-		void operator=(UnitValue& value);
-		UnitExpression operator+(UnitValue& value);
-		UnitExpression operator+(UnitExpression& value);
-		UnitExpression operator-(UnitValue& value);
-		UnitExpression operator-(UnitExpression& value);
-		UnitExpression operator/(UnitValue& value);
-		UnitExpression operator/(UnitExpression& value);
-		UnitExpression operator/(float value);
-		UnitExpression operator*(UnitValue& value);
-		UnitExpression operator*(UnitExpression& value);
-		UnitExpression operator*(float value);
-		void operator+=(UnitValue& value);
-		void operator+=(UnitExpression& value);
-		void operator-=(UnitValue& value);
-		void operator-=(UnitExpression& value);
-		void operator/=(UnitValue& value);
-		void operator/=(UnitExpression& value);
-		void operator*=(UnitValue& value);
-		void operator*=(UnitExpression& value);
+		void operator=(const UnitValue& value);
+		UnitExpression operator+(const UnitValue& value) const;
+		UnitExpression operator+(const UnitExpression& value) const;
+		UnitExpression operator-(const UnitValue& value) const;
+		UnitExpression operator-(const UnitExpression& value) const;
+		UnitExpression operator/(const UnitValue& value) const;
+		UnitExpression operator/(const UnitExpression& value) const;
+		UnitExpression operator/(const float& value) const;
+		UnitExpression operator*(const UnitValue& value) const;
+		UnitExpression operator*(const UnitExpression& value) const;
+		UnitExpression operator*(const float& value) const;
+		void operator+=(const UnitValue& value);
+		void operator+=(const UnitExpression& value);
+		void operator-=(const UnitValue& value);
+		void operator-=(const UnitExpression& value);
+		void operator/=(const UnitValue& value);
+		void operator/=(const UnitExpression& value);
+		void operator*=(const UnitValue& value);
+		void operator*=(const UnitExpression& value);
 
-		bool lessThan(UnitExpression& other, std::shared_ptr<Window> window);
-		bool greaterThan(UnitExpression& other, std::shared_ptr<Window> window);
-		bool isZero();
-		bool isValue();
+		bool lessThan(const UnitExpression& other, std::shared_ptr<Window> window) const;
+		bool greaterThan(const UnitExpression& other, std::shared_ptr<Window> window) const;
+		bool isZero() const;
+		bool isValue() const;
 
-		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
-		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X);
+		float resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X) const;
+		float resolve(std::shared_ptr<Window> window, Window::Direction direction = Window::Direction::X) const;
 
 	private:
 
@@ -236,7 +238,7 @@ namespace rgle {
 	public:
 		UnitVector2D();
 		UnitVector2D(float x, float y, Unit unit = Unit::ND);
-		UnitVector2D(UnitExpression& x, UnitExpression& y);
+		UnitVector2D(const UnitExpression& x, const UnitExpression& y);
 		static UnitVector2D& parse(std::string parse);
 
 		void operator+=(UnitVector2D& other);

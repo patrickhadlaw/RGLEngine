@@ -134,16 +134,16 @@ rgle::UI::LinearAligner::LinearAligner(std::vector<std::shared_ptr<BoundingBox>>
 {
 	this->_elements = elements;
 	this->_attributes = attributes;
-	if (!_elements.empty()) {
-		UnitVector2D newTopLeft = _attributes.topLeft;
-		_elements.front()->changeTopLeft(newTopLeft);
+	if (!this->_elements.empty()) {
+		UnitVector2D newTopLeft = this->_attributes.topLeft;
+		this->_elements.front()->changeTopLeft(newTopLeft);
 	}
 	RelativeAlignerAttributes attribs;
-	attribs.center = _attributes.center;
-	attribs.direction = _attributes.direction;
-	attribs.spacing = _attributes.spacing;
-	for (int i = 1; i < _elements.size(); i++) {
-		_aligners.push_back(RelativeAligner(_elements[i - 1], _elements[i], attribs));
+	attribs.center = this->_attributes.center;
+	attribs.direction = this->_attributes.direction;
+	attribs.spacing = this->_attributes.spacing;
+	for (size_t i = 1; i < this->_elements.size(); i++) {
+		this->_aligners.push_back(RelativeAligner(this->_elements[i - 1], this->_elements[i], attribs));
 	}
 }
 
@@ -157,16 +157,16 @@ void rgle::UI::LinearAligner::push(std::shared_ptr<BoundingBox> element)
 
 std::shared_ptr<rgle::UI::BoundingBox> rgle::UI::LinearAligner::pop()
 {
-	_aligners.pop_back();
-	std::shared_ptr<BoundingBox> bbox = _elements.back();
-	_elements.pop_back();
+	this->_aligners.pop_back();
+	std::shared_ptr<BoundingBox> bbox = this->_elements.back();
+	this->_elements.pop_back();
 	return bbox;
 }
 
 void rgle::UI::LinearAligner::realign()
 {
-	for (int i = 0; i < _aligners.size(); i++) {
-		_aligners[i].realign();
+	for (size_t i = 0; i < this->_aligners.size(); i++) {
+		this->_aligners[i].realign();
 	}
 }
 
@@ -183,7 +183,7 @@ rgle::UI::Element::~Element()
 {
 }
 
-void rgle::UI::Element::onMessage(std::string eventname, EventMessage * message)
+void rgle::UI::Element::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "resize") {
 		this->onBoxUpdate();
@@ -206,7 +206,7 @@ bool rgle::UI::Element::raycast(Ray ray)
 	return ray.intersect(topright, topleft, bottomleft) || ray.intersect(bottomleft, bottomright, topright);
 }
 
-rgle::UI::DelegateMouseState rgle::UI::Element::delegateMouseState(Ray clickray, bool inside, MouseState state)
+rgle::UI::DelegateMouseState rgle::UI::Element::delegateMouseState(Ray clickray, bool, MouseState)
 {
 	return DelegateMouseState::UNCHANGED;
 }
@@ -239,7 +239,7 @@ rgle::UI::Aligner::~Aligner()
 {
 }
 
-void rgle::UI::Aligner::onMessage(std::string eventname, EventMessage * message)
+void rgle::UI::Aligner::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "bounding-box") {
 		this->realign();
@@ -310,7 +310,7 @@ void rgle::UI::Layer::update()
 				glm::vec2 cursor = window->getCursorPosition();
 				Ray mouseray = Ray(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3((cursor.x / window->width()) * 2, (cursor.y / window->height()) * 2, 0.0f));
 				sElement closest = nullptr;
-				for (int i = 0; i < this->_elements.size(); i++) {
+				for (size_t i = 0; i < this->_elements.size(); i++) {
 					if (this->_elements[i]->raycast(mouseray)) {
 						if (closest == nullptr || this->_elements[i]->getElementAttribs().zIndex < closest->getElementAttribs().zIndex) {
 							if (closest != nullptr) {
@@ -346,10 +346,10 @@ void rgle::UI::Layer::update()
 			}
 			this->_raycastCheck = false;
 		}
-		for (int i = 0; i < this->_elements.size(); i++) {
+		for (size_t i = 0; i < this->_elements.size(); i++) {
 			this->_elements[i]->update();
 		}
-		for (int i = 0; i < this->_logicNodes.size(); i++) {
+		for (size_t i = 0; i < this->_logicNodes.size(); i++) {
 			this->_logicNodes[i]->update();
 		}
 		_lastTick = currentTime;
@@ -361,9 +361,9 @@ void rgle::UI::Layer::render()
 	glClear(GL_DEPTH_BUFFER_BIT);
 	this->viewport()->use();
 	GLuint currentShader = 0;
-	for (int i = 0; i < this->_elements.size(); i++) {
+	for (size_t i = 0; i < this->_elements.size(); i++) {
 		if (this->_elements[i]->shader().expired()) {
-			throw RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(_elements[i]->id));
+			throw RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(this->_elements[i]->id));
 		}
 		auto shader = this->_elements[i]->shader().lock();
 		if (shader->programId() != currentShader) {
@@ -382,9 +382,9 @@ void rgle::UI::Layer::addLogicNode(sLogicNode node)
 
 void rgle::UI::Layer::addElement(sElement element)
 {
-	for (int i = 0; i < this->_elements.size(); i++) {
+	for (size_t i = 0; i < this->_elements.size(); i++) {
 		if (element->getElementAttribs().zIndex < this->_elements[i]->getElementAttribs().zIndex) {
-			_elements.insert(_elements.begin() + i, element);
+			this->_elements.insert(_elements.begin() + i, element);
 			return;
 		}
 	}
@@ -434,7 +434,7 @@ rgle::UI::DelegateMouseState rgle::UI::Button::delegateMouseState(Ray clickray, 
 	return delegateState;
 }
 
-void rgle::UI::Button::onStateChange(State state, bool inside, MouseState mouseState)
+void rgle::UI::Button::onStateChange(State, bool inside, MouseState mouseState)
 {
 	if (this->_currentState == ACTIVE && inside) {
 		this->broadcastEvent("onclick", new MouseStateMessage(mouseState));
@@ -590,9 +590,9 @@ void rgle::UI::RectElement::updateGeometry()
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
-void rgle::UI::RectElement::changeColor(Fill color)
+void rgle::UI::RectElement::changeColor(Fill fill)
 {
-	this->_attributes.color = color;
+	this->_attributes.color = fill;
 	this->color.list = {
 		this->_attributes.color.evaluate(0.0, 0.0),
 		this->_attributes.color.evaluate(0.0, 1.0),

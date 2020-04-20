@@ -26,14 +26,14 @@ namespace rgle {
 			std::string id = "";
 		};
 
-		static std::string timeString(std::chrono::time_point<std::chrono::system_clock>& timestamp);
+		static std::string timeString(std::chrono::time_point<std::chrono::system_clock> timestamp);
 		static std::string detailString(Detail& detail);
 
 		static void message(std::string message);
-		static void info(std::string message, Detail& detail);
-		static void debug(std::string message, Detail& detail);
-		static void warn(std::string warning, Detail& detail);
-		static void error(std::string error, Detail& detail);
+		static void info(std::string message, Detail detail);
+		static void debug(std::string message, Detail detail);
+		static void warn(std::string warning, Detail detail);
+		static void error(std::string error, Detail detail);
 		static void except(Exception* except);
 
 		static void write(std::string entry);

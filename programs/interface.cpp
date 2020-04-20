@@ -2,10 +2,6 @@
 
 #include "rgle.h"
 
-void cleanup() {
-	glfwTerminate();
-}
-
 glm::vec4 randomColor() {
 	return glm::vec4(
 		(float)(rand() % 255) / 255,
@@ -76,36 +72,36 @@ int main(const int argc, const char* const argv[]) {
 
 		auto basic3D = std::make_shared<rgle::ShaderProgram>(
 			"basic3D",
-			rgle::installed_filename("shader/basic3D.vert"),
-			rgle::installed_filename("shader/basic3D.frag")
+			"shader/basic3D.vert",
+			"shader/basic3D.frag"
 		);
 		app.addShader(basic3D);
 		auto textured3D = std::make_shared<rgle::ShaderProgram>(
 			"textured3D",
-			rgle::installed_filename("shader/textured3D.vert"),
-			rgle::installed_filename("shader/textured3D.frag")
+			"shader/textured3D.vert",
+			"shader/textured3D.frag"
 		);
 		app.addShader(textured3D);
 		auto text = std::make_shared<rgle::ShaderProgram>(
 			"text",
-			rgle::installed_filename("shader/text.vert"),
-			rgle::installed_filename("shader/text.frag")
+			"shader/text.vert",
+			"shader/text.frag"
 		);
 		app.addShader(text);
 		auto interface = std::make_shared<rgle::ShaderProgram>(
 			"interface",
-			rgle::installed_filename("shader/interface.vert"),
-			rgle::installed_filename("shader/interface.frag")
+			"shader/interface.vert",
+			"shader/interface.frag"
 		);
 		app.addShader(interface);
 
 		auto roboto = std::shared_ptr<rgle::FontFamily>(new rgle::FontFamily("roboto", {
-			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Regular.ttf")) },
-			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Bold.ttf")) },
-			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Italic.ttf")) },
-			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-BoldItalic.ttf")) },
-			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Light.ttf")) },
-			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-LightItalic.ttf")) }
+			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Regular.ttf") },
+			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Bold.ttf") },
+			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Italic.ttf") },
+			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-BoldItalic.ttf") },
+			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Light.ttf") },
+			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-LightItalic.ttf") }
 		}));
 
 		app.addResource(roboto);
@@ -119,7 +115,7 @@ int main(const int argc, const char* const argv[]) {
 
 		app.executeInContext([&app, &window, &mainLayer, &uiLayer, &camera, &basicButton, &fpsText, &clickText]() {
 			camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
-			camera->translate(-0.1, 0.0, -0.5);
+			camera->translate(-0.1f, 0.0f, -0.5f);
 			camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
 
 			mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
@@ -139,8 +135,8 @@ int main(const int argc, const char* const argv[]) {
 			triangleA->id = "triangleA";
 			mainLayer->addRenderable(triangleA);
 
-			auto rect = std::make_shared<rgle::ImageRect>("textured3D", 1.0, 1.0, rgle::installed_filename("res/sky.png"));
-			rect->translate(0.0, 2.0, 0.0);
+			auto rect = std::make_shared<rgle::ImageRect>("textured3D", 1.0f, 1.0f, "res/sky.png");
+			rect->translate(0.0f, 2.0f, 0.0f);
 			triangleA->id = "rect";
 			mainLayer->addRenderable(rect);
 
@@ -193,7 +189,7 @@ int main(const int argc, const char* const argv[]) {
 		int numClicked = 0;
 		bool updateText = false;
 
-		rgle::EventCallback<rgle::MouseStateMessage> clickListener([&numClicked, &updateText](rgle::MouseStateMessage* message) {
+		rgle::EventCallback<rgle::MouseStateMessage> clickListener([&numClicked, &updateText](rgle::MouseStateMessage*) {
 			numClicked++;
 			updateText = true;
 		});
@@ -226,23 +222,16 @@ int main(const int argc, const char* const argv[]) {
 			}
 		}
 	}
-	catch (rgle::Exception& e) {
-		cleanup();
-		std::cin.get();
+	catch (rgle::Exception&) {
 		return -1;
 	}
 	catch (std::exception& e) {
 		rgle::Exception except = rgle::Exception(e.what(), LOGGER_DETAIL_DEFAULT);
-		cleanup();
-		std::cin.get();
 		return -1;
 	}
 	catch (...) {
 		rgle::Exception except = rgle::Exception("UNHANDLED EXCEPTION", LOGGER_DETAIL_DEFAULT);
-		cleanup();
-		std::cin.get();
 		return -1;
 	}
-	cleanup();
 	return 0;
 }

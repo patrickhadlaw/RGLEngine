@@ -149,9 +149,9 @@ rgle::Context rgle::ContextManager::getContext()
 
 std::shared_ptr<rgle::RenderLayer> rgle::ContextManager::getLayerReference(std::string layer)
 {
-	for (int i = 0; i < _layers.size(); i++) {
-		if (_layers[i]->id == layer) {
-			return _layers[i];
+	for (size_t i = 0; i < _layers.size(); i++) {
+		if (this->_layers[i]->id == layer) {
+			return this->_layers[i];
 		}
 	}
 	return nullptr;
@@ -164,8 +164,8 @@ void rgle::ContextManager::addShader(std::shared_ptr<ShaderProgram> shader)
 
 void rgle::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
 {
-	for (int i = 0; i < this->_layers.size(); i++) {
-		if (_layers[i]->id == layer->id) {
+	for (size_t i = 0; i < this->_layers.size(); i++) {
+		if (this->_layers[i]->id == layer->id) {
 			throw IdentifierException("render layer already found", layer->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
@@ -174,9 +174,9 @@ void rgle::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
 
 void rgle::ContextManager::addRenderable(std::string layer, std::shared_ptr<Renderable> renderable)
 {
-	for (int i = 0; i < _layers.size(); i++) {
-		if (_layers[i]->id == layer) {
-			_layers[i]->addRenderable(renderable);
+	for (size_t i = 0; i < this->_layers.size(); i++) {
+		if (this->_layers[i]->id == layer) {
+			this->_layers[i]->addRenderable(renderable);
 			return;
 		}
 	}
@@ -190,8 +190,8 @@ void rgle::ContextManager::addResource(std::shared_ptr<Resource> resource)
 
 void rgle::ContextManager::update()
 {
-	for (int i = 0; i < _layers.size(); i++) {
-		_layers[i]->update();
+	for (size_t i = 0; i < this->_layers.size(); i++) {
+		this->_layers[i]->update();
 	}
 	this->_window->update();
 }
@@ -201,8 +201,8 @@ void rgle::ContextManager::render()
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		Logger::warn("incomplete framebuffer!", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
-	for (int i = 0; i < _layers.size(); i++) {
-		_layers[i]->render();
+	for (size_t i = 0; i < this->_layers.size(); i++) {
+		this->_layers[i]->render();
 	}
 }
 
@@ -305,8 +305,8 @@ float rgle::RenderableLayer::getFrameDelay()
 void rgle::RenderableLayer::update()
 {
 	RenderLayer::update();
-	for (int i = 0; i < _renderables.size(); i++) {
-		_renderables[i]->update();
+	for (size_t i = 0; i < this->_renderables.size(); i++) {
+		this->_renderables[i]->update();
 	}
 }
 
@@ -314,7 +314,7 @@ void rgle::RenderableLayer::render()
 {
 	this->_viewport->use();
 	GLuint currentShader = 0;
-	for (int i = 0; i < _renderables.size(); i++) {
+	for (size_t i = 0; i < this->_renderables.size(); i++) {
 		auto shader = this->_renderables[i]->shaderLocked();
 		if (shader->programId() != currentShader) {
 			currentShader = shader->programId();
@@ -330,15 +330,15 @@ void rgle::RenderableLayer::addRenderable(std::shared_ptr<Renderable> renderable
 	if (renderable->shader().expired()) {
 		throw ApplicationException("failed to add renderable to layer, shader is null", LOGGER_DETAIL_IDENTIFIER(renderable->id));
 	}
-	for (int i = 0; i < _renderables.size(); i++) {
-		if (_renderables[i]->id == renderable->id) {
+	for (size_t i = 0; i < this->_renderables.size(); i++) {
+		if (this->_renderables[i]->id == renderable->id) {
 			throw IdentifierException("identifier already exists", renderable->id, LOGGER_DETAIL_DEFAULT);
 		}
 	}
 	GLuint programId = renderable->shaderLocked()->programId();
-	for (int i = 0; i < _renderables.size(); i++) {
-		if (_renderables[i]->shaderLocked()->programId() == programId) {
-			_renderables.insert(_renderables.begin() + i, renderable);
+	for (size_t i = 0; i < this->_renderables.size(); i++) {
+		if (this->_renderables[i]->shaderLocked()->programId() == programId) {
+			this->_renderables.insert(this->_renderables.begin() + i, renderable);
 			return;
 		}
 	}

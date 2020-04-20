@@ -5,7 +5,7 @@
 namespace rgle {
 
 	// Calculate barycentric coordinates using Cramer's rule to solve the system: p = a1p1 + a2p2 + a3p3, a1 + a2 + a3 = 1
-	glm::vec3 barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::vec3& point);
+	glm::vec3 barycentric(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3, const glm::vec3& point);
 
 	class Ray {
 	public:
@@ -13,9 +13,8 @@ namespace rgle {
 		Ray(glm::vec3 u, glm::vec3 p);
 		virtual ~Ray();
 
-		bool intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3);
-		bool intersect(Geometry3D::Face& face);
-		bool intersect(Geometry3D* geometry);
+		bool intersect(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3) const;
+		bool intersect(const Geometry3D* geometry) const;
 
 	private:
 		glm::vec3 _u;

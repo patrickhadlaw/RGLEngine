@@ -9,10 +9,10 @@ namespace rgle {
 
 	class DebugException : public Exception {
 	public:
-		DebugException(std::string except, Logger::Detail& detail);
+		DebugException(std::string except, Logger::Detail detail);
 	};
 
-	void debug_assert(bool assert, Logger::Detail& detail);
+	void debug_assert(bool assert, Logger::Detail detail);
 
 	unsigned char random_byte();
 
@@ -54,7 +54,7 @@ namespace rgle {
 			}
 			else {
 				size_t idx = this->_queue.size() / 2;
-				size_t half = std::ceil(this->_queue.size() / 4.0f);
+				size_t half = static_cast<size_t>(std::ceil(this->_queue.size() / 4.0f));
 				while (idx < this->size() && !this->_queue[idx].in(value) && std::ceil(half / 2.0f) != half) {
 					if (value > this->_queue[idx].lower) {
 						idx += half;
@@ -62,7 +62,7 @@ namespace rgle {
 					else {
 						idx -= half;
 					}
-					half = std::ceil(half / 2.0f);
+					half = static_cast<size_t>(std::ceil(half / 2.0f));
 				}
 				this->_insert(value, std::min(this->size() - 1, idx));
 			}

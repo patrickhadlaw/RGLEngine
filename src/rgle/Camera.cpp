@@ -34,14 +34,14 @@ rgle::Camera::~Camera()
 {
 }
 
-void rgle::Camera::onMessage(std::string eventname, EventMessage * message)
+void rgle::Camera::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "resize") {
 		this->generate(this->_type);
 	}
 }
 
-void rgle::Camera::update(float deltaT)
+void rgle::Camera::update(float)
 {
 	this->_view = glm::lookAt(this->_position, this->_position + this->_direction, this->_up);
 }
@@ -215,7 +215,7 @@ rgle::ViewTransformer::~ViewTransformer()
 {
 }
 
-void rgle::ViewTransformer::update(float deltaT)
+void rgle::ViewTransformer::update(float)
 {
 }
 
