@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 
 set(GLEW_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/glew)
 set(GLFW_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/glfw)
@@ -10,7 +10,9 @@ set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 
-add_subdirectory(${GLEW_LOCATION}/build/cmake)
+set(glew-cmake_BUILD_SHARED OFF)
+
+add_subdirectory(${GLEW_LOCATION})
 add_subdirectory(${GLFW_LOCATION})
 add_subdirectory(${FREETYPE_LOCATION})
 add_subdirectory(${GLM_LOCATION})
@@ -18,4 +20,4 @@ add_subdirectory(${GLM_LOCATION})
 find_package(OpenGL REQUIRED)
 
 set(RGLE_LIB_INCLUDE_DIRS ${GLFW_LOCATION}/include ${STB_LOCATION} ${FREETYPE_LOCATION}/include ${GLM_INCLUDE_DIRS} ${GLEW_LOCATION}/include PARENT_SCOPE)
-set(RGLE_LINK_LIBS glew ${OPENGL_LIBRARIES} glfw freetype glm PARENT_SCOPE)
+set(RGLE_LINK_LIBS libglew_static ${OPENGL_LIBRARIES} glfw freetype glm PARENT_SCOPE)
