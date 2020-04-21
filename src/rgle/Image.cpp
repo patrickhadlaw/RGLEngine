@@ -75,7 +75,7 @@ void rgle::Image::operator=(const Image& other)
 	this->channels = other.channels;
 	this->image = other.image;
 	this->image = new unsigned char[this->size()];
-	for (int i = 0; i < this->size(); i++) {
+	for (size_t i = 0; i < this->size(); i++) {
 		this->image[i] = other.image[i];
 	}
 }

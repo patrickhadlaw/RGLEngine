@@ -5,7 +5,7 @@
 namespace rgle {
 	class ConfigException : public Exception {
 	public:
-		ConfigException(std::string exception, Logger::Detail& detail);
+		ConfigException(std::string exception, Logger::Detail detail);
 	};
 
 	class Config {

@@ -2,9 +2,6 @@
 
 #include "rgle/Window.h"
 
-#include <glm\gtc\matrix_transform.hpp>
-#include <glm\gtc\quaternion.hpp>
-
 namespace rgle {
 
 	float z_index(float z);

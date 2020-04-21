@@ -4,6 +4,7 @@
 
 void rgle::initialize()
 {
+	rgle::Platform::initialize();
 	rgle::Logger::message(
 		"RGLEngine Version: " +
 		std::to_string(RGLE_VERSION_MAJOR) +
@@ -13,7 +14,6 @@ void rgle::initialize()
 		std::to_string(RGLE_VERSION_REVISION)
 	);
 	rgle::Logger::info("initializing RGLEngine", LOGGER_DETAIL_DEFAULT);
-	rgle::Platform::initialize();
 }
 
 rgle::Application::Application()
@@ -48,7 +48,7 @@ void rgle::Application::initialize()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-std::shared_ptr<rgle::ContextManager> rgle::Application::getContextManager(std::string id)
+std::shared_ptr<rgle::ContextManager> rgle::Application::getContextManager(std::string managerid)
 {
 	return std::shared_ptr<rgle::ContextManager>();
 }

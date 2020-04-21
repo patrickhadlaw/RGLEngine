@@ -15,7 +15,7 @@ rgle::Ray::~Ray()
 {
 }
 
-bool rgle::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
+bool rgle::Ray::intersect(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3) const
 {
 	glm::vec3 n = glm::cross(p2 - p1, p3 - p2);
 	float denom = glm::dot(n, this->_p);
@@ -31,25 +31,24 @@ bool rgle::Ray::intersect(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3)
 	return alpha.x <= 1.0 && alpha.x >= 0.0 && alpha.y <= 1.0 && alpha.y >= 0.0 && alpha.z <= 1.0 && alpha.z >= 0.0;
 }
 
-bool rgle::Ray::intersect(Geometry3D * geometry)
+bool rgle::Ray::intersect(const Geometry3D * geometry) const
 {
 	if (geometry == nullptr) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
-	for (int i = 0; i < geometry->numFaces(); i++) {
-		if (this->intersect(geometry->getFace(i))) {
+	for (int i = 0; i < geometry->triangleCount(); i++) {
+		if (this->intersect(
+			geometry->triangleVertex(i, Geometry3D::TrianglePoint::A),
+			geometry->triangleVertex(i, Geometry3D::TrianglePoint::B),
+			geometry->triangleVertex(i, Geometry3D::TrianglePoint::C)))
+		{
 			return true;
 		}
 	}
 	return false;
 }
 
-bool rgle::Ray::intersect(Geometry3D::Face& face)
-{
-	return intersect(face.p1, face.p2, face.p3);
-}
-
-glm::vec3 rgle::barycentric(glm::vec3& p1, glm::vec3& p2, glm::vec3& p3, glm::vec3& point)
+glm::vec3 rgle::barycentric(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3, const glm::vec3& point)
 {
 	glm::vec3 v0 = point - p3;
 	glm::vec3 v1 = p1 - p3;

@@ -1,14 +1,14 @@
 #include "rgle/Thread.h"
 
 
-rgle::ThreadException::ThreadException(std::string except, Logger::Detail & detail) : Exception(except, detail, "rgle::ThreadException")
+rgle::ThreadException::ThreadException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::ThreadException")
 {
 }
 
 rgle::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(false), _activeWorkers(0), _queueMutex()
 {
 	this->_workers.reserve(n);
-	for (int i = 0; i < n; i++) {
+	for (size_t i = 0; i < n; i++) {
 		this->_workers.push_back(std::thread([this]() { this->_threadLoop(); }));
 	}
 }
@@ -22,7 +22,7 @@ rgle::ThreadPool::~ThreadPool()
 	this->_alive = false;
 	this->_ready = true;
 	this->_workerCondition.notify_all();
-	for (int i = 0; i < this->_workers.size(); i++) {
+	for (size_t i = 0; i < this->_workers.size(); i++) {
 		this->_workers[i].join();
 	}
 }

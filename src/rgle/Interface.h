@@ -188,7 +188,7 @@ namespace rgle {
 
 			virtual void updateGeometry();
 
-			void changeColor(Fill color);
+			void changeColor(Fill fill);
 
 		protected:
 			RectAttributes _attributes;

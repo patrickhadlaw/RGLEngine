@@ -2,10 +2,6 @@
 
 #include "rgle/Platform.h"
 
-#include <iostream>
-#include <cstdio>
-#include <string>
-
 namespace rgle {
 	namespace Console {
 		enum class Color {

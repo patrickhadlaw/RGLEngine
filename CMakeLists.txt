@@ -2,31 +2,27 @@ cmake_minimum_required(VERSION 3.0)
 
 set(RGLE_VERSION_MAJOR 0)
 set(RGLE_VERSION_MINOR 2)
-set(RGLE_VERSION_REVISION 3)
+set(RGLE_VERSION_REVISION 4)
 
 project(rgle VERSION ${RGLE_VERSION_MAJOR}.${RGLE_VERSION_MINOR}.${RGLE_VERSION_REVISION})
 
-set(GLEW_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/glew)
-set(GLFW_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/glfw)
-set(FREETYPE_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/freetype)
-set(STB_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/stb)
-set(GLM_LOCATION ${CMAKE_CURRENT_SOURCE_DIR}/lib/glm)
-
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 configure_file (
-    "${PROJECT_SOURCE_DIR}/configuration.h.in"
-    "${PROJECT_BINARY_DIR}/configuration.h"
+  "${PROJECT_SOURCE_DIR}/configuration.h.in"
+  "${CMAKE_BINARY_DIR}/configuration.h"
 )
 
-set(RGLE_INSTALL_PATH ${PROJECT_BINARY_DIR})
+if(NOT DEFINED RGLE_INSTALL_PATH)
+	set(RGLE_INSTALL_PATH ${PROJECT_BINARY_DIR})
+endif(NOT DEFINED RGLE_INSTALL_PATH)
 set(RGLE_LOG_LEVEL "DEBUG")
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/rgle.cfg.in"
-	"${CMAKE_BINARY_DIR}/bin/rgle.cfg"
+	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rgle.cfg"
 )
 
 aux_source_directory(src/rgle RGLE_LIB_SRC)
@@ -48,55 +44,33 @@ foreach(resource ${resources})
 	configure_file(${resource} ${PROJECT_BINARY_DIR}/${resourcefile} COPYONLY)
 endforeach()
 
-set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+add_subdirectory(lib)
 
-add_subdirectory(${GLEW_LOCATION}/build/cmake)
-add_subdirectory(${GLFW_LOCATION})
-add_subdirectory(${FREETYPE_LOCATION})
-
-find_package(OpenGL REQUIRED)
-
-set(RGLE_INCLUDE_DIRS include src ${PROJECT_BINARY_DIR} ${GLFW_LOCATION}/include ${STB_LOCATION} ${FREETYPE_LOCATION}/include ${GLM_LOCATION} ${GLEW_LOCATION}/include)
-set(RGLE_LINK_LIBS glew ${OPENGL_LIBRARIES} glfw freetype)
+set(RGLE_INCLUDE_DIRS include src ${PROJECT_BINARY_DIR})
 
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS YES)
 
 add_library(rgle SHARED ${RGLE_LIB_SRC})
 target_compile_definitions(rgle PUBLIC RGLE_DLL_BUILD_MODE)
 
-add_custom_command(TARGET rgle
-	POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}
-)
-
 target_link_libraries(rgle ${RGLE_LINK_LIBS})
 target_include_directories(rgle PUBLIC ${RGLE_INCLUDE_DIRS})
+target_include_directories(rgle SYSTEM PUBLIC ${RGLE_LIB_INCLUDE_DIRS})
 set_target_properties(rgle PROPERTIES PUBLIC_HEADER "include/rgle.h")
 
+if (MSVC)
+	add_compile_options(/W4 /WX)
+else()
+	add_compile_options(-Wall -Wextra -pedantic -Werror)
+endif()
+
 install(TARGETS rgle
-    LIBRARY DESTINATION lib
+  LIBRARY DESTINATION lib
 	ARCHIVE DESTINATION bin
 	PUBLIC_HEADER DESTINATION include
 	COMPONENT LIBRARY
 )
 
-aux_source_directory(test TEST_SRC)
+add_subdirectory(tests)
 
-add_custom_target(tests)
-foreach(test_source ${TEST_SRC})
-	get_filename_component(filename ${test_source} NAME_WE)
-	add_executable(${filename} ${test_source})
-	target_include_directories(${filename} PUBLIC ${RGLE_INCLUDE_DIRS})
-	target_link_libraries(${filename} PUBLIC rgle)
-endforeach()
-
-aux_source_directory(program PROGRAM_SRC)
-
-add_custom_target(programs)
-foreach(program_source ${PROGRAM_SRC})
-	get_filename_component(filename ${program_source} NAME_WE)
-	add_executable(${filename} ${program_source})
-	target_include_directories(${filename} PUBLIC ${RGLE_INCLUDE_DIRS})
-	target_link_libraries(${filename} PUBLIC rgle)
-endforeach()
+add_subdirectory(programs)

@@ -14,7 +14,7 @@ rgle::Config::Config(std::string filename)
 				bool quote = false;
 				size_t valueindex;
 				ParseState state = ParseState::KEY;
-				for (int i = 0; i < line.length(); i++) {
+				for (size_t i = 0; i < line.length(); i++) {
 					if (state == ParseState::KEY) {
 						if (line[i] == '=') {
 							key = line.substr(0, i);
@@ -92,6 +92,6 @@ bool rgle::Config::_validate(char c)
 	return c == '_' || c == '-' || std::isalnum(static_cast<unsigned char>(c));
 }
 
-rgle::ConfigException::ConfigException(std::string exception, Logger::Detail & detail) : Exception(exception, detail, "rgle::ConfigException")
+rgle::ConfigException::ConfigException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::ConfigException")
 {
 }

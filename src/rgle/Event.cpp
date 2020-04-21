@@ -1,11 +1,11 @@
 #include "rgle/Event.h"
 
 
-rgle::EventException::EventException(std::string & except, Logger::Detail & detail) : Exception(except, detail, "rgle::EventException")
+rgle::EventException::EventException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::EventException")
 {
 }
 
-rgle::EventException::EventException(const char * except, Logger::Detail & detail) : Exception(except, detail, "rgle::EventException")
+rgle::EventException::EventException(const char * except, Logger::Detail detail) : Exception(except, detail, "rgle::EventException")
 {
 }
 
@@ -38,7 +38,7 @@ rgle::EventHost::~EventHost()
 {
 	for (auto it = _listeners.begin(); it != _listeners.end(); ++it) {
 		std::vector<EventListener*>& list = it->second;
-		for (int i = 0; i < list.size(); i++) {
+		for (size_t i = 0; i < list.size(); i++) {
 			list[i]->_removeHost(this->_self);
 		}
 	}
@@ -59,7 +59,7 @@ void rgle::EventHost::operator=(const EventHost && rvalue)
 void rgle::EventHost::broadcastEvent(std::string eventname, EventMessage * message)
 {
 	if (_listeners.find(eventname) != _listeners.end()) {
-		for (int i = 0; i < _listeners[eventname].size(); i++) {
+		for (size_t i = 0; i < _listeners[eventname].size(); i++) {
 			_listeners[eventname][i]->onMessage(eventname, message);
 		}
 		delete message;
@@ -90,7 +90,7 @@ void rgle::EventHost::removeListener(std::string eventname, EventListener * list
 	else {
 		std::vector<EventListener*>& list = _listeners[eventname];
 		bool found = false;
-		for (int i = 0; i < list.size(); i++) {
+		for (size_t i = 0; i < list.size(); i++) {
 			if (list[i] == listener) {
 				list.erase(list.begin() + i);
 				found = true;
@@ -106,7 +106,7 @@ void rgle::EventHost::removeListener(std::string eventname, EventListener * list
 void rgle::EventHost::_replaceListener(EventListener * previous, EventListener * replace)
 {
 	for (std::map<std::string, std::vector<EventListener*>>::iterator it = _listeners.begin(); it != _listeners.end(); ++it) {
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			if (it->second[i] == previous) {
 				it->second[i] = replace;
 			}
@@ -117,7 +117,7 @@ void rgle::EventHost::_replaceListener(EventListener * previous, EventListener *
 void rgle::EventHost::_changePointer(EventHost * previous)
 {
 	for (std::map<std::string, std::vector<EventListener*>>::iterator it = _listeners.begin(); it != _listeners.end(); ++it) {
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			it->second[i]->_replaceHost(previous, this);
 		}
 	}
@@ -134,7 +134,7 @@ rgle::EventListener::EventListener(const EventListener & other)
 {
 	_changePointer(other._self);
 	for (auto it = other._hosts.begin(); it != other._hosts.end(); ++it) {
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			it->first->registerListener(it->second[i], this);
 		}
 	}
@@ -149,7 +149,7 @@ rgle::EventListener::EventListener(EventListener && rvalue)
 rgle::EventListener::~EventListener()
 {
 	for (std::map<EventHost*, std::vector<std::string>>::iterator it = _hosts.begin(); it != _hosts.end(); ++it) {
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			it->first->removeListener(it->second[i], this);
 		}
 	}
@@ -159,7 +159,7 @@ void rgle::EventListener::operator=(const EventListener & other)
 {
 	_changePointer(other._self);
 	for (auto it = other._hosts.begin(); it != other._hosts.end(); ++it) {
-		for (int i = 0; i < it->second.size(); i++) {
+		for (size_t i = 0; i < it->second.size(); i++) {
 			it->first->registerListener(it->second[i], this);
 		}
 	}
@@ -173,8 +173,9 @@ void rgle::EventListener::operator=(const EventListener && rvalue)
 }
 
 
-void rgle::EventListener::onMessage(std::string eventname, EventMessage * message)
+void rgle::EventListener::onMessage(std::string eventname, EventMessage *)
 {
+	throw EventException("undefined event handler invoked for event'" + eventname + '\'', LOGGER_DETAIL_DEFAULT);
 }
 
 void rgle::EventListener::_removeHost(EventHost * host)
@@ -182,7 +183,7 @@ void rgle::EventListener::_removeHost(EventHost * host)
 	bool found = false;
 	for (std::map<EventHost*, std::vector<std::string>>::iterator it = _hosts.begin(); it != _hosts.end(); ++it) {
 		if (it->first == host) {
-			for (int i = 0; i < it->second.size(); i++) {
+			for (size_t i = 0; i < it->second.size(); i++) {
 				it->first->removeListener(it->second[i], this);
 			}
 		}

@@ -3,7 +3,7 @@
 
 size_t rgle::InstancedRenderer::_idCounter = 0;
 
-rgle::GraphicsException::GraphicsException(std::string except, Logger::Detail & detail) : Exception(except, detail, "rgle::GraphicsException")
+rgle::GraphicsException::GraphicsException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::GraphicsException")
 {
 }
 
@@ -40,7 +40,7 @@ rgle::Shape::Shape(std::string shaderid, std::vector<glm::vec3> verticies, glm::
 {
 	std::vector<glm::vec4> colors;
 	colors.resize(verticies.size());
-	for (int i = 0; i < colors.size(); i++) {
+	for (size_t i = 0; i < colors.size(); i++) {
 		colors[i] = color;
 	}
 	Shape(shaderid, verticies, colors);
@@ -143,9 +143,9 @@ void rgle::Sampler2D::use()
 
 void rgle::Sampler2D::_generate(const std::string& samplerUniform)
 {
-	auto shader = this->shader.lock();
-	this->enableLocation = glGetUniformLocation(shader->programId(), "enable_texture");
-	this->samplerLocation = glGetUniformLocation(shader->programId(), samplerUniform.c_str());
+	auto shaderLocked = this->shader.lock();
+	this->enableLocation = glGetUniformLocation(shaderLocked->programId(), "enable_texture");
+	this->samplerLocation = glGetUniformLocation(shaderLocked->programId(), samplerUniform.c_str());
 	if (this->samplerLocation < 0) {
 		throw GraphicsException("failed to get uniform location of: '" + samplerUniform + '\'', LOGGER_DETAIL_DEFAULT);
 	}
@@ -332,28 +332,20 @@ void rgle::Geometry3D::operator=(Geometry3D && rvalue)
 	samplers = std::move(rvalue.samplers);
 }
 
-int rgle::Geometry3D::numFaces()
+int rgle::Geometry3D::triangleCount() const
 {
-	if (!this->index.list.empty()) {
-		return static_cast<int>(this->index.list.size() / 3);
-	}
+	return static_cast<int>(this->index.list.size() / 3);
 }
 
-rgle::Geometry3D::Face rgle::Geometry3D::getFace(int index)
+const glm::vec3 & rgle::Geometry3D::triangleVertex(int faceIndex, TrianglePoint point) const
 {
-	if (index < 0 || index >= this->numFaces()) {
-		throw Exception("failed to get face: index out of bounds", LOGGER_DETAIL_DEFAULT);
+	if (faceIndex < 0 || faceIndex >= this->triangleCount()) {
+		throw OutOfBoundsException(LOGGER_DETAIL_DEFAULT);
 	}
 	else {
-
-		Face face = Face(
-			this->vertex.list[this->index.list[index * 3]],
-			this->index.list[index * 3],
-			this->vertex.list[this->index.list[index * 3 + 1]],
-			this->index.list[index * 3 + 1],
-			this->vertex.list[this->index.list[index * 3 + 2]],
-			this->index.list[index * 3 + 2]
-		);
+		return this->vertex.list[
+			this->index.list[faceIndex * 3 + static_cast<size_t>(point)]
+		];
 	}
 }
 
@@ -408,7 +400,7 @@ void rgle::Geometry3D::standardFill(Fill colorFill)
 	bool first = true;
 	glm::vec2 xrange = glm::vec2(0.0f, 0.0f);
 	glm::vec2 yrange = glm::vec2(0.0f, 0.0f);
-	for (int i = 0; i < this->vertex.list.size(); i++) {
+	for (size_t i = 0; i < this->vertex.list.size(); i++) {
 		if (first || this->vertex.list[i].x < xrange.x) {
 			xrange.x = this->vertex.list[i].x;
 		}
@@ -426,18 +418,24 @@ void rgle::Geometry3D::standardFill(Fill colorFill)
 	int len = this->index.list.empty() ? this->vertex.list.size() : this->index.list.size();
 	for (int i = 0; i < len; i++) {
 		if (!this->index.list.empty()) {
-			unsigned short index = this->index.list[i];
-			if (index < this->vertex.list.size()) {
-				glm::vec3& vertex = this->vertex.list[index];
-				this->color.list.push_back(colorFill.evaluate((vertex.x - xrange.x) / xrange.y, (vertex.y - yrange.x) / yrange.y));
+			unsigned short vertxIndex = this->index.list[i];
+			if (vertxIndex < this->vertex.list.size()) {
+				glm::vec3& currentVertex = this->vertex.list[vertxIndex];
+				this->color.list.push_back(colorFill.evaluate(
+					(currentVertex.x - xrange.x) / xrange.y,
+					(currentVertex.y - yrange.x) / yrange.y
+				));
 			}
 			else {
 				this->color.list.push_back(glm::vec4(0.0, 0.0, 0.0, 0.0));
 			}
 		}
 		else {
-			glm::vec3& vertex = this->vertex.list[i];
-			this->color.list.push_back(colorFill.evaluate((vertex.x - xrange.x) / xrange.y, (vertex.y - yrange.x) / yrange.y));
+			glm::vec3& currentVertex = this->vertex.list[i];
+			this->color.list.push_back(colorFill.evaluate(
+				(currentVertex.x - xrange.x) / xrange.y,
+				(currentVertex.y - yrange.x) / yrange.y
+			));
 		}
 	}
 }
@@ -580,15 +578,6 @@ void rgle::SceneLayer::add(std::shared_ptr<Geometry3D> geometry)
 	this->_renderables.push_back(geometry);
 }
 
-rgle::Geometry3D::Face::Face(glm::vec3 & p1,
-	unsigned short & i1,
-	glm::vec3 & p2,
-	unsigned short & i2,
-	glm::vec3 & p3,
-	unsigned short & i3) : p1(p1), i1(i1), p2(p2), i2(i2), p3(p3), i3(i3)
-{
-}
-
 rgle::InstancedRenderer::InstancedRenderer(std::string id, std::shared_ptr<ViewTransformer> transformer, float allocationFactor, size_t minAllocated) :
 	_allocationFactor(allocationFactor),
 	_minAllocated(minAllocated),
@@ -679,16 +668,16 @@ size_t rgle::InstancedRenderer::addInstance(std::string key, void* payload, size
 	if (this->_setMap.find(key) == this->_setMap.end()) {
 		throw NotFoundException("failed to add instance of model with key: " + key + ", key not found", LOGGER_DETAIL_DEFAULT);
 	}
-	size_t id = InstancedRenderer::_idCounter++;
+	size_t instanceId = InstancedRenderer::_idCounter++;
 	InstanceSet* set = &this->_setMap[key];
 	if (size > set->payloadSize) {
 		throw IllegalArgumentException("failed to add instance of model with key: " + key + ", invalid payload size", LOGGER_DETAIL_DEFAULT);
 	}
 	set->numInstances++;
-	set->allocationMap[id] = set->numInstances - 1;
-	this->_keyLookupTable[id] = key;
+	set->allocationMap[instanceId] = set->numInstances - 1;
+	this->_keyLookupTable[instanceId] = key;
 	if (set->numInstances > set->numAllocated) {
-		set->numAllocated *= this->_allocationFactor;
+		set->numAllocated = static_cast<size_t>(set->numAllocated * this->_allocationFactor);
 		set->instanceData = (unsigned char*) std::realloc(
 			set->instanceData,
 			set->numAllocated * set->payloadSize
@@ -713,7 +702,7 @@ size_t rgle::InstancedRenderer::addInstance(std::string key, void* payload, size
 			dst
 		);
 	}
-	return id;
+	return instanceId;
 }
 
 size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
@@ -721,58 +710,61 @@ size_t rgle::InstancedRenderer::addInstance(std::string key, glm::mat4 model)
 	return this->addInstance(key, &model[0][0], 16 * sizeof(GLfloat));
 }
 
-void rgle::InstancedRenderer::updateInstance(size_t id, void * payload, size_t offset, size_t size)
+void rgle::InstancedRenderer::updateInstance(size_t instanceId, void * payload, size_t offset, size_t size)
 {
-	if (this->_keyLookupTable.find(id) == this->_keyLookupTable.end()) {
+	if (this->_keyLookupTable.find(instanceId) == this->_keyLookupTable.end()) {
 		throw NotFoundException(
-			"failed to update instance: " + std::to_string(id) + ", failed to lookup key",
+			"failed to update instance: " + std::to_string(instanceId) + ", failed to lookup key",
 			LOGGER_DETAIL_IDENTIFIER(this->id)
 		);
 	}
-	std::string& key = this->_keyLookupTable[id];
+	std::string& key = this->_keyLookupTable[instanceId];
 	if (this->_setMap.find(key) == this->_setMap.end()) {
 		throw NotFoundException(
-			"failed to update instance: " + std::to_string(id) + ", instance set with key: " + key + " not found",
+			"failed to update instance: " + std::to_string(instanceId) + ", instance set with key: " + key + " not found",
 			LOGGER_DETAIL_IDENTIFIER(this->id)
 		);
 	}
 	InstanceSet* set = &this->_setMap[key];
 	if (size > set->payloadSize || size == 0) {
 		throw IllegalArgumentException(
-			"invalid payload size while updating instance: " + std::to_string(id),
+			"invalid payload size while updating instance: " + std::to_string(instanceId),
 			LOGGER_DETAIL_IDENTIFIER(this->id)
 		);
 	}
 	if (offset >= set->payloadSize || offset + size > set->payloadSize) {
 		throw OutOfBoundsException(LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
-	size_t idx = set->allocationMap[id];
+	size_t idx = set->allocationMap[instanceId];
 	void* dst = set->instanceData + idx * set->payloadSize + offset;
 	std::memcpy(dst, payload, size);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, set->ssbo);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, idx * set->payloadSize + offset, size, dst);
 }
 
-void rgle::InstancedRenderer::removeInstance(size_t id)
+void rgle::InstancedRenderer::removeInstance(size_t instanceId)
 {
-	std::string key = this->_keyLookupTable[id];
+	std::string key = this->_keyLookupTable[instanceId];
 	if (this->_setMap.find(key) == this->_setMap.end()) {
-		throw NotFoundException("failed to remove a model instance with id: " + std::to_string(id) + ", id not found", LOGGER_DETAIL_DEFAULT);
+		throw NotFoundException(
+			"failed to remove a model instance with id: " + std::to_string(instanceId) + ", id not found",
+			LOGGER_DETAIL_DEFAULT
+		);
 	}
 	InstanceSet* set = &this->_setMap[key];
-	size_t idx = set->allocationMap[id];
+	size_t idx = set->allocationMap[instanceId];
 	set->numInstances--;
 	for (auto it = set->allocationMap.begin(); it != set->allocationMap.end(); ++it) {
 		if (it->second == set->numInstances) {
 			it->second = idx;
 		}
 	}
-	set->allocationMap.erase(id);
-	this->_keyLookupTable.erase(id);
+	set->allocationMap.erase(instanceId);
+	this->_keyLookupTable.erase(instanceId);
 	void* idxptr = set->instanceData + idx * set->payloadSize;
 	// Copy last instance payload into deleted instance payload slot
 	std::memcpy(idxptr, set->instanceData + set->numInstances * set->payloadSize, set->payloadSize);
-	size_t reduced = set->numAllocated / this->_allocationFactor;
+	size_t reduced = static_cast<size_t>(set->numAllocated / this->_allocationFactor);
 	if (set->numInstances <= reduced && reduced >= this->_minAllocated) {
 		set->numAllocated = reduced;
 		set->instanceData = (unsigned char*)std::realloc(set->instanceData, set->numAllocated * set->payloadSize);
@@ -813,7 +805,7 @@ void rgle::InstancedRenderer::render()
 			it->second.bindFunc();
 		}
 
-		for (int i = 0; i < it->second.geometry->samplers.size(); i++) {
+		for (size_t i = 0; i < it->second.geometry->samplers.size(); i++) {
 			it->second.geometry->samplers[i].use();
 		}
 
@@ -858,13 +850,13 @@ const char * rgle::InstancedRenderer::typeName() const
 size_t rgle::aligned_std140_size(const size_t & size, const size_t & largestMember)
 {
 	// Round largestMember up by sizeof(vec4)
-	size_t std140BaseAlignment = (4 * sizeof(GLfloat)) * std::ceilf((float)largestMember / (4 * sizeof(GLfloat)));
+	size_t std140BaseAlignment = (4 * sizeof(GLfloat)) * static_cast<size_t>(std::ceilf((float)largestMember / (4 * sizeof(GLfloat))));
 	// Round size up by std140BaseAlignment
-	return std140BaseAlignment * std::ceilf((float)size / std140BaseAlignment);
+	return std140BaseAlignment * static_cast<size_t>(std::ceilf((float)size / std140BaseAlignment));
 }
 
 size_t rgle::aligned_std430_size(const size_t & size, const size_t & largestMember)
 {
 	// Round size up by largestMember
-	return largestMember * std::ceilf((float)size / largestMember);
+	return largestMember * static_cast<size_t>(std::ceilf((float)size / largestMember));
 }

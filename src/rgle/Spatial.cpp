@@ -154,7 +154,7 @@ void rgle::SparseVoxelRenderer::render()
 	glUniform1i(this->_location.finalize, false);
 	bool first = true;
 	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	int i = 0;
+	size_t i = 0;
 	while (i < this->_maxPassesPerFrame && this->_currentPassSize > 0) {
 		glUniform1i(this->_location.bootstrap, first);
 		glUniform1ui(this->_location.readPassSize, this->_currentPassSize);
@@ -166,7 +166,7 @@ void rgle::SparseVoxelRenderer::render()
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, this->_writeCounterBuffer);
-		size_t dim = std::ceil((float)this->_currentPassSize / 1024.0f);
+		size_t dim = static_cast<size_t>(std::ceil((float)this->_currentPassSize / 1024.0f));
 		glDispatchCompute(dim, 1, 1);
 		if (i != this->_maxPassesPerFrame - 1) {
 			this->_currentPassSize = this->swapBuffers();
@@ -194,7 +194,7 @@ void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 		throw GraphicsException("failed to reallocate sparse voxel pass buffers, reallocation too small", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
-		size_t size = this->_passAllocatedSize * factor;
+		size_t size = static_cast<size_t>(this->_passAllocatedSize * factor);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_COPY_READ_BUFFER, this->_passReadBuffer);
@@ -694,10 +694,10 @@ void rgle::NoClipSparseVoxelCamera::update(float deltaT)
 				this->move(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, move);
+				this->rotate(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, -move);
+				this->rotate(0.0, 0.0, move);
 			}
 		}
 	}

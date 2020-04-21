@@ -61,29 +61,29 @@ int main(const int argc, const char* const argv[]) {
 
 		auto basic3D = std::make_shared<rgle::ShaderProgram>(
 			"basic3D",
-			rgle::installed_filename("shader/basic3D.vert"),
-			rgle::installed_filename("shader/basic3D.frag")
+			"shader/basic3D.vert",
+			"shader/basic3D.frag"
 		);
 		app.addShader(basic3D);
 		auto textured3D = std::make_shared<rgle::ShaderProgram>(
 			"textured3D",
-			rgle::installed_filename("shader/textured3D.vert"),
-			rgle::installed_filename("shader/textured3D.frag")
+			"shader/textured3D.vert",
+			"shader/textured3D.frag"
 		);
 		app.addShader(textured3D);
 		auto text = std::make_shared<rgle::ShaderProgram>(
 			"text",
-			rgle::installed_filename("shader/text.vert"),
-			rgle::installed_filename("shader/text.frag")
+			"shader/text.vert",
+			"shader/text.frag"
 		);
 		app.addShader(text);
 		auto interface = std::make_shared<rgle::ShaderProgram>(
 			"interface",
-			rgle::installed_filename("shader/interface.vert"),
-			rgle::installed_filename("shader/interface.frag")
+			"shader/interface.vert",
+			"shader/interface.frag"
 		);
 		app.addShader(interface);
-		auto shaders = { rgle::Shader::compileFile(rgle::installed_filename("shader/sparse-voxel/sparse-voxel.comp"), GL_COMPUTE_SHADER) };
+		auto shaders = { rgle::Shader::compileFile("shader/sparse-voxel/sparse-voxel.comp", GL_COMPUTE_SHADER) };
 		auto sparseVoxel = std::make_shared<rgle::ShaderProgram>(
 			"sparse-voxel",
 			shaders
@@ -91,18 +91,18 @@ int main(const int argc, const char* const argv[]) {
 		app.addShader(sparseVoxel);
 		auto sparseVoxelRealize = std::make_shared<rgle::ShaderProgram>(
 			"sparse-voxel-realize",
-			rgle::installed_filename("shader/sparse-voxel/sparse-voxel-realize.vert"),
-			rgle::installed_filename("shader/sparse-voxel/sparse-voxel-realize.frag")
+			"shader/sparse-voxel/sparse-voxel-realize.vert",
+			"shader/sparse-voxel/sparse-voxel-realize.frag"
 		);
 		app.addShader(sparseVoxelRealize);
 
 		auto roboto = std::shared_ptr<rgle::FontFamily>(new rgle::FontFamily("roboto", {
-			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Regular.ttf")) },
-			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Bold.ttf")) },
-			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Italic.ttf")) },
-			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-BoldItalic.ttf")) },
-			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-Light.ttf")) },
-			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(window, rgle::installed_filename("res/font/Roboto/Roboto-LightItalic.ttf")) }
+			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Regular.ttf") },
+			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Bold.ttf") },
+			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Italic.ttf") },
+			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-BoldItalic.ttf") },
+			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Light.ttf") },
+			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-LightItalic.ttf") }
 		}));
 
 		app.addResource(roboto);
@@ -188,18 +188,15 @@ int main(const int argc, const char* const argv[]) {
 			}
 		}
 	}
-	catch (rgle::Exception& e) {
-		std::cin.get();
+	catch (rgle::Exception&) {
 		return -1;
 	}
 	catch (std::exception& e) {
 		rgle::Exception except = rgle::Exception(e.what(), LOGGER_DETAIL_DEFAULT);
-		std::cin.get();
 		return -1;
 	}
 	catch (...) {
 		rgle::Exception except = rgle::Exception("UNHANDLED EXCEPTION", LOGGER_DETAIL_DEFAULT);
-		std::cin.get();
 		return -1;
 	}
 	return 0;

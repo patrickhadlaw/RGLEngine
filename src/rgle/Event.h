@@ -2,16 +2,12 @@
 
 #include "rgle/Exception.h"
 
-#include <vector>
-#include <map>
-#include <functional>
-
 namespace rgle {
 
 	class EventException : public Exception {
 	public:
-		EventException(std::string& except, Logger::Detail& detail);
-		EventException(const char* except, Logger::Detail& detail);
+		EventException(std::string except, Logger::Detail detail);
+		EventException(const char* except, Logger::Detail detail);
 	};
 
 	template<typename Type>

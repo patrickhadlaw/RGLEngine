@@ -68,9 +68,13 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 		throw rgle::Exception("failed to initialize glfw", LOGGER_DETAIL_DEFAULT);
 	}
 
+	if (!Window::_initialized) {
+		glfwSetErrorCallback(glfw_error_callback);
+	}
+
 	glfwWindowHint(GLFW_SAMPLES, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
@@ -92,7 +96,6 @@ rgle::Window::Window(const int width, const int height, const char* title) : _cu
 		if (err != GLEW_OK) {
 			throw rgle::Exception("failed to initialize GLEW: " + std::string((const char*)glewGetErrorString(err)), LOGGER_DETAIL_DEFAULT);
 		}
-		glfwSetErrorCallback(glfw_error_callback);
 		Window::_initialized = true;
 	}
 
@@ -243,7 +246,7 @@ float rgle::Window::resolve(UnitValue value, Direction direction)
 {
 	GLint viewport[4];
 	glGetIntegerv(GL_VIEWPORT, viewport);
-	float divisor = direction == X ? viewport[2] : viewport[3];
+	float divisor = static_cast<float>(direction == X ? viewport[2] : viewport[3]);
 	switch (value.unit) {
 	case Unit::PT:
 	case Unit::CM:
@@ -447,7 +450,7 @@ rgle::KeyboardMessage::~KeyboardMessage()
 {
 }
 
-rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
+rgle::UnitValue rgle::UnitValue::parse(std::string parse)
 {
 	enum ParseState {
 		VALUE_SIGN,
@@ -465,7 +468,7 @@ rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 	float decimal = 0.0f;
 	int exponent = 0;
 	std::string postfix = "";
-	for (int i = 0; i < parse.length(); i++) {
+	for (size_t i = 0; i < parse.length(); i++) {
 		char& c = parse[i];
 		switch (currentState) {
 		case VALUE_SIGN:
@@ -478,7 +481,7 @@ rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 		case INTEGRAL:
 			if (c >= '0' && c <= '9') {
 				value *= 10;
-				value += (float)(c - '0');
+				value += c - '0';
 			}
 			else if (c == '.') {
 				currentState = DECIMAL;
@@ -524,7 +527,7 @@ rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 		case EXPONENT:
 			if (c >= '0' && c <= '9') {
 				exponent *= 10;
-				exponent += (float)(c - '0');
+				exponent += c - '0';
 			}
 			else if (tolower(c) >= 'a' && tolower(c) <= 'z') {
 				postfix.push_back(c);
@@ -566,16 +569,16 @@ rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
 	if (negateExponent) {
 		exponent = -exponent;
 	}
-	unitvalue.value = unitvalue.value * powf(10, exponent);
+	unitvalue.value = unitvalue.value * powf(10, static_cast<float>(exponent));
 	return unitvalue;
 }
 
-float rgle::UnitValue::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction)
+float rgle::UnitValue::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction) const
 {
 	return 0.0f;
 }
 
-float rgle::UnitValue::resolve(std::shared_ptr<Window> window, Window::Direction direction)
+float rgle::UnitValue::resolve(std::shared_ptr<Window> window, Window::Direction direction) const
 {
 	return window->resolve(*this, direction);
 }
@@ -709,7 +712,7 @@ void rgle::UnitExpression::operator=(UnitExpression && rvalue)
 	rvalue._right = nullptr;
 }
 
-void rgle::UnitExpression::operator=(UnitValue & value)
+void rgle::UnitExpression::operator=(const UnitValue & value)
 {
 	this->_value = value;
 	this->_left = nullptr;
@@ -717,7 +720,7 @@ void rgle::UnitExpression::operator=(UnitValue & value)
 	this->_right = nullptr;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator+(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator+(const UnitValue & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -726,7 +729,7 @@ rgle::UnitExpression rgle::UnitExpression::operator+(UnitValue & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator+(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator+(const UnitExpression & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -735,7 +738,7 @@ rgle::UnitExpression rgle::UnitExpression::operator+(UnitExpression & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator-(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator-(const UnitValue & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -744,7 +747,7 @@ rgle::UnitExpression rgle::UnitExpression::operator-(UnitValue & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator-(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator-(const UnitExpression & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -753,7 +756,7 @@ rgle::UnitExpression rgle::UnitExpression::operator-(UnitExpression & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator/(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator/(const UnitValue & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -762,7 +765,7 @@ rgle::UnitExpression rgle::UnitExpression::operator/(UnitValue & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator/(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator/(const UnitExpression & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -771,12 +774,12 @@ rgle::UnitExpression rgle::UnitExpression::operator/(UnitExpression & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator/(float value)
+rgle::UnitExpression rgle::UnitExpression::operator/(const float & value) const
 {
 	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator*(UnitValue & value)
+rgle::UnitExpression rgle::UnitExpression::operator*(const UnitValue & value) const
 {
 	UnitExpression exp = UnitExpression();
 	exp._left = new UnitExpression(*this);
@@ -785,7 +788,7 @@ rgle::UnitExpression rgle::UnitExpression::operator*(UnitValue & value)
 	return exp;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator*(UnitExpression & value)
+rgle::UnitExpression rgle::UnitExpression::operator*(const UnitExpression & value) const
 {
 	UnitExpression mult = UnitExpression();
 	mult._left = new UnitExpression(*this);
@@ -794,12 +797,12 @@ rgle::UnitExpression rgle::UnitExpression::operator*(UnitExpression & value)
 	return mult;
 }
 
-rgle::UnitExpression rgle::UnitExpression::operator*(float value)
+rgle::UnitExpression rgle::UnitExpression::operator*(const float & value) const
 {
 	return this->operator*(UnitValue{ value, Unit::ND });
 }
 
-void rgle::UnitExpression::operator+=(UnitValue & value)
+void rgle::UnitExpression::operator+=(const UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -812,7 +815,7 @@ void rgle::UnitExpression::operator+=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator+=(UnitExpression & value)
+void rgle::UnitExpression::operator+=(const UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -825,7 +828,7 @@ void rgle::UnitExpression::operator+=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator-=(UnitValue & value)
+void rgle::UnitExpression::operator-=(const UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -838,7 +841,7 @@ void rgle::UnitExpression::operator-=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator-=(UnitExpression & value)
+void rgle::UnitExpression::operator-=(const UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -851,7 +854,7 @@ void rgle::UnitExpression::operator-=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator/=(UnitValue & value)
+void rgle::UnitExpression::operator/=(const UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -864,7 +867,7 @@ void rgle::UnitExpression::operator/=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator/=(UnitExpression & value)
+void rgle::UnitExpression::operator/=(const UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -877,7 +880,7 @@ void rgle::UnitExpression::operator/=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator*=(UnitValue & value)
+void rgle::UnitExpression::operator*=(const UnitValue & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -890,7 +893,7 @@ void rgle::UnitExpression::operator*=(UnitValue & value)
 	this->_right = new UnitExpression(value);
 }
 
-void rgle::UnitExpression::operator*=(UnitExpression & value)
+void rgle::UnitExpression::operator*=(const UnitExpression & value)
 {
 	UnitExpression* exp = new UnitExpression();
 	exp->_value = this->_value;
@@ -903,17 +906,17 @@ void rgle::UnitExpression::operator*=(UnitExpression & value)
 	this->_right = new UnitExpression(value);
 }
 
-bool rgle::UnitExpression::lessThan(UnitExpression & other, std::shared_ptr<Window> window)
+bool rgle::UnitExpression::lessThan(const UnitExpression & other, std::shared_ptr<Window> window) const
 {
 	return this->resolve(window) <= other.resolve(window);
 }
 
-bool rgle::UnitExpression::greaterThan(UnitExpression & other, std::shared_ptr<Window> window)
+bool rgle::UnitExpression::greaterThan(const UnitExpression & other, std::shared_ptr<Window> window) const
 {
 	return this->resolve(window) >= other.resolve(window);
 }
 
-bool rgle::UnitExpression::isZero()
+bool rgle::UnitExpression::isZero() const
 {
 	if (this->_operation == Operation::VALUE) {
 		if (this->_value.value == 0.0f) {
@@ -939,17 +942,17 @@ bool rgle::UnitExpression::isZero()
 	}
 }
 
-bool rgle::UnitExpression::isValue()
+bool rgle::UnitExpression::isValue() const
 {
 	return this->_operation == Operation::VALUE;
 }
 
-float rgle::UnitExpression::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction)
+float rgle::UnitExpression::resolvePixelValue(std::shared_ptr<Window> window, Window::Direction direction) const
 {
 	return 0.0f;
 }
 
-float rgle::UnitExpression::resolve(std::shared_ptr<Window> window, Window::Direction direction)
+float rgle::UnitExpression::resolve(std::shared_ptr<Window> window, Window::Direction direction) const
 {
 	if (this->isValue()) {
 		return this->_value.resolve(window, direction);
@@ -985,13 +988,13 @@ rgle::UnitVector2D::UnitVector2D(float x, float y, Unit unit)
 	this->y = UnitValue{ y, unit };
 }
 
-rgle::UnitVector2D::UnitVector2D(UnitExpression & x, UnitExpression & y)
+rgle::UnitVector2D::UnitVector2D(const UnitExpression & x, const UnitExpression & y)
 {
 	this->x = x;
 	this->y = y;
 }
 
-rgle::UnitVector2D & rgle::UnitVector2D::parse(std::string parse)
+rgle::UnitVector2D rgle::UnitVector2D::parse(std::string parse)
 {
 	return UnitVector2D();
 }
@@ -1018,7 +1021,7 @@ rgle::UnitVector3D::UnitVector3D(float x, float y, float z, Unit unit)
 	this->z = UnitValue{ z, unit };
 }
 
-rgle::UnitVector3D & rgle::UnitVector3D::parse(std::string parse)
+rgle::UnitVector3D rgle::UnitVector3D::parse(std::string parse)
 {
 	return UnitVector3D();
 }

@@ -141,7 +141,7 @@ rgle::ShaderManager::~ShaderManager()
 
 void rgle::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
 {
-	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
+	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (shader->id == this->_shaderPrograms[i]->id) {
 			throw IdentifierException("shader program already exists", shader->id, LOGGER_DETAIL_DEFAULT);
 		}
@@ -151,7 +151,7 @@ void rgle::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
 
 std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string name)
 {
-	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
+	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {
 			return this->_shaderPrograms[i];
 		}
@@ -161,7 +161,7 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string
 
 std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::get(std::string name) const
 {
-	for (int i = 0; i < this->_shaderPrograms.size(); i++) {
+	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {
 			return this->_shaderPrograms[i];
 		}

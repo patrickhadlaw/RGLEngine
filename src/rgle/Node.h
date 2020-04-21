@@ -56,14 +56,14 @@ namespace rgle {
 
 		template<typename Type>
 		std::shared_ptr<Type> getResource(std::string id) {
-			for (int i = 0; i < _resources.size(); i++) {
-				if (_resources[i]->id == id) {
-					std::shared_ptr<Type> cast = std::dynamic_pointer_cast<Type>(_resources[i]);
+			for (size_t i = 0; i < this->_resources.size(); i++) {
+				if (this->_resources[i]->id == id) {
+					std::shared_ptr<Type> cast = std::dynamic_pointer_cast<Type>(this->_resources[i]);
 					if (cast) {
 						return cast;
 					}
 					else {
-						throw BadCastException(std::string("failed to cast resource"), LOGGER_DETAIL_IDENTIFIER(id));
+						throw BadCastException(std::string("failed to cast resource"), LOGGER_DETAIL_IDENTIFIER(this->id));
 					}
 				}
 			}

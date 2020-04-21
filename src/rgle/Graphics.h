@@ -6,7 +6,7 @@ namespace rgle {
 
 	class GraphicsException : public Exception {
 	public:
-		GraphicsException(std::string except, Logger::Detail& detail);
+		GraphicsException(std::string except, Logger::Detail detail);
 	};
 
 	// Gets the padded size of a uniform storage block
@@ -56,17 +56,12 @@ namespace rgle {
 
 	class Geometry3D {
 	public:
-		class Face {
-		public:
-			Face(glm::vec3& p1, unsigned short& i1, glm::vec3& p2, unsigned short& i2, glm::vec3& p3, unsigned short& i3);
-
-			glm::vec3& p1;
-			unsigned short& i1;
-			glm::vec3& p2;
-			unsigned short& i2;
-			glm::vec3& p3;
-			unsigned short& i3;
+		enum class TrianglePoint {
+			A,
+			B,
+			C
 		};
+
 		Geometry3D();
 		Geometry3D(const Geometry3D& other);
 		Geometry3D(Geometry3D&& rvalue);
@@ -75,8 +70,8 @@ namespace rgle {
 		void operator=(const Geometry3D& other);
 		void operator=(Geometry3D&& rvalue);
 
-		int numFaces();
-		Face getFace(int index);
+		int triangleCount() const;
+		const glm::vec3& triangleVertex(int faceIndex, TrianglePoint point) const;
 
 		virtual void generate();
 
@@ -225,8 +220,8 @@ namespace rgle {
 
 		size_t addInstance(std::string key, void* payload, size_t size);
 		size_t addInstance(std::string key, glm::mat4 model = glm::mat4(1.0f));
-		void updateInstance(size_t id, void* payload, size_t offset, size_t size);
-		void removeInstance(size_t id);
+		void updateInstance(size_t instanceId, void* payload, size_t offset, size_t size);
+		void removeInstance(size_t instanceId);
 
 		virtual void render();
 		virtual void update();
