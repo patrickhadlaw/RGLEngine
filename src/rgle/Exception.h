@@ -2,10 +2,6 @@
 
 #include "rgle/Logger.h"
 
-#include <iostream>
-#include <exception>
-#include <string>
-
 namespace rgle {
 
 	class Exception : public std::runtime_error {
@@ -14,9 +10,13 @@ namespace rgle {
 		Exception(const char* except, Logger::Detail detail);
 		virtual ~Exception();
 
+		static Exception make(const std::exception& except);
+
 		virtual std::string except();
 
 		virtual std::string print();
+
+		std::string type() const;
 
 	protected:
 

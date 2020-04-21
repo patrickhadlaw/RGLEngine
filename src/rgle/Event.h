@@ -2,10 +2,6 @@
 
 #include "rgle/Exception.h"
 
-#include <vector>
-#include <map>
-#include <functional>
-
 namespace rgle {
 
 	class EventException : public Exception {

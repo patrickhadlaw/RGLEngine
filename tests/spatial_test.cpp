@@ -1,7 +1,5 @@
-#include "TestBed.h"
+#include "rgle.h"
 
 int main() {
-	return rgle::TestBed::run([](rgle::TestBed& testBed) {
-
-	});
+	return rgle::Tester::run([](rgle::Tester&) {});
 }

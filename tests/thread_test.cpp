@@ -1,10 +1,7 @@
-#include "TestBed.h"
-
-#include <iostream>
-#include <cassert>
+#include "rgle.h"
 
 int main() {
-	return rgle::TestBed::run([](rgle::TestBed& testBed) {
+	return rgle::Tester::run([](rgle::Tester& tester) {
 		rgle::ThreadPool pool = rgle::ThreadPool();
 		std::atomic_int count = 0;
 		for (int i = 0; i < 100; i++) {
@@ -13,8 +10,12 @@ int main() {
 			});
 		}
 		while (!pool.standBy()) std::this_thread::yield();
-		testBed.expect("thread pool should execute 100 jobs", [&count]() {
+		tester.expectAndPrint("thread pool should execute 100 jobs", [&count]() {
 			return count == 100;
+		}, [&count]() -> std::string {
+			std::stringstream ss;
+			ss << "expected " << count << " to equal 100";
+			return ss.str();
 		});
 	});
 }

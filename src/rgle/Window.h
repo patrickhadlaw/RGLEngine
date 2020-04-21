@@ -167,7 +167,7 @@ namespace rgle {
 	};
 
 	struct UnitValue {
-		static UnitValue& parse(std::string parse);
+		static UnitValue parse(std::string parse);
 		float value = 0.0f;
 		Unit unit = Unit::ND;
 
@@ -239,7 +239,7 @@ namespace rgle {
 		UnitVector2D();
 		UnitVector2D(float x, float y, Unit unit = Unit::ND);
 		UnitVector2D(const UnitExpression& x, const UnitExpression& y);
-		static UnitVector2D& parse(std::string parse);
+		static UnitVector2D parse(std::string parse);
 
 		void operator+=(UnitVector2D& other);
 
@@ -251,7 +251,7 @@ namespace rgle {
 	public:
 		UnitVector3D();
 		UnitVector3D(float x, float y, float z, Unit unit = Unit::ND);
-		static UnitVector3D& parse(std::string parse);
+		static UnitVector3D parse(std::string parse);
 		UnitExpression x;
 		UnitExpression y;
 		UnitExpression z;

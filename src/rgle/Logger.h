@@ -2,13 +2,6 @@
 
 #include "rgle/Console.h"
 
-#include <chrono>
-#include <iomanip>
-#include <sstream>
-#include <fstream>
-#include <algorithm>
-#include <filesystem>
-
 #define LOGGER_DETAIL_DEFAULT rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__}
 #define LOGGER_DETAIL_IDENTIFIER(id) rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__, id}
 

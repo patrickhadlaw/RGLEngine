@@ -7,7 +7,6 @@ rgle::Config::Config()
 rgle::Config::Config(std::string filename)
 {
 	std::ifstream config(filename);
-	std::cout << std::filesystem::current_path() << std::endl;
 	if (config.is_open()) {
 		for (std::string line; std::getline(config, line);) {
 			if (!line.empty()) {

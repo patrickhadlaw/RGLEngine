@@ -2,13 +2,6 @@
 
 #include "rgle/Exception.h"
 
-#include <thread>
-#include <atomic>
-#include <vector>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
-
 namespace rgle {
 	class ThreadException : public Exception {
 	public:

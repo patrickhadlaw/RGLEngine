@@ -2,8 +2,6 @@
 
 #include "rgle/Graphics.h"
 
-#include <deque>
-
 namespace rgle {
 
 	namespace OctreeIndex {

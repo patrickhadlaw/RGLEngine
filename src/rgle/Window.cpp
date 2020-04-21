@@ -450,7 +450,7 @@ rgle::KeyboardMessage::~KeyboardMessage()
 {
 }
 
-rgle::UnitValue& rgle::UnitValue::parse(std::string parse)
+rgle::UnitValue rgle::UnitValue::parse(std::string parse)
 {
 	enum ParseState {
 		VALUE_SIGN,
@@ -994,7 +994,7 @@ rgle::UnitVector2D::UnitVector2D(const UnitExpression & x, const UnitExpression 
 	this->y = y;
 }
 
-rgle::UnitVector2D & rgle::UnitVector2D::parse(std::string parse)
+rgle::UnitVector2D rgle::UnitVector2D::parse(std::string parse)
 {
 	return UnitVector2D();
 }
@@ -1021,7 +1021,7 @@ rgle::UnitVector3D::UnitVector3D(float x, float y, float z, Unit unit)
 	this->z = UnitValue{ z, unit };
 }
 
-rgle::UnitVector3D & rgle::UnitVector3D::parse(std::string parse)
+rgle::UnitVector3D rgle::UnitVector3D::parse(std::string parse)
 {
 	return UnitVector3D();
 }

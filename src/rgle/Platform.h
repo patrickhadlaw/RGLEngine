@@ -2,27 +2,47 @@
 
 #include "configuration.h"
 
+// Suppress warnings from external libraries
+#if defined _MSC_VER
+	#pragma warning(push, 0)
+	#pragma warning(push)
+	#pragma warning(disable:4244)
+#elif defined __GNUG__
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wuninitialized"
+#else
+	#warning "Unidentified compiler..."
+#endif
+
 #include <iostream>
-#include <atomic>
-#include <fstream>
+#include <exception>
 #include <string>
+#include <vector>
+#include <map>
+#include <functional>
+#include <fstream>
 #include <sstream>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <exception>
 #include <ctime>
-#include <vector>
 #include <cmath>
 #include <cstdlib>
 #include <array>
 #include <cctype>
-#include <memory>
-#include <map>
 #include <assert.h>
-#include <thread>
-#include <mutex>
+#include <deque>
 #include <random>
+#include <chrono>
+#include <iomanip>
+#include <algorithm>
+#include <filesystem>
+#include <thread>
+#include <atomic>
+#include <vector>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
 #include <type_traits>
 
 #include <GL\glew.h>
@@ -35,6 +55,13 @@
 #include <ft2build.h>
 #include <freetype\ftglyph.h>
 #include FT_FREETYPE_H
+
+#if defined _MSC_VER
+	#pragma warning(pop)
+	#pragma warning(pop)
+#elif defined __GNUG__
+	#pragma GCC diagnostic pop
+#endif
 
 #ifdef _MSC_VER
 	#ifdef RGLE_DLL_BUILD_MODE
@@ -65,9 +92,11 @@ namespace rgle {
 	}
 
 	class Config;
+	class Tester;
 
 	class Settings {
 		friend void Platform::initialize();
+		friend class Tester;
 	public:
 		static std::string get(std::string key);
 

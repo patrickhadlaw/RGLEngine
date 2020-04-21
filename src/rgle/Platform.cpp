@@ -50,12 +50,14 @@ rgle::LogLevel rgle::get_loglevel_from_string(std::string loglevel)
 }
 
 void rgle::Platform::initialize() {
-	Settings::_config = Config(std::filesystem::path(rgle::get_executable_path()).remove_filename().string() + "rgle.cfg");
-	Settings::_initialized = true;
-	std::filesystem::current_path(Settings::get(Settings::INSTALL_PATH));
-	Settings::_logLevel = rgle::get_loglevel_from_string(Settings::get(Settings::LOG_LEVEL));
-	if (Settings::_logLevel == LogLevel::NONE) {
-		Settings::_loggerWrite = false;
+	if (!Settings::_initialized) {
+		Settings::_config = Config(std::filesystem::path(rgle::get_executable_path()).remove_filename().string() + "rgle.cfg");
+		Settings::_initialized = true;
+		std::filesystem::current_path(Settings::get(Settings::INSTALL_PATH));
+		Settings::_logLevel = rgle::get_loglevel_from_string(Settings::get(Settings::LOG_LEVEL));
+		if (Settings::_logLevel == LogLevel::NONE) {
+			Settings::_loggerWrite = false;
+		}
 	}
 }
 

@@ -25,6 +25,11 @@ rgle::Exception::Exception(std::string except, Logger::Detail detail) :
 	Logger::except(this);
 }
 
+rgle::Exception rgle::Exception::make(const std::exception & except)
+{
+	return Exception(except.what(), LOGGER_DETAIL_DEFAULT, "std::exception");
+}
+
 rgle::Exception::~Exception()
 {
 	this->_thrown--;
@@ -45,6 +50,11 @@ std::string rgle::Exception::print()
 	std::cout << result << std::endl;
 	result = time + "|EXCEPTION" + result;
 	return result;
+}
+
+std::string rgle::Exception::type() const
+{
+	return this->_typeReflected;
 }
 
 rgle::Exception::Exception(std::string & except, Logger::Detail detail, const char * type) :

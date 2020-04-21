@@ -694,10 +694,10 @@ void rgle::NoClipSparseVoxelCamera::update(float deltaT)
 				this->move(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_E) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, move);
+				this->rotate(0.0, 0.0, -move);
 			}
 			if (window->getKey(GLFW_KEY_Q) == GLFW_PRESS) {
-				this->rotate(0.0, 0.0, -move);
+				this->rotate(0.0, 0.0, move);
 			}
 		}
 	}

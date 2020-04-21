@@ -12,7 +12,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/configuration.h.in"
-  "${PROJECT_BINARY_DIR}/configuration.h"
+  "${CMAKE_BINARY_DIR}/configuration.h"
 )
 
 if(NOT DEFINED RGLE_INSTALL_PATH)
@@ -22,7 +22,7 @@ set(RGLE_LOG_LEVEL "DEBUG")
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/rgle.cfg.in"
-	"${CMAKE_BINARY_DIR}/rgle.cfg"
+	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rgle.cfg"
 )
 
 aux_source_directory(src/rgle RGLE_LIB_SRC)
@@ -52,10 +52,6 @@ set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS YES)
 
 add_library(rgle SHARED ${RGLE_LIB_SRC})
 target_compile_definitions(rgle PUBLIC RGLE_DLL_BUILD_MODE)
-
-add_custom_command(TARGET rgle
-	POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}
-)
 
 target_link_libraries(rgle ${RGLE_LINK_LIBS})
 target_include_directories(rgle PUBLIC ${RGLE_INCLUDE_DIRS})
