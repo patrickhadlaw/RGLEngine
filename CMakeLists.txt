@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.12)
 
 set(RGLE_VERSION_MAJOR 0)
 set(RGLE_VERSION_MINOR 2)
@@ -6,9 +6,7 @@ set(RGLE_VERSION_REVISION 4)
 
 project(rgle VERSION ${RGLE_VERSION_MAJOR}.${RGLE_VERSION_MINOR}.${RGLE_VERSION_REVISION})
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+include(environment.cmake)
 
 configure_file (
   "${PROJECT_SOURCE_DIR}/configuration.h.in"
@@ -22,15 +20,12 @@ set(RGLE_LOG_LEVEL "DEBUG")
 
 configure_file (
 	"${PROJECT_SOURCE_DIR}/rgle.cfg.in"
-	"${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/rgle.cfg"
+	"${CMAKE_BINARY_DIR}/bin/rgle.cfg"
 )
 
 aux_source_directory(src/rgle RGLE_LIB_SRC)
 file(GLOB_RECURSE resources res/*)
 file(GLOB_RECURSE shaders shader/*.*)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 add_custom_target(copy-shader)
 foreach(shader ${shaders})

@@ -3,6 +3,7 @@ bin/*
 !bin/.gitkeep
 lib/*
 !lib/CMakeLists.txt
+!lib/install.sh
 build/*
 
 # Prerequisites
