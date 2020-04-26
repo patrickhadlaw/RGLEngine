@@ -1,9 +1,10 @@
 #include "rgle/Spatial.h"
 
 const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(8 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
-const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(3 * sizeof(GLint) + 4 * sizeof(GLfloat), 4 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(sizeof(GLuint) + sizeof(GLint), sizeof(GLint));
 const size_t rgle::SparseVoxelOctree::BLOCK_SIZE = 8 * rgle::SparseVoxelNodePayload::SIZE;
 
+const int rgle::SparseVoxelRenderer::RAY_BUFFER = 0;
 const int rgle::SparseVoxelRenderer::OCTREE_BUFFER = 1;
 const int rgle::SparseVoxelRenderer::PASS_READ_BUFFER = 2;
 const int rgle::SparseVoxelRenderer::PASS_WRITE_BUFFER = 3;
@@ -65,6 +66,7 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	this->_imageRect = ImageRect(Sampler2D(this->_realizeShader, this->_outTexture), 2.0f, 2.0f);
 	this->_imageRect.model.matrix[3][2] = 0.0f;
 
+	glGenBuffers(1, &this->_rayBuffer);
 	glGenBuffers(1, &this->_passReadBuffer);
 	glGenBuffers(1, &this->_passWriteBuffer);
 	glGenBuffers(1, &this->_writeCounterBuffer);
@@ -77,23 +79,32 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
 	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
+
 	this->_bootstrapData = std::malloc(this->_resolution.x * this->_resolution.y * SparseVoxelRayPayload::SIZE);
+	std::vector<glm::vec4> rayData(this->_resolution.x * this->_resolution.y);
 	SparseVoxelRayPayload payload;
 	glm::vec2 pixelAngle(this->_camera->fieldOfView() / this->_resolution.x, this->_camera->fieldOfView() / this->_resolution.y);
 	glm::ivec2 center(this->_resolution.x / 2, this->_resolution.y / 2);
-	unsigned char* ptr = (unsigned char*)this->_bootstrapData;
+	unsigned char* bootstrapPtr = (unsigned char*)this->_bootstrapData;
 	for (int i = 0; i < this->_resolution.x; i++) {
 		for (int j = 0; j < this->_resolution.y; j++) {
-			payload.pixel = glm::ivec2(i, j);
+			payload.pixel = i + j * this->_resolution.x;
 			payload.offset = 0;
-			glm::vec2 delta = payload.pixel - center;
+			payload.mapToBuffer(bootstrapPtr);
+			bootstrapPtr += SparseVoxelRayPayload::SIZE;
+			// Generate ray for pixel (i, j)
+			glm::vec2 delta = glm::ivec2(i, j) - center;
 			glm::vec2 theta(delta.x * pixelAngle.x, delta.y * pixelAngle.y);
-			payload.ray = glm::vec3(std::tanf(theta.x), std::tanf(theta.y), 1.0f);
-			payload.ray = glm::normalize(payload.ray);
-			payload.mapToBuffer(ptr);
-			ptr += SparseVoxelRayPayload::SIZE;
+			rayData[i + j * this->_resolution.x] =  glm::normalize(glm::vec4(std::tanf(theta.x), std::tanf(theta.y), 1.0f, 0.0f));
 		}
 	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_rayBuffer);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		this->_resolution.x * this->_resolution.y * 4 * sizeof(GLfloat),
+		rayData.data(),
+		GL_STATIC_DRAW
+	);
 }
 
 rgle::SparseVoxelRenderer::~SparseVoxelRenderer()
@@ -163,6 +174,7 @@ void rgle::SparseVoxelRenderer::render()
 			this->finalize();
 		}
 
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, RAY_BUFFER, this->_rayBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
 		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
 		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, this->_writeCounterBuffer);
@@ -187,6 +199,7 @@ const char * rgle::SparseVoxelRenderer::typeName() const
 
 void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 {
+	size_t size = static_cast<size_t>(this->_passAllocatedSize * factor);
 	if (factor <= 0.0f) {
 		throw GraphicsException("invalid sparse voxel allocation factor: " + std::to_string(factor) + " expected factor greater than zero", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
@@ -194,7 +207,6 @@ void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
 		throw GraphicsException("failed to reallocate sparse voxel pass buffers, reallocation too small", LOGGER_DETAIL_IDENTIFIER(this->id));
 	}
 	else {
-		size_t size = static_cast<size_t>(this->_passAllocatedSize * factor);
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
 		glBindBuffer(GL_COPY_READ_BUFFER, this->_passReadBuffer);
@@ -438,10 +450,8 @@ unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
 
 void rgle::SparseVoxelRayPayload::mapToBuffer(unsigned char * buffer) const
 {
-	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->ray.x, 3 * sizeof(GLfloat));
-	// NOTE: offset by vec4 to avoid using vec3 in SSBO (vec3's are difficult to work with in interface blocks)
-	next = (unsigned char*)std::memcpy(next + 4 * sizeof(GLfloat), &this->pixel.x, 2 * sizeof(GLint));
-	std::memcpy(next + 2 * sizeof(GLint), &this->offset, sizeof(GLint));
+	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->pixel, sizeof(GLuint));
+	std::memcpy(next + sizeof(GLuint), &this->offset, sizeof(GLint));
 }
 
 rgle::SparseVoxelNode::SparseVoxelNode(SparseVoxelNode && rvalue)

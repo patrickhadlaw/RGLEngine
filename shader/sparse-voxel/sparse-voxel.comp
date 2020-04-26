@@ -2,8 +2,6 @@
 //	Each invocation of this shader traverses down
 //	the sparse voxel octree, coloring the output
 //	image
-//
-//	-
 
 #version 460
 
@@ -28,14 +26,17 @@ struct OctreeNode {
 uniform int root_node_offset;
 uniform float root_node_size;
 
+layout(std430, binding=0) readonly buffer ray_buffer {
+	vec4 rays[];
+} RayBuffer;
+
 layout(std430, binding=1) readonly buffer octree_buffer {
 	OctreeNode nodes[];
 } OctreeBuffer;
 
+
 struct RayState {
-	// NOTE: only ray.xyz are used, use a vec4 here to avoid alignment issues
-	vec4 ray;
-	ivec2 pixel;
+	uint pixel; 
 	int offset;
 };
 
@@ -146,9 +147,10 @@ void main() {
 	const bool valid_invocation = gl_GlobalInvocationID.x < read_pass_size;
 
 	// Aquire ray state for ith invocation of pass
-	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(vec4(0.0f), ivec2(-1. -1), -1);
+	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(0, -1);
 	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
-	vec3 ray = quat_transform(state.ray.xyz, rotation_quat);
+	vec3 ray = quat_transform(RayBuffer.rays[state.pixel].xyz, rotation_quat);
+	ivec2 pixel = ivec2(state.pixel % render_resolution.x, state.pixel / render_resolution.x);
 
 	current_node = OctreeBuffer.nodes[offset];
 	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
@@ -169,25 +171,23 @@ void main() {
 
 	// NOTE: this flow diverges only when last ray is cast for pixel, not great but difficult to avoid
 	if (write) {
-		PassWriteBuffer.write_state[previous_write_size] = RayState(state.ray, state.pixel, current_node.next);
-		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(state.ray, state.pixel, current_node.next + 1);
-		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(state.ray, state.pixel, current_node.next + 2);
-		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(state.ray, state.pixel, current_node.next + 3);
-		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(state.ray, state.pixel, current_node.next + 4);
-		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(state.ray, state.pixel, current_node.next + 5);
-		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(state.ray, state.pixel, current_node.next + 6);
-		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(state.ray, state.pixel, current_node.next + 7);
+		PassWriteBuffer.write_state[previous_write_size] = RayState(state.pixel, current_node.next);
+		PassWriteBuffer.write_state[previous_write_size + 1] = RayState(state.pixel, current_node.next + 1);
+		PassWriteBuffer.write_state[previous_write_size + 2] = RayState(state.pixel, current_node.next + 2);
+		PassWriteBuffer.write_state[previous_write_size + 3] = RayState(state.pixel, current_node.next + 3);
+		PassWriteBuffer.write_state[previous_write_size + 4] = RayState(state.pixel, current_node.next + 4);
+		PassWriteBuffer.write_state[previous_write_size + 5] = RayState(state.pixel, current_node.next + 5);
+		PassWriteBuffer.write_state[previous_write_size + 6] = RayState(state.pixel, current_node.next + 6);
+		PassWriteBuffer.write_state[previous_write_size + 7] = RayState(state.pixel, current_node.next + 7);
 		memoryBarrierBuffer();
 	}
 	
 	uint write_depth = serialize_depth(depth);
 	
 	if (ray_done && hit && current_node.color.a >= EPSILON) {
-		uint previous_depth = imageAtomicMin(depth_image, state.pixel, write_depth);
+		uint previous_depth = imageAtomicMin(depth_image, pixel, write_depth);
 		if (write_depth <= previous_depth) {
-			imageAtomicExchange(out_image, state.pixel, offset);
+			imageAtomicExchange(out_image, pixel, offset);
 		}
-	} else {
-		//imageStore(depth_image, state.pixel, uvec4(raycast_cube(vec3(-1.0f, -1.0f, -1.0f), vec3(1.0f, 1.0f, 1.0f), vec3(0.0f, 0.0f, -1.1f), vec3(-0.707f, 0.01f, 0.707f))));
 	}
 }

@@ -135,8 +135,7 @@ namespace rgle {
 	};
 
 	struct SparseVoxelRayPayload {
-		glm::vec3 ray;
-		glm::ivec2 pixel;
+		GLuint pixel;
 		GLint offset;
 
 		void mapToBuffer(unsigned char* buffer) const;
@@ -201,6 +200,7 @@ namespace rgle {
 	// @todo use the smallest possible octree root to avoid unessesary passes
 	class SparseVoxelRenderer : public RenderLayer {
 	public:
+		static const int RAY_BUFFER;
 		static const int OCTREE_BUFFER;
 		static const int PASS_READ_BUFFER;
 		static const int PASS_WRITE_BUFFER;
@@ -237,6 +237,10 @@ namespace rgle {
 		virtual const char* typeName() const;
 
 	private:
+		GLuint _rayBuffer;
+		GLuint _bootstrapBuffer;
+		std::vector<GLuint> _passBuffers;
+		std::vector<GLuint> _counterBuffers;
 		GLuint _passReadBuffer;
 		GLuint _passWriteBuffer;
 		GLuint _writeCounterBuffer;
