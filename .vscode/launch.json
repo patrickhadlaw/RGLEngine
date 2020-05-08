@@ -5,21 +5,10 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug interface",
+      "name": "Debug",
       "type": "cppvsdbg",
       "request": "launch",
-      "program": "${workspaceFolder}/build/interface.exe",
-      "args": [],
-      "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/build",
-      "environment": [],
-      "externalConsole": false
-    },
-    {
-      "name": "Debug sparse-voxel",
-      "type": "cppvsdbg",
-      "request": "launch",
-      "program": "${workspaceFolder}/build/sparse-voxel.exe",
+      "program": "${command:cmake.launchTargetPath}",
       "args": [],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}/build",

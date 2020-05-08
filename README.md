@@ -1,6 +1,10 @@
 # RGLEngine
 
-OpenGL real-time rendering engine.
+Real-time OpenGL rendering engine.
+
+## Example programs
+
+### interface
 
 Features:
 * Render simple shapes
@@ -11,8 +15,13 @@ Features:
 * Clickable UI elements (using triangle-raycast)
 * Noclip camera transformation based on mouse and keyboard input
 * Host-listener event system for capturing events such as window resize, keyboard key press, bounding box change, ...
-* Sparse Voxel Octree renderer -> a raytracing algorithm runnable in real-time
 * More to come...
+
+### sparse-voxel
+* Sparse Voxel Octree renderer -> a sparse raytracing algorithm runnable in real-time
+* A noclip camera transformer -> transforms rays using a quaternion in the compute shader
+
+## Noclip camera controls
 
 Controls are:
 * Click window to grab cursor.
@@ -23,8 +32,8 @@ Controls are:
 
 ## Prerequisites
 
-* CMake 3.0.0+
-* OpenGL 4.6
+* CMake 3.12+
+* OpenGL 4.5
 
 ## Authors
 
@@ -32,18 +41,15 @@ Controls are:
 
 ## Build instructions
 
+To build RGLEngine run the following in a bash shell:
 ```
 $ git clone https://github.com/patrickhadlaw/RGLEngine.git
 $ cd RGLEngine
-# NOTE: for Windows download the ZIP file from http://glew.sourceforge.net/ and extract as lib/glew, DO NOT clone the repository
-$ git clone https://github.com/nigels-com/glew.git lib/glew
-$ git clone https://github.com/glfw/glfw lib/glfw
-$ git clone https://github.com/g-truc/glm lib/glm
-$ git clone https://github.com/nothings/stb.git lib/stb
-$ git clone git://git.sv.nongnu.org/freetype/freetype2.git lib/freetype
-$ cd bin
+$ ./lib/install.sh
+$ mkdir build
+$ cd build
 $ cmake .. -G <CMake Generator>
-# Build using generated files (ie run make for Unix Makefiles generator)
+$ cmake --build .
 ```
 
 ## Screenshots

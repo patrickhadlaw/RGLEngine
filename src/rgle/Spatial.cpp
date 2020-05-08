@@ -1,9 +1,10 @@
 #include "rgle/Spatial.h"
 
 const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(8 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
-const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(3 * sizeof(GLint) + 4 * sizeof(GLfloat), 4 * sizeof(GLfloat));
+const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(sizeof(GLuint) + sizeof(GLint), sizeof(GLint));
 const size_t rgle::SparseVoxelOctree::BLOCK_SIZE = 8 * rgle::SparseVoxelNodePayload::SIZE;
 
+const int rgle::SparseVoxelRenderer::RAY_BUFFER = 0;
 const int rgle::SparseVoxelRenderer::OCTREE_BUFFER = 1;
 const int rgle::SparseVoxelRenderer::PASS_READ_BUFFER = 2;
 const int rgle::SparseVoxelRenderer::PASS_WRITE_BUFFER = 3;
@@ -16,12 +17,11 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	std::string realizeShaderId,
 	unsigned int width,
 	unsigned int height,
-	std::shared_ptr<SparseVoxelCamera> camera,
-	size_t maxPassesPerFrame) :
+	std::shared_ptr<SparseVoxelCamera> camera) :
 	_octree(octree),
 	_resolution(glm::ivec2(width, height)),
 	_camera(camera),
-	_maxPassesPerFrame(maxPassesPerFrame),
+	_maxBufferDepth(static_cast<size_t>(std::ceil(std::log2(_resolution.x)))),
 	_lastTime(std::chrono::system_clock::now()),
 	RenderLayer(id)
 {
@@ -30,6 +30,8 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	auto shader = this->shaderLocked();
 	this->_location.bootstrap = shader->uniformStrict("bootstrap");
 	this->_location.finalize = shader->uniformStrict("finalize");
+	this->_location.subPassOffset = shader->uniformStrict("subpass_offset");
+	this->_location.subPassSize = shader->uniformStrict("subpass_size");
 	this->_location.renderResolution = shader->uniformStrict("render_resolution");
 	this->_location.rootNodeOffset = shader->uniformStrict("root_node_offset");
 	this->_location.rootNodeSize = shader->uniformStrict("root_node_size");
@@ -65,59 +67,57 @@ rgle::SparseVoxelRenderer::SparseVoxelRenderer(
 	this->_imageRect = ImageRect(Sampler2D(this->_realizeShader, this->_outTexture), 2.0f, 2.0f);
 	this->_imageRect.model.matrix[3][2] = 0.0f;
 
-	glGenBuffers(1, &this->_passReadBuffer);
-	glGenBuffers(1, &this->_passWriteBuffer);
-	glGenBuffers(1, &this->_writeCounterBuffer);
-	this->_passAllocatedSize = this->_resolution.x * this->_resolution.y * 8;
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, this->_passAllocatedSize * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
-	glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, 0);
-	this->_bootstrapData = std::malloc(this->_resolution.x * this->_resolution.y * SparseVoxelRayPayload::SIZE);
+	this->_passBuffers = std::make_unique<GLuint[]>(this->_maxBufferDepth);
+	this->_bufferSizes = std::make_unique<unsigned int[]>(this->_maxBufferDepth);
+	this->_counterBuffers = std::make_unique<GLuint[]>(this->_maxBufferDepth - 1);
+	this->_subPassStack = std::make_unique<SubPass[]>(this->_maxBufferDepth);
+
+	glGenBuffers(1, &this->_rayBuffer);
+	glGenBuffers(static_cast<GLsizei>(this->_maxBufferDepth), &this->_passBuffers[0]);
+	glGenBuffers(static_cast<GLsizei>(this->_maxBufferDepth - 1), &this->_counterBuffers[0]);
+
+	std::vector<unsigned char> bootstrapData(this->_resolution.x * this->_resolution.y * SparseVoxelRayPayload::SIZE);
+	std::vector<glm::vec4> rayData(this->_resolution.x * this->_resolution.y);
 	SparseVoxelRayPayload payload;
 	glm::vec2 pixelAngle(this->_camera->fieldOfView() / this->_resolution.x, this->_camera->fieldOfView() / this->_resolution.y);
 	glm::ivec2 center(this->_resolution.x / 2, this->_resolution.y / 2);
-	unsigned char* ptr = (unsigned char*)this->_bootstrapData;
-	for (int i = 0; i < this->_resolution.x; i++) {
-		for (int j = 0; j < this->_resolution.y; j++) {
-			payload.pixel = glm::ivec2(i, j);
+	unsigned char* bootstrapPtr = bootstrapData.data();
+	for (int j = 0; j < this->_resolution.y; j++) {
+		for (int i = 0; i < this->_resolution.x; i++) {
+			payload.pixel = i + j * this->_resolution.x;
 			payload.offset = 0;
-			glm::vec2 delta = payload.pixel - center;
+			payload.mapToBuffer(bootstrapPtr);
+			bootstrapPtr += SparseVoxelRayPayload::SIZE;
+			// Generate ray for pixel (i, j)
+			glm::vec2 delta = glm::ivec2(i, j) - center;
 			glm::vec2 theta(delta.x * pixelAngle.x, delta.y * pixelAngle.y);
-			payload.ray = glm::vec3(std::tanf(theta.x), std::tanf(theta.y), 1.0f);
-			payload.ray = glm::normalize(payload.ray);
-			payload.mapToBuffer(ptr);
-			ptr += SparseVoxelRayPayload::SIZE;
+			rayData[payload.pixel] = glm::normalize(glm::vec4(std::tanf(theta.x), std::tanf(theta.y), 1.0f, 0.0f));
 		}
+	}
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passBuffers[0]);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, bootstrapData.size(), bootstrapData.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_rayBuffer);
+	glBufferData(
+		GL_SHADER_STORAGE_BUFFER,
+		this->_resolution.x * this->_resolution.y * 4 * sizeof(GLfloat),
+		rayData.data(),
+		GL_STATIC_DRAW
+	);
+	size_t subPassSize = this->_resolution.x * this->_resolution.y * 8;
+	for (size_t i = 1; i < this->_maxBufferDepth; i++) {
+		this->_bufferSizes[i] = static_cast<GLuint>(subPassSize * i);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passBuffers[i]);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, this->_bufferSizes[i] * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
+		glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_counterBuffers[i - 1]);
+		glBufferData(GL_ATOMIC_COUNTER_BUFFER, sizeof(GLuint), nullptr, GL_DYNAMIC_DRAW);
 	}
 }
 
 rgle::SparseVoxelRenderer::~SparseVoxelRenderer()
 {
-	glDeleteBuffers(1, &this->_passReadBuffer);
-	glDeleteBuffers(1, &this->_passWriteBuffer);
-	glDeleteBuffers(1, &this->_writeCounterBuffer);
-	std::free(this->_bootstrapData);
-}
-
-size_t rgle::SparseVoxelRenderer::swapBuffers()
-{
-	GLuint nextReadSize;
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
-	glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &nextReadSize);
-	const GLuint zero = 0;
-	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
-	GLuint temp = this->_passReadBuffer;
-	this->_passReadBuffer = this->_passWriteBuffer;
-	this->_passWriteBuffer = temp;
-	if (nextReadSize * 8 >= this->_passAllocatedSize) {
-		this->reallocPassBuffers(8.0f);
-	}
-	return nextReadSize;
+	glDeleteBuffers(1, &this->_rayBuffer);
+	glDeleteBuffers(static_cast<GLsizei>(this->_maxBufferDepth), &this->_passBuffers[0]);
+	glDeleteBuffers(static_cast<GLsizei>(this->_maxBufferDepth - 1), &this->_counterBuffers[0]);
 }
 
 std::shared_ptr<rgle::SparseVoxelCamera>& rgle::SparseVoxelRenderer::camera()
@@ -143,38 +143,54 @@ void rgle::SparseVoxelRenderer::render()
 {
 	auto shader = this->shaderLocked();
 	shader->use();
-	this->bootstrap();
-	this->transformer()->bind(shader);
-	glUniform2ui(this->_location.renderResolution, this->_resolution.x, this->_resolution.y);
-	this->_octree->bind();
-	glUniform1i(this->_location.depthImage, this->_depthTexture->index());
-	this->_depthTexture->bindImage2D();
-	glUniform1i(this->_location.outImage, this->_outTexture->index());
-	this->_outTexture->bindImage2D();
-	glUniform1i(this->_location.finalize, false);
+	size_t top = 0;
+	GLuint subPassSize = this->_resolution.x * this->_resolution.y;
+	this->_bootstrap(top);
 	bool first = true;
-	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
-	size_t i = 0;
-	while (i < this->_maxPassesPerFrame && this->_currentPassSize > 0) {
+	while (top > 0 || this->_subPassStack[top].offset < this->_subPassStack[top].count) {
 		glUniform1i(this->_location.bootstrap, first);
-		glUniform1ui(this->_location.readPassSize, this->_currentPassSize);
-		first = false;
-		if (i == this->_maxPassesPerFrame - 1) {
-			this->finalize();
+		glUniform1i(this->_location.finalize, this->_lastSubPass(top));
+
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, RAY_BUFFER, this->_rayBuffer);
+		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passBuffers[top]);
+		if (this->_lastSubPass(top)) {
+			subPassSize = this->_subPassStack[top].count - this->_subPassStack[top].offset;
+			glUniform1i(this->_location.finalize, true);
+			glUniform1ui(this->_location.subPassOffset, this->_subPassStack[top].offset);
+			glUniform1ui(this->_location.subPassSize, subPassSize);
+			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, 0);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, 0);
+		}
+		else {
+			subPassSize = this->_subPassSize(top);
+			glUniform1i(this->_location.finalize, false);
+			glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, this->_counterBuffers[top]);
+			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passBuffers[top + 1]);
 		}
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_READ_BUFFER, this->_passReadBuffer);
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, PASS_WRITE_BUFFER, this->_passWriteBuffer);
-		glBindBufferBase(GL_ATOMIC_COUNTER_BUFFER, PASS_WRTIE_COUNTER, this->_writeCounterBuffer);
-		size_t dim = static_cast<size_t>(std::ceil((float)this->_currentPassSize / 1024.0f));
-		glDispatchCompute(dim, 1, 1);
-		if (i != this->_maxPassesPerFrame - 1) {
-			this->_currentPassSize = this->swapBuffers();
-			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glUniform1ui(this->_location.readPassSize, this->_subPassStack[top].count);
+		glUniform1ui(this->_location.subPassOffset, this->_subPassStack[top].offset);
+		glUniform1ui(this->_location.subPassSize, subPassSize);
+
+		glDispatchCompute(this->_numWorkGroups(subPassSize), 1, 1);
+		this->_subPassStack[top].offset += subPassSize;
+
+		if (this->_lastSubPass(top)) {
+			glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			top = this->_unwindStack(top);
 		}
-		i++;
+		else {
+			glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+			glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_counterBuffers[top]);
+			glGetBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &this->_subPassStack[top + 1].count);
+			if (this->_subPassStack[top + 1].count > 0) {
+				top++;
+			} else {
+				top = this->_unwindStack(top);
+			}
+		}
+		first = false;
 	}
-	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 	this->_realizeShader->use();
 	this->_octree->bind();
 	this->_imageRect.render();
@@ -185,55 +201,78 @@ const char * rgle::SparseVoxelRenderer::typeName() const
 	return "rgle::SparseVoxelRenderer";
 }
 
-void rgle::SparseVoxelRenderer::reallocPassBuffers(float factor)
+void rgle::SparseVoxelRenderer::_bootstrap(const size_t& index)
 {
-	if (factor <= 0.0f) {
-		throw GraphicsException("invalid sparse voxel allocation factor: " + std::to_string(factor) + " expected factor greater than zero", LOGGER_DETAIL_IDENTIFIER(this->id));
-	}
-	else if (this->_passAllocatedSize * factor < this->_currentPassSize) {
-		throw GraphicsException("failed to reallocate sparse voxel pass buffers, reallocation too small", LOGGER_DETAIL_IDENTIFIER(this->id));
-	}
-	else {
-		size_t size = static_cast<size_t>(this->_passAllocatedSize * factor);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passWriteBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-		glBindBuffer(GL_COPY_READ_BUFFER, this->_passReadBuffer);
-		glBindBuffer(GL_COPY_WRITE_BUFFER, this->_passWriteBuffer);
-		glCopyBufferSubData(
-			GL_COPY_READ_BUFFER,
-			GL_COPY_WRITE_BUFFER,
-			0, 0,
-			this->_currentPassSize * SparseVoxelNodePayload::SIZE
-		);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, size * SparseVoxelRayPayload::SIZE, nullptr, GL_DYNAMIC_DRAW);
-		this->_passAllocatedSize = size;
-		GLuint temp = this->_passReadBuffer;
-		this->_passReadBuffer = this->_passWriteBuffer;
-		this->_passWriteBuffer = temp;
-	}
-}
-
-void rgle::SparseVoxelRenderer::bootstrap()
-{
+	auto shader = this->shaderLocked();
 	// Restore the depth image
 	this->_depthTexture->update();
 	// Restore the output image
 	this->_outTexture->update();
-	glUniform1i(this->_location.rootNodeOffset, this->_octree->root()->index());
+	glUniform1i(this->_location.rootNodeOffset, static_cast<GLint>(this->_octree->root()->index()));
 	glUniform1f(this->_location.rootNodeSize, this->_octree->root()->size());
-	// Reset the read/write pass state
-	this->_currentPassSize = this->_resolution.x * this->_resolution.y;
-	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, this->_writeCounterBuffer);
-	GLuint zero = 0;
-	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &zero);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->_passReadBuffer);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, this->_currentPassSize * SparseVoxelRayPayload::SIZE, this->_bootstrapData);
+	this->_clearCounter(this->_counterBuffers[index]);
+	this->transformer()->bind(shader);
+	glUniform2ui(
+		this->_location.renderResolution,
+		static_cast<GLuint>(this->_resolution.x),
+		static_cast<GLuint>(this->_resolution.y)
+	);
+	this->_octree->bind();
+	glUniform1i(this->_location.depthImage, this->_depthTexture->index());
+	this->_depthTexture->bindImage2D();
+	glUniform1i(this->_location.outImage, this->_outTexture->index());
+	this->_outTexture->bindImage2D();
+	glUniform1i(this->_location.finalize, false);
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+	for (size_t i = 0; i < this->_maxBufferDepth - 1; i++) {
+		this->_subPassStack[index].offset = 0;
+		this->_subPassStack[index].count = 0;
+	}
+	this->_subPassStack[index].offset = 0;
+	this->_subPassStack[index].count = this->_resolution.x * this->_resolution.y;
 }
 
-void rgle::SparseVoxelRenderer::finalize()
+void rgle::SparseVoxelRenderer::_clearCounter(const GLuint& buffer)
 {
-	glUniform1i(this->_location.finalize, true);
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, buffer);
+	const GLuint zero = 0;
+	glClearBufferData(GL_ATOMIC_COUNTER_BUFFER, GL_R32UI, GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+}
+
+void rgle::SparseVoxelRenderer::_setCounter(const GLuint& buffer, const GLuint& value)
+{
+	glBindBuffer(GL_ATOMIC_COUNTER_BUFFER, buffer);
+	glBufferSubData(GL_ATOMIC_COUNTER_BUFFER, 0, sizeof(GLuint), &value);
+}
+
+size_t rgle::SparseVoxelRenderer::_unwindStack(const size_t& top)
+{
+	size_t result = top;
+	while (result > 0 && this->_subPassStack[result].offset >= this->_subPassStack[result].count) {
+		this->_subPassStack[result].offset = 0;
+		this->_subPassStack[result].count = 0;
+		result--;
+		this->_clearCounter(this->_counterBuffers[result]);
+	}
+	return result;
+}
+
+GLuint rgle::SparseVoxelRenderer::_numWorkGroups(const GLuint& subPassSize) const
+{
+	return static_cast<GLuint>(std::ceil((float)subPassSize / 1024.0f));
+}
+
+constexpr bool rgle::SparseVoxelRenderer::_lastSubPass(const size_t& top) const
+{
+	return top >= this->_maxBufferDepth - 2;
+}
+
+constexpr unsigned int rgle::SparseVoxelRenderer::_subPassSize(const size_t& top) const
+{
+	return std::min(
+		this->_subPassStack[top].count - this->_subPassStack[top].offset,
+		this->_bufferSizes[top + 1] / 8
+	);
 }
 
 rgle::SparseVoxelCamera::SparseVoxelCamera(float near, float far, float fieldOfView) :
@@ -438,10 +477,8 @@ unsigned char * rgle::SparseVoxelOctree::_buffer(const size_t & at)
 
 void rgle::SparseVoxelRayPayload::mapToBuffer(unsigned char * buffer) const
 {
-	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->ray.x, 3 * sizeof(GLfloat));
-	// NOTE: offset by vec4 to avoid using vec3 in SSBO (vec3's are difficult to work with in interface blocks)
-	next = (unsigned char*)std::memcpy(next + 4 * sizeof(GLfloat), &this->pixel.x, 2 * sizeof(GLint));
-	std::memcpy(next + 2 * sizeof(GLint), &this->offset, sizeof(GLint));
+	unsigned char* next = (unsigned char*)std::memcpy(buffer, &this->pixel, sizeof(GLuint));
+	std::memcpy(next + sizeof(GLuint), &this->offset, sizeof(GLint));
 }
 
 rgle::SparseVoxelNode::SparseVoxelNode(SparseVoxelNode && rvalue)
@@ -561,8 +598,8 @@ rgle::SparseVoxelNodePayload rgle::SparseVoxelNode::toPayload() const
 {
 	SparseVoxelNodePayload payload;
 	payload.color = this->_color;
-	payload.depth = this->_depth;
-	payload.next = this->leaf() ? -1 : this->_children[0]._index;
+	payload.depth = static_cast<GLuint>(this->_depth);
+	payload.next = this->leaf() ? -1 : static_cast<GLint>(this->_children[0]._index);
 	payload.position = this->_position;
 	return payload;
 }
