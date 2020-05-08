@@ -213,20 +213,12 @@ namespace rgle {
 			std::string realizeShaderId,
 			unsigned int width,
 			unsigned int height,
-			std::shared_ptr<SparseVoxelCamera> camera,
-			size_t maxPassesPerFrame = 10
+			std::shared_ptr<SparseVoxelCamera> camera
 		);
 		SparseVoxelRenderer(const SparseVoxelRenderer&) = delete;
 		virtual ~SparseVoxelRenderer();
 
 		void operator=(const SparseVoxelRenderer&) = delete;
-
-		void reallocPassBuffers(float factor);
-
-		void bootstrap();
-		void finalize();
-
-		size_t swapBuffers();
 
 		std::shared_ptr<SparseVoxelCamera>& camera();
 		const std::shared_ptr<SparseVoxelCamera>& camera() const;
@@ -237,20 +229,28 @@ namespace rgle {
 		virtual const char* typeName() const;
 
 	private:
+
+		struct SubPass {
+			unsigned int offset;
+			unsigned int count;
+		};
+		void _bootstrap(const size_t& index);
+
+		void _clearCounter(const GLuint& buffer);
+		void _setCounter(const GLuint& buffer, const GLuint& value);
+		size_t _unwindStack(const size_t& top);
+
+		GLuint _numWorkGroups(const GLuint& subPassSize) const;
+		constexpr bool _lastSubPass(const size_t& top) const;
+		constexpr unsigned int _subPassSize(const size_t& top) const;
+		
 		GLuint _rayBuffer;
-		GLuint _bootstrapBuffer;
-		std::vector<GLuint> _passBuffers;
-		std::vector<GLuint> _counterBuffers;
-		GLuint _passReadBuffer;
-		GLuint _passWriteBuffer;
-		GLuint _writeCounterBuffer;
-		void* _bootstrapData;
-		glm::ivec2 _numWorkGroups;
-		size_t _currentPassSize;
-		size_t _passAllocatedSize;
-		uint32_t _index;
+		std::unique_ptr<GLuint[]> _passBuffers;
+		std::unique_ptr<unsigned int[]> _bufferSizes;
+		std::unique_ptr<GLuint[]> _counterBuffers;
+		std::unique_ptr<SubPass[]> _subPassStack;
 		glm::ivec2 _resolution;
-		size_t _maxPassesPerFrame;
+		size_t _maxBufferDepth;
 		std::chrono::system_clock::time_point _lastTime;
 
 		std::shared_ptr<PersistentTexture2D> _depthTexture;
@@ -267,6 +267,8 @@ namespace rgle {
 			GLint renderResolution;
 			GLint bootstrap;
 			GLint finalize;
+			GLint subPassOffset;
+			GLint subPassSize;
 			GLint readPassSize;
 			GLint depthImage;
 			GLint outImage;

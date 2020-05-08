@@ -34,7 +34,6 @@ layout(std430, binding=1) readonly buffer octree_buffer {
 	OctreeNode nodes[];
 } OctreeBuffer;
 
-
 struct RayState {
 	uint pixel; 
 	int offset;
@@ -57,16 +56,18 @@ layout(r32ui) uniform coherent uimage2D depth_image;
 layout(r32i) uniform coherent iimage2D out_image;
 
 // Render pass control uniforms
-uniform bool bootstrap;				// Flag to bootstrap initial pass, signals shader to shoot all rays at octree root
-uniform bool finalize;				// Flag to finalize final pass, signals shader to generate result image
+uniform bool bootstrap;						// Flag to bootstrap initial pass, signals shader to shoot all rays at octree root
+uniform bool finalize;						// Flag to finalize final pass, signals shader to generate result image
+uniform uint subpass_offset;			// Stores the offset from which to start reading the pass data from
+uniform uint subpass_size;				// Stores the size of the sub pass
 
 // Camera uniforms
-uniform vec3 camera_position;		// Camera position, used as origin for rays
+uniform vec3 camera_position;			// Camera position, used as origin for rays
 uniform vec3 camera_direction;		// Camera direction vector, used for clipping
-uniform float camera_near;			// Camera near clip
-uniform float camera_far;			// Camera far clip
-uniform float field_of_view;		// Field of view of camera in radians
-uniform vec4 rotation_quat;			// Rotation quaternion
+uniform float camera_near;				// Camera near clip
+uniform float camera_far;					// Camera far clip
+uniform float field_of_view;			// Field of view of camera in radians
+uniform vec4 rotation_quat;				// Rotation quaternion
 
 // Render uniforms
 uniform uvec2 render_resolution;	// Output render resolution
@@ -144,10 +145,10 @@ void main() {
 
 	const float pixel_angle = field_of_view / float(render_resolution.x);
 
-	const bool valid_invocation = gl_GlobalInvocationID.x < read_pass_size;
+	const bool valid_invocation = subpass_offset + gl_GlobalInvocationID.x < read_pass_size && gl_GlobalInvocationID.x < subpass_size;
 
 	// Aquire ray state for ith invocation of pass
-	state = valid_invocation ? PassReadBuffer.read_state[gl_GlobalInvocationID.x] : RayState(0, -1);
+	state = valid_invocation ? PassReadBuffer.read_state[subpass_offset + gl_GlobalInvocationID.x] : RayState(0, -1);
 	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
 	vec3 ray = quat_transform(RayBuffer.rays[state.pixel].xyz, rotation_quat);
 	ivec2 pixel = ivec2(state.pixel % render_resolution.x, state.pixel / render_resolution.x);
