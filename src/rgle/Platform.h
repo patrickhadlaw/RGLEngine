@@ -44,11 +44,14 @@
 #include <mutex>
 #include <condition_variable>
 #include <type_traits>
+#include <optional>
+#include <variant>
 
 #include <GL\glew.h>
 #include <GL\GL.h>
 #include <GLFW\glfw3.h>
 #define GLM_FORCE_SILENT_WARNINGS
+#define GLM_FORCE_SWIZZLE
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 #include <glm\gtc\quaternion.hpp>

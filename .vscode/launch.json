@@ -11,7 +11,7 @@
       "program": "${command:cmake.launchTargetPath}",
       "args": [],
       "stopAtEntry": false,
-      "cwd": "${workspaceFolder}/build",
+      "cwd": "${workspaceFolder}/build/bin",
       "environment": [],
       "externalConsole": false
     }
