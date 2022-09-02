@@ -70,77 +70,77 @@ int main(const int argc, const char* const argv[]) {
 
 		app.initialize();
 
-		auto basic3D = std::make_shared<rgle::ShaderProgram>(
+		auto basic3D = std::make_shared<rgle::gfx::ShaderProgram>(
 			"basic3D",
 			"shader/basic3D.vert",
 			"shader/basic3D.frag"
 		);
 		app.addShader(basic3D);
-		auto textured3D = std::make_shared<rgle::ShaderProgram>(
+		auto textured3D = std::make_shared<rgle::gfx::ShaderProgram>(
 			"textured3D",
 			"shader/textured3D.vert",
 			"shader/textured3D.frag"
 		);
 		app.addShader(textured3D);
-		auto text = std::make_shared<rgle::ShaderProgram>(
+		auto text = std::make_shared<rgle::gfx::ShaderProgram>(
 			"text",
 			"shader/text.vert",
 			"shader/text.frag"
 		);
 		app.addShader(text);
-		auto interface = std::make_shared<rgle::ShaderProgram>(
+		auto interface = std::make_shared<rgle::gfx::ShaderProgram>(
 			"interface",
 			"shader/interface.vert",
 			"shader/interface.frag"
 		);
 		app.addShader(interface);
 
-		auto roboto = std::shared_ptr<rgle::FontFamily>(new rgle::FontFamily("roboto", {
-			{ rgle::FontType::REGULAR, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Regular.ttf") },
-			{ rgle::FontType::BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Bold.ttf") },
-			{ rgle::FontType::ITALIC, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Italic.ttf") },
-			{ rgle::FontType::ITALIC_BOLD, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-BoldItalic.ttf") },
-			{ rgle::FontType::LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-Light.ttf") },
-			{ rgle::FontType::ITALIC_LIGHT, std::make_shared<rgle::Font>(window, "res/font/Roboto/Roboto-LightItalic.ttf") }
+		auto roboto = std::shared_ptr<rgle::res::FontFamily>(new rgle::res::FontFamily("roboto", {
+			{ rgle::res::FontType::REGULAR, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-Regular.ttf") },
+			{ rgle::res::FontType::BOLD, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-Bold.ttf") },
+			{ rgle::res::FontType::ITALIC, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-Italic.ttf") },
+			{ rgle::res::FontType::ITALIC_BOLD, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-BoldItalic.ttf") },
+			{ rgle::res::FontType::LIGHT, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-Light.ttf") },
+			{ rgle::res::FontType::ITALIC_LIGHT, std::make_shared<rgle::res::Font>(window, "res/font/Roboto/Roboto-LightItalic.ttf") }
 		}));
 
 		app.addResource(roboto);
 
-		std::shared_ptr<rgle::RenderableLayer> mainLayer;
-		std::shared_ptr<rgle::UI::Layer> uiLayer;
-		std::shared_ptr<rgle::NoClipCamera> camera;
-		std::shared_ptr<rgle::UI::BasicButton> basicButton;
-		std::shared_ptr<rgle::Text> fpsText;
-		std::shared_ptr<rgle::Text> clickText;
+		std::shared_ptr<rgle::gfx::RenderableLayer> mainLayer;
+		std::shared_ptr<rgle::ui::Layer> uiLayer;
+		std::shared_ptr<rgle::gfx::NoClipCamera> camera;
+		std::shared_ptr<rgle::ui::BasicButton> basicButton;
+		std::shared_ptr<rgle::ui::Text> fpsText;
+		std::shared_ptr<rgle::ui::Text> clickText;
 
 		app.executeInContext([&app, &window, &mainLayer, &uiLayer, &camera, &basicButton, &fpsText, &clickText]() {
-			camera = std::make_shared<rgle::NoClipCamera>(rgle::PERSPECTIVE_PROJECTION, window);
+			camera = std::make_shared<rgle::gfx::NoClipCamera>(rgle::gfx::PERSPECTIVE_PROJECTION, window);
 			camera->translate(-0.1f, 0.0f, -0.5f);
 			camera->lookAt(glm::vec3(0.0f, 0.0f, 1.0f));
 
-			mainLayer = std::make_shared<rgle::RenderableLayer>("main", camera);
+			mainLayer = std::make_shared<rgle::gfx::RenderableLayer>("main", camera);
 			app.addLayer(mainLayer);
 
-			uiLayer = std::make_shared<rgle::UI::Layer>("ui", UI_TICK);
+			uiLayer = std::make_shared<rgle::ui::Layer>("ui", UI_TICK);
 			app.addLayer(uiLayer);
 
 			srand(clock());
-			auto triangleA = std::shared_ptr<rgle::Triangle>(new rgle::Triangle(
+			auto triangleA = std::make_shared<rgle::gfx::Triangle>(
 				"basic3D",
 				1.0,
 				1.0,
 				glm::radians(60.0f),
-				{ randomColor(), randomColor(), randomColor() }
-			));
+				std::vector { randomColor(), randomColor(), randomColor() }
+			);
 			triangleA->id = "triangleA";
 			mainLayer->addRenderable(triangleA);
 
-			auto rect = std::make_shared<rgle::ImageRect>("textured3D", 1.0f, 1.0f, "res/sky.png");
+			auto rect = std::make_shared<rgle::gfx::ImageRect>("textured3D", 1.0f, 1.0f, "res/sky.png");
 			rect->translate(0.0f, 2.0f, 0.0f);
 			triangleA->id = "rect";
 			mainLayer->addRenderable(rect);
 
-			auto triangleB = std::make_shared<rgle::Triangle>(
+			auto triangleB = std::make_shared<rgle::gfx::Triangle>(
 				"basic3D",
 				1.0,
 				1.0,
@@ -152,30 +152,30 @@ int main(const int argc, const char* const argv[]) {
 			triangleB->rotate(0.0, 0.0, glm::radians(60.0f));
 			triangleB->translate(0.0, 0.0, 1.0);
 
-			rgle::TextAttributes attrib{ rgle::FontType::BOLD, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) };
-			fpsText = std::make_shared<rgle::Text>("text", "roboto", "Framerate: ", attrib);
+			rgle::ui::TextAttributes attrib { rgle::res::FontType::BOLD, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) };
+			fpsText = std::make_shared<rgle::ui::Text>("text", "roboto", "Framerate: ", attrib);
 			fpsText->id = "fpsText";
 			uiLayer->addElement(fpsText);
-			auto wrapTest = std::make_shared<rgle::Text>(
+			auto wrapTest = std::make_shared<rgle::ui::Text>(
 				"text",
 				"roboto",
 				"Hello world! This is a test of word wrapping, will it wrap, mabye.",
-				rgle::TextAttributes{ rgle::FontType::LIGHT, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) }
+				rgle::ui::TextAttributes{ rgle::res::FontType::LIGHT, rgle::UnitValue::parse("16pt"), rgle::UnitVector2D(300.0f, 0.0f, rgle::Unit::PT), rgle::UnitVector2D(0.0, 0.0) }
 			);
 			wrapTest->id = "wrapTest";
 			uiLayer->addElement(wrapTest);
-			clickText = std::make_shared<rgle::Text>("text", "roboto", "Clicked: 0", attrib);
+			clickText = std::make_shared<rgle::ui::Text>("text", "roboto", "Clicked: 0", attrib);
 			clickText->id = "clickText";
 			uiLayer->addElement(clickText);
 
-			basicButton = std::make_shared<rgle::UI::BasicButton>("interface", "roboto", "Click Me!");
+			basicButton = std::make_shared<rgle::ui::BasicButton>("interface", "roboto", "Click Me!");
 			basicButton->id = "basicButton";
 			uiLayer->addElement(basicButton);
 
-			auto alignerAttribs = rgle::UI::LinearAlignerAttributes{};
+			auto alignerAttribs = rgle::ui::LinearAlignerAttributes{};
 			alignerAttribs.spacing = rgle::UnitValue{ 10.0, rgle::Unit::PT };
 			alignerAttribs.topLeft.x = rgle::UnitValue{ 10.0f, rgle::Unit::PT };
-			auto aligner = std::shared_ptr<rgle::UI::LinearAligner>(new rgle::UI::LinearAligner({
+			auto aligner = std::shared_ptr<rgle::ui::LinearAligner>(new rgle::ui::LinearAligner({
 				fpsText,
 				wrapTest,
 				clickText,

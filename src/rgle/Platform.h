@@ -94,12 +94,14 @@ namespace rgle {
 		void initialize();
 	}
 
-	class Config;
-	class Tester;
+	namespace util {
+		class Config;
+		class Tester;
+	}
 
 	class Settings {
 		friend void Platform::initialize();
-		friend class Tester;
+		friend class util::Tester;
 	public:
 		static std::string get(std::string key);
 
@@ -114,7 +116,7 @@ namespace rgle {
 	private:
 		static RGLE_DLLEXPORTED std::atomic_bool _loggerWrite;
 		static RGLE_DLLEXPORTED std::atomic<LogLevel> _logLevel;
-		static RGLE_DLLEXPORTED Config _config;
+		static RGLE_DLLEXPORTED util::Config _config;
 		static RGLE_DLLEXPORTED std::atomic_bool _initialized;
 	};
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rgle/Graphics.h"
-#include "rgle/Math.h"
+#include "rgle/gfx/Graphics.h"
+#include "rgle/math/Quadratic.h"
 
 namespace rgle {
 
@@ -15,7 +15,7 @@ namespace rgle {
 		virtual ~Ray();
 
 		bool intersect(const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3) const;
-		bool intersect(const Geometry3D* geometry) const;
+		bool intersect(const gfx::Geometry3D* geometry) const;
 
 	private:
 		glm::vec3 _u;

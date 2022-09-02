@@ -1,5 +1,5 @@
 #include "rgle.h"
 
 int main() {
-	return rgle::Tester::run([](rgle::Tester&) {});
+	return rgle::util::Tester::run([](rgle::util::Tester&) {});
 }

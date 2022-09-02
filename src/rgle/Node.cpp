@@ -13,7 +13,7 @@ rgle::Logger::Detail rgle::IdentifierException::_makeDetail(Logger::Detail && de
 	return det;
 }
 
-rgle::Node::Node() : id(uid())
+rgle::Node::Node() : id(util::uid())
 {
 }
 

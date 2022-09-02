@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Utility.h"
+#include "rgle/util/Utility.h"
 
 namespace rgle {
 

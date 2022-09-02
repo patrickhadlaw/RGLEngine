@@ -31,16 +31,16 @@ bool rgle::Ray::intersect(const glm::vec3& p1, const glm::vec3& p2, const glm::v
 	return alpha.x <= 1.0 && alpha.x >= 0.0 && alpha.y <= 1.0 && alpha.y >= 0.0 && alpha.z <= 1.0 && alpha.z >= 0.0;
 }
 
-bool rgle::Ray::intersect(const Geometry3D * geometry) const
+bool rgle::Ray::intersect(const gfx::Geometry3D * geometry) const
 {
 	if (geometry == nullptr) {
 		throw NullPointerException(LOGGER_DETAIL_DEFAULT);
 	}
 	for (int i = 0; i < geometry->triangleCount(); i++) {
 		if (this->intersect(
-			geometry->triangleVertex(i, Geometry3D::TrianglePoint::A),
-			geometry->triangleVertex(i, Geometry3D::TrianglePoint::B),
-			geometry->triangleVertex(i, Geometry3D::TrianglePoint::C)))
+			geometry->triangleVertex(i, gfx::Geometry3D::TrianglePoint::A),
+			geometry->triangleVertex(i, gfx::Geometry3D::TrianglePoint::B),
+			geometry->triangleVertex(i, gfx::Geometry3D::TrianglePoint::C)))
 		{
 			return true;
 		}

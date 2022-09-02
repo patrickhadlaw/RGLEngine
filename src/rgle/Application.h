@@ -1,15 +1,15 @@
 #pragma once
 
-#include "rgle/Renderable.h"
-#include "rgle/Font.h"
+#include "rgle/gfx/Renderable.h"
+#include "rgle/ui/Text.h"
 #include "rgle/Raycast.h"
-#include "rgle/Thread.h"
+#include "rgle/sync/Thread.h"
 
 namespace rgle {
 
 	void initialize();
 
-	class Application : public ContextManager {
+	class Application : public gfx::ContextManager {
 	public:
 		Application();
 		Application(std::string app, std::shared_ptr<Window> window);
@@ -17,9 +17,9 @@ namespace rgle {
 
 		virtual void initialize();
 
-		virtual std::shared_ptr<ContextManager> getContextManager(std::string managerid);
+		virtual std::shared_ptr<gfx::ContextManager> getContextManager(std::string managerid);
 
 	protected:
-		std::vector<std::shared_ptr<ContextManager>> _contexts;
+		std::vector<std::shared_ptr<gfx::ContextManager>> _contexts;
 	};
 }
