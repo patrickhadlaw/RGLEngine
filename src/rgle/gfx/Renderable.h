@@ -1,8 +1,8 @@
 #pragma once
 
 #include "rgle/Window.h"
-#include "rgle/ShaderProgram.h"
-#include "rgle/Camera.h"
+#include "rgle/gfx/ShaderProgram.h"
+#include "rgle/gfx/Camera.h"
 #include "rgle/Node.h"
 
 namespace rgle {

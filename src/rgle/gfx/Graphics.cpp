@@ -1,4 +1,4 @@
-#include "rgle/Graphics.h"
+#include "rgle/gfx/Graphics.h"
 
 
 size_t rgle::InstancedRenderer::_idCounter = 0;

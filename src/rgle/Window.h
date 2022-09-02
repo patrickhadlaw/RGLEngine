@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/ShaderProgram.h"
+#include "rgle/gfx/ShaderProgram.h"
 #include "rgle/Event.h"
 
 namespace rgle {

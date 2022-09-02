@@ -1,5 +1,5 @@
 #include "rgle/Platform.h"
-#include "rgle/Config.h"
+#include "rgle/util/Config.h"
 
 
 #if defined _WIN32 || defined _WIN64

@@ -1,4 +1,4 @@
-#include "rgle/Math.h"
+#include "rgle/math/Quadratic.h"
 
 rgle::math::quadratic::Roots rgle::math::quadratic::compute_roots(float a, float b, float c) {
   float discriminant = b * b - 4 * a * c;

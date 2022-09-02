@@ -1,9 +1,9 @@
 #pragma once
 
-#include "rgle/Renderable.h"
-#include "rgle/Font.h"
+#include "rgle/gfx/Renderable.h"
+#include "rgle/gfx/Font.h"
 #include "rgle/Raycast.h"
-#include "rgle/Thread.h"
+#include "rgle/sync/Thread.h"
 
 namespace rgle {
 

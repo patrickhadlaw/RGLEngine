@@ -1,4 +1,4 @@
-#include "rgle/Tester.h"
+#include "rgle/util/Tester.h"
 
 
 int rgle::Tester::run(std::function<void(Tester&)> test)

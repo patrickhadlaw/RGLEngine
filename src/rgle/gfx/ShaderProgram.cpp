@@ -1,4 +1,4 @@
-#include "rgle/ShaderProgram.h"
+#include "rgle/gfx/ShaderProgram.h"
 
 
 GLuint rgle::Shader::compileFile(std::string shaderfile, GLenum type)

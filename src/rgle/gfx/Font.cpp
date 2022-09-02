@@ -1,5 +1,5 @@
-#include "rgle/Font.h"
-#include "rgle/Graphics.h"
+#include "rgle/gfx/Font.h"
+#include "rgle/gfx/Graphics.h"
 
 
 rgle::Font::Font()

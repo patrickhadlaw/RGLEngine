@@ -1,4 +1,4 @@
-#include "rgle/Renderable.h"
+#include "rgle/gfx/Renderable.h"
 
 
 std::mutex rgle::ContextManager::_currentContextMutex;

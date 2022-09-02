@@ -1,4 +1,4 @@
-#include "rgle/Utility.h"
+#include "rgle/util/Utility.h"
 
 
 rgle::DebugException::DebugException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::DebugException")

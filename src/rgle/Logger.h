@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Console.h"
+#include "rgle/util/Console.h"
 
 #define LOGGER_DETAIL_DEFAULT rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__}
 #define LOGGER_DETAIL_IDENTIFIER(id) rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__, id}

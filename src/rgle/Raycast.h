@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rgle/Graphics.h"
-#include "rgle/Math.h"
+#include "rgle/gfx/Graphics.h"
+#include "rgle/math/Quadratic.h"
 
 namespace rgle {
 

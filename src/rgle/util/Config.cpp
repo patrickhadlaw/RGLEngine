@@ -1,4 +1,4 @@
-#include "rgle/Config.h"
+#include "rgle/util/Config.h"
 
 rgle::Config::Config()
 {

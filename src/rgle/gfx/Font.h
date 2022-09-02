@@ -1,7 +1,7 @@
 #pragma once
 
-#include "rgle/Graphics.h"
-#include "rgle/Interface.h"
+#include "rgle/gfx/Graphics.h"
+#include "rgle/ui/Interface.h"
 
 namespace rgle {
 

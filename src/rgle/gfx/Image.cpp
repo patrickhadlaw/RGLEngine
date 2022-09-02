@@ -1,4 +1,4 @@
-#include "rgle/Image.h"
+#include "rgle/gfx/Image.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>

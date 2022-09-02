@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Graphics.h"
+#include "rgle/gfx/Graphics.h"
 #include "rgle/Raycast.h"
 #include "rgle/Event.h"
 

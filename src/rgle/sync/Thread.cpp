@@ -1,4 +1,4 @@
-#include "rgle/Thread.h"
+#include "rgle/sync/Thread.h"
 
 
 rgle::ThreadException::ThreadException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::ThreadException")

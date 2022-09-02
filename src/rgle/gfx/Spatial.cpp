@@ -1,4 +1,4 @@
-#include "rgle/Spatial.h"
+#include "rgle/gfx/Spatial.h"
 
 const size_t rgle::SparseVoxelNodePayload::SIZE = rgle::aligned_std430_size(8 * sizeof(GLfloat) + sizeof(GLuint) + sizeof(GLint), 4 * sizeof(GLfloat));
 const size_t rgle::SparseVoxelRayPayload::SIZE = rgle::aligned_std430_size(sizeof(GLuint) + sizeof(GLint), sizeof(GLint));

@@ -1,5 +1,5 @@
-#include "rgle/Interface.h"
-#include "rgle/Font.h"
+#include "rgle/ui/Interface.h"
+#include "rgle/gfx/Font.h"
 
 rgle::UI::BoundingBox::BoundingBox()
 {

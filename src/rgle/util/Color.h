@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Renderable.h"
+#include "rgle/gfx/Renderable.h"
 
 namespace rgle {
 	namespace Color {

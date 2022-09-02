@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Color.h"
+#include "rgle/util/Color.h"
 
 namespace rgle {
 

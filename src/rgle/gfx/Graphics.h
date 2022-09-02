@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Image.h"
+#include "rgle/gfx/Image.h"
 
 namespace rgle {
 

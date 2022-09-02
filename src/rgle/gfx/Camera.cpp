@@ -1,4 +1,4 @@
-#include "rgle/Camera.h"
+#include "rgle/gfx/Camera.h"
 
 
 float rgle::z_index(float z)
