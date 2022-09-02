@@ -3,15 +3,17 @@ cmake_minimum_required(VERSION 3.12)
 set(
   RGLE_LIB_SRC
   rgle/gfx/Camera.cpp
-  rgle/gfx/Font.cpp
+  rgle/gfx/CharRect.cpp
   rgle/gfx/Graphics.cpp
   rgle/gfx/Image.cpp
   rgle/gfx/Renderable.cpp
   rgle/gfx/ShaderProgram.cpp
   rgle/gfx/Spatial.cpp
   rgle/math/Quadratic.cpp
+  rgle/res/Font.cpp
   rgle/sync/Thread.cpp
   rgle/ui/Interface.cpp
+  rgle/ui/Text.cpp
   rgle/util/Color.cpp
   rgle/util/Config.cpp
   rgle/util/Console.cpp

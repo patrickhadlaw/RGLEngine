@@ -2,7 +2,7 @@
 
 #include "rgle/Window.h"
 
-namespace rgle {
+namespace rgle::gfx {
 
 	float z_index(float z);
 

@@ -1,7 +1,7 @@
 #include "rgle/gfx/ShaderProgram.h"
 
 
-GLuint rgle::Shader::compileFile(std::string shaderfile, GLenum type)
+GLuint rgle::gfx::Shader::compileFile(std::string shaderfile, GLenum type)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading shader file: " + shaderfile, LOGGER_DETAIL_DEFAULT);)
 	std::string file;
@@ -16,10 +16,10 @@ GLuint rgle::Shader::compileFile(std::string shaderfile, GLenum type)
 	else {
 		throw IOException("could not open file: " + std::string(shaderfile), LOGGER_DETAIL_DEFAULT);
 	}
-	return rgle::Shader::compile(file, type);
+	return rgle::gfx::Shader::compile(file, type);
 }
 
-GLuint rgle::Shader::compile(std::string shadercode, GLenum type)
+GLuint rgle::gfx::Shader::compile(std::string shadercode, GLenum type)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("compiling shader of type: " + std::to_string(type), LOGGER_DETAIL_DEFAULT);)
 	GLuint shaderId = glCreateShader(type);
@@ -39,17 +39,17 @@ GLuint rgle::Shader::compile(std::string shadercode, GLenum type)
 	return shaderId;
 }
 
-rgle::ShaderProgram::ShaderProgram()
+rgle::gfx::ShaderProgram::ShaderProgram()
 {
 }
 
-rgle::ShaderProgram::ShaderProgram(std::string name, std::string vertexShader, std::string fragmentShader) : ShaderProgram(
+rgle::gfx::ShaderProgram::ShaderProgram(std::string name, std::string vertexShader, std::string fragmentShader) : ShaderProgram(
 	name,
 	vertexShader.c_str(),
 	fragmentShader.c_str()
 ) {}
 
-rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader) :
+rgle::gfx::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, const char * fragmentShader) :
 	ShaderProgram(
 		name,
 		{
@@ -59,7 +59,7 @@ rgle::ShaderProgram::ShaderProgram(std::string name, const char * vertexShader, 
 	)
 {}
 
-rgle::ShaderProgram::ShaderProgram(std::string name, std::initializer_list<GLuint> shaders)
+rgle::gfx::ShaderProgram::ShaderProgram(std::string name, std::initializer_list<GLuint> shaders)
 {
 	Logger::info("creating shader program", LOGGER_DETAIL_IDENTIFIER(name));
 	this->id = name;
@@ -87,31 +87,31 @@ rgle::ShaderProgram::ShaderProgram(std::string name, std::initializer_list<GLuin
 }
 
 
-rgle::ShaderProgram::~ShaderProgram()
+rgle::gfx::ShaderProgram::~ShaderProgram()
 {
 }
 
-GLuint rgle::ShaderProgram::programId() const
+GLuint rgle::gfx::ShaderProgram::programId() const
 {
 	return _programID;
 }
 
-void rgle::ShaderProgram::use() const
+void rgle::gfx::ShaderProgram::use() const
 {
 	glUseProgram(_programID);
 }
 
-const char * rgle::ShaderProgram::typeName() const
+const char * rgle::gfx::ShaderProgram::typeName() const
 {
-	return "rgle::ShaderProgram";
+	return "rgle::gfx::ShaderProgram";
 }
 
-GLint rgle::ShaderProgram::uniform(const std::string & name) const
+GLint rgle::gfx::ShaderProgram::uniform(const std::string & name) const
 {
 	return glGetUniformLocation(this->programId(), name.c_str());
 }
 
-GLint rgle::ShaderProgram::uniformStrict(const std::string & name) const
+GLint rgle::gfx::ShaderProgram::uniformStrict(const std::string & name) const
 {
 	GLint result = this->uniform(name);
 	if (result < 0) {
@@ -122,12 +122,12 @@ GLint rgle::ShaderProgram::uniformStrict(const std::string & name) const
 	}
 }
 
-rgle::ShaderManager::ShaderManager()
+rgle::gfx::ShaderManager::ShaderManager()
 {
 
 }
 
-rgle::ShaderManager::ShaderManager(std::initializer_list<std::shared_ptr<ShaderProgram>> programs)
+rgle::gfx::ShaderManager::ShaderManager(std::initializer_list<std::shared_ptr<ShaderProgram>> programs)
 {
 	this->_shaderPrograms = std::vector<std::shared_ptr<ShaderProgram>>();
 	for (const auto& program : programs) {
@@ -135,11 +135,11 @@ rgle::ShaderManager::ShaderManager(std::initializer_list<std::shared_ptr<ShaderP
 	}
 }
 
-rgle::ShaderManager::~ShaderManager()
+rgle::gfx::ShaderManager::~ShaderManager()
 {
 }
 
-void rgle::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
+void rgle::gfx::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
 {
 	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (shader->id == this->_shaderPrograms[i]->id) {
@@ -149,7 +149,7 @@ void rgle::ShaderManager::addShader(std::shared_ptr<ShaderProgram> shader)
 	this->_shaderPrograms.push_back(shader);
 }
 
-std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string name)
+std::shared_ptr<rgle::gfx::ShaderProgram> rgle::gfx::ShaderManager::operator[](std::string name)
 {
 	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {
@@ -159,7 +159,7 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::operator[](std::string
 	return nullptr;
 }
 
-std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::get(std::string name) const
+std::shared_ptr<rgle::gfx::ShaderProgram> rgle::gfx::ShaderManager::get(std::string name) const
 {
 	for (size_t i = 0; i < this->_shaderPrograms.size(); i++) {
 		if (this->_shaderPrograms[i]->id == name) {
@@ -169,7 +169,7 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::get(std::string name) 
 	return nullptr;
 }
 
-std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::getStrict(std::string name) const
+std::shared_ptr<rgle::gfx::ShaderProgram> rgle::gfx::ShaderManager::getStrict(std::string name) const
 {
 	auto result = this->get(name);
 	if (result == nullptr) {
@@ -178,7 +178,7 @@ std::shared_ptr<rgle::ShaderProgram> rgle::ShaderManager::getStrict(std::string 
 	return result;
 }
 
-void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
+void APIENTRY rgle::gfx::debugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar * message, const void * userParam)
 {
 	std::string msg = message;
 	msg = msg + " (type: " + std::to_string(type) + ", severity: " + std::to_string(severity);
@@ -191,6 +191,6 @@ void APIENTRY rgle::debugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 	}
 	else {
 		// TODO: implement GL debug log
-		//RGLE_DEBUG_ONLY(rgle::Logger::debug(msg, LOGGER_DETAIL_DEFAULT);)
+		//RGLE_DEBUG_ONLY(rgle::gfx::Logger::debug(msg, LOGGER_DETAIL_DEFAULT);)
 	}
 }

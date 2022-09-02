@@ -2,7 +2,7 @@
 
 #include "rgle/util/Color.h"
 
-namespace rgle {
+namespace rgle::gfx {
 
 	struct Image {
 		enum class Format {

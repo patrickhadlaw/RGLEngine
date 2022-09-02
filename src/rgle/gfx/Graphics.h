@@ -2,7 +2,7 @@
 
 #include "rgle/gfx/Image.h"
 
-namespace rgle {
+namespace rgle::gfx {
 
 	class GraphicsException : public Exception {
 	public:
@@ -77,7 +77,7 @@ namespace rgle {
 
 		void standardRender(std::shared_ptr<ShaderProgram> shader);
 
-		void standardFill(Fill colorFill);
+		void standardFill(util::Fill colorFill);
 
 		void updateVertexBuffer();
 		void updateIndexBuffer();

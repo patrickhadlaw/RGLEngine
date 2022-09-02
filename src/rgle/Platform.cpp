@@ -51,7 +51,7 @@ rgle::LogLevel rgle::get_loglevel_from_string(std::string loglevel)
 
 void rgle::Platform::initialize() {
 	if (!Settings::_initialized) {
-		Settings::_config = Config(std::filesystem::path(rgle::get_executable_path()).remove_filename().string() + "rgle.cfg");
+		Settings::_config = util::Config(std::filesystem::path(rgle::get_executable_path()).remove_filename().string() + "rgle.cfg");
 		Settings::_initialized = true;
 		std::filesystem::current_path(Settings::get(Settings::INSTALL_PATH));
 		Settings::_logLevel = rgle::get_loglevel_from_string(Settings::get(Settings::LOG_LEVEL));
@@ -65,7 +65,7 @@ const std::string rgle::Settings::INSTALL_PATH = "install_path";
 const std::string rgle::Settings::LOG_LEVEL = "log_level";
 
 std::atomic_bool rgle::Settings::_loggerWrite = true;
-rgle::Config rgle::Settings::_config = Config();
+rgle::util::Config rgle::Settings::_config = util::Config();
 std::atomic_bool rgle::Settings::_initialized = false;
 
 #ifdef NDEBUG

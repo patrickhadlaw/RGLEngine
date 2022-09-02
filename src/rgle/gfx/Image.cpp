@@ -5,7 +5,7 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include <stb_image_write.h>
 
-rgle::Image::Image() :
+rgle::gfx::Image::Image() :
 	image(nullptr),
 	width(0),
 	height(0),
@@ -15,7 +15,7 @@ rgle::Image::Image() :
 {
 }
 
-rgle::Image::Image(std::string imagefile) : depth(1), channelSize(1)
+rgle::gfx::Image::Image(std::string imagefile) : depth(1), channelSize(1)
 {
 	RGLE_DEBUG_ONLY(rgle::Logger::debug("loading image: " + imagefile, LOGGER_DETAIL_DEFAULT);)
 		int w, h, c;
@@ -31,7 +31,7 @@ rgle::Image::Image(std::string imagefile) : depth(1), channelSize(1)
 	this->channels = static_cast<size_t>(c);
 }
 
-rgle::Image::Image(size_t width, size_t height, size_t depth, size_t channels, size_t channelSize) :
+rgle::gfx::Image::Image(size_t width, size_t height, size_t depth, size_t channels, size_t channelSize) :
 	width(width),
 	height(height),
 	depth(depth),
@@ -41,7 +41,7 @@ rgle::Image::Image(size_t width, size_t height, size_t depth, size_t channels, s
 	this->image = new unsigned char[this->size()];
 }
 
-rgle::Image::Image(const Image & other)
+rgle::gfx::Image::Image(const Image & other)
 {
 	RGLE_DEBUG_ASSERT(other.image != nullptr)
 		this->width = other.width;
@@ -53,7 +53,7 @@ rgle::Image::Image(const Image & other)
 	std::memcpy(this->image, other.image, this->size());
 }
 
-rgle::Image::Image(Image && rvalue)
+rgle::gfx::Image::Image(Image && rvalue)
 {
 	this->width = rvalue.width;
 	this->height = rvalue.height;
@@ -64,7 +64,7 @@ rgle::Image::Image(Image && rvalue)
 	rvalue.image = nullptr;
 }
 
-void rgle::Image::operator=(const Image& other)
+void rgle::gfx::Image::operator=(const Image& other)
 {
 	RGLE_DEBUG_ASSERT(other.image != nullptr)
 		delete[] image;
@@ -80,7 +80,7 @@ void rgle::Image::operator=(const Image& other)
 	}
 }
 
-void rgle::Image::operator=(Image && rvalue)
+void rgle::gfx::Image::operator=(Image && rvalue)
 {
 	this->width = rvalue.width;
 	this->height = rvalue.height;
@@ -90,7 +90,7 @@ void rgle::Image::operator=(Image && rvalue)
 	std::swap(this->image, rvalue.image);
 }
 
-void rgle::Image::set(const size_t & x, const size_t & y, unsigned char * data, const size_t & size)
+void rgle::gfx::Image::set(const size_t & x, const size_t & y, unsigned char * data, const size_t & size)
 {
 	if (size != this->channels * this->channelSize) {
 		throw IllegalArgumentException("invalid image set, payload size invalid", LOGGER_DETAIL_DEFAULT);
@@ -107,13 +107,13 @@ void rgle::Image::set(const size_t & x, const size_t & y, unsigned char * data, 
 	}
 }
 
-void rgle::Image8::set(const size_t & x, const size_t & y, const float & intensity)
+void rgle::gfx::Image8::set(const size_t & x, const size_t & y, const float & intensity)
 {
 	unsigned char data = static_cast<unsigned char>(intensity * 255);
 	Image::set(x, y, &data, 1);
 }
 
-void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
+void rgle::gfx::Image8::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
 {
 	unsigned char data[2] = {
 		static_cast<unsigned char>(ia.r * 255),
@@ -122,7 +122,7 @@ void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec2 & ia)
 	Image::set(x, y, data, 2);
 }
 
-void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec3 & rgb)
+void rgle::gfx::Image8::set(const size_t & x, const size_t & y, const glm::vec3 & rgb)
 {
 	unsigned char data[3] = {
 		static_cast<unsigned char>(rgb.r * 255),
@@ -132,7 +132,7 @@ void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec3 & rgb
 	Image::set(x, y, data, 3);
 }
 
-void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
+void rgle::gfx::Image8::set(const size_t & x, const size_t & y, const glm::vec4& rgba)
 {
 	unsigned char data[4] = {
 		static_cast<unsigned char>(rgba.r * 255),
@@ -143,7 +143,7 @@ void rgle::Image8::set(const size_t & x, const size_t & y, const glm::vec4& rgba
 	Image::set(x, y, data, 4);
 }
 
-void rgle::Image::write(const std::string& imagefile) const
+void rgle::gfx::Image::write(const std::string& imagefile) const
 {
 	size_t idx = imagefile.find_last_of('.');
 	if (idx == std::string::npos) {
@@ -163,7 +163,7 @@ void rgle::Image::write(const std::string& imagefile) const
 	}
 }
 
-void rgle::Image::write(const std::string& imagefile, const Format& format) const
+void rgle::gfx::Image::write(const std::string& imagefile, const Format& format) const
 {
 	rgle::Logger::info("writing image to file: " + imagefile, LOGGER_DETAIL_DEFAULT);
 	int status;
@@ -183,43 +183,43 @@ void rgle::Image::write(const std::string& imagefile, const Format& format) cons
 	}
 }
 
-size_t rgle::Image::size() const
+size_t rgle::gfx::Image::size() const
 {
 	return this->width * this->height * this->depth * this->channels * this->channelSize;
 }
 
-rgle::Image::~Image()
+rgle::gfx::Image::~Image()
 {
 	delete[] image;
 	image = nullptr;
 }
 
-rgle::Image8::Image8() : Image()
+rgle::gfx::Image8::Image8() : Image()
 {
 }
 
-rgle::Image8::Image8(std::string imagefile) : Image(imagefile)
+rgle::gfx::Image8::Image8(std::string imagefile) : Image(imagefile)
 {
 }
 
-rgle::Image8::Image8(int width, int height, int channels) : Image(width, height, 1, channels, 1)
+rgle::gfx::Image8::Image8(int width, int height, int channels) : Image(width, height, 1, channels, 1)
 {
 }
 
-rgle::Texture::Texture() : Texture(nullptr, 0)
+rgle::gfx::Texture::Texture() : Texture(nullptr, 0)
 {
 }
 
-rgle::Texture::Texture(std::shared_ptr<Image> image, int index) : _image(image), _index(index)
+rgle::gfx::Texture::Texture(std::shared_ptr<Image> image, int index) : _image(image), _index(index)
 {
 	glGenTextures(1, &this->_id);
 }
 
-rgle::Texture::Texture(const Texture& other) : Texture(std::make_shared<Image>(*other._image), other._index)
+rgle::gfx::Texture::Texture(const Texture& other) : Texture(std::make_shared<Image>(*other._image), other._index)
 {
 }
 
-rgle::Texture::Texture(Texture&& rvalue)
+rgle::gfx::Texture::Texture(Texture&& rvalue)
 {
 	this->_image = rvalue._image;
 	rvalue._image = nullptr;
@@ -227,69 +227,69 @@ rgle::Texture::Texture(Texture&& rvalue)
 	rvalue._id = 0;
 }
 
-rgle::Texture::~Texture()
+rgle::gfx::Texture::~Texture()
 {
 	glDeleteTextures(1, &this->_id);
 }
 
-void rgle::Texture::operator=(const Texture& other)
+void rgle::gfx::Texture::operator=(const Texture& other)
 {
 	this->_image = other._image;
 	glGenTextures(1, &this->_id);
 }
 
-void rgle::Texture::operator=(Texture&& rvalue)
+void rgle::gfx::Texture::operator=(Texture&& rvalue)
 {
 	this->_image = rvalue._image;
 	std::swap(this->_id, rvalue._id);
 }
 
-void rgle::Texture::update()
+void rgle::gfx::Texture::update()
 {
 	rgle::Logger::warn("unimplemented method called", LOGGER_DETAIL_DEFAULT);
 }
 
-void rgle::Texture::bind()
+void rgle::gfx::Texture::bind()
 {
 	rgle::Logger::warn("unimplemented method called", LOGGER_DETAIL_DEFAULT);
 }
 
-GLuint & rgle::Texture::id()
+GLuint & rgle::gfx::Texture::id()
 {
 	return this->_id;
 }
 
-const GLuint & rgle::Texture::id() const
+const GLuint & rgle::gfx::Texture::id() const
 {
 	return this->_id;
 }
 
-std::shared_ptr<rgle::Image>& rgle::Texture::image()
+std::shared_ptr<rgle::gfx::Image>& rgle::gfx::Texture::image()
 {
 	return this->_image;
 }
 
-const std::shared_ptr<rgle::Image>& rgle::Texture::image() const
+const std::shared_ptr<rgle::gfx::Image>& rgle::gfx::Texture::image() const
 {
 	return this->_image;
 }
 
-int & rgle::Texture::index()
+int & rgle::gfx::Texture::index()
 {
 	return this->_index;
 }
 
-const int & rgle::Texture::index() const
+const int & rgle::gfx::Texture::index() const
 {
 	return this->_index;
 }
 
-rgle::Texture2D::Texture2D(std::string imagefile, GLenum texture, Format format) :
+rgle::gfx::Texture2D::Texture2D(std::string imagefile, GLenum texture, Format format) :
 	Texture2D(std::make_shared<Image>(imagefile), texture, format)
 {
 }
 
-rgle::Texture2D::Texture2D(std::shared_ptr<Image> image, GLenum texture, Format format) :
+rgle::gfx::Texture2D::Texture2D(std::shared_ptr<Image> image, GLenum texture, Format format) :
 	_texture(texture),
 	_format(format),
 	Texture(image, texture - GL_TEXTURE0)
@@ -297,37 +297,37 @@ rgle::Texture2D::Texture2D(std::shared_ptr<Image> image, GLenum texture, Format 
 	this->_initialize();
 }
 
-rgle::Texture2D::Texture2D(const Texture2D & other)
+rgle::gfx::Texture2D::Texture2D(const Texture2D & other)
 {
 	this->_format = other._format;
 	this->_texture = other._texture;
 	this->_initialize();
 }
 
-rgle::Texture2D::Texture2D(Texture2D && rvalue)
+rgle::gfx::Texture2D::Texture2D(Texture2D && rvalue)
 {
 	this->_format = rvalue._format;
 	this->_texture = rvalue._texture;
 }
 
-rgle::Texture2D::~Texture2D()
+rgle::gfx::Texture2D::~Texture2D()
 {
 }
 
-void rgle::Texture2D::operator=(const Texture2D& other)
+void rgle::gfx::Texture2D::operator=(const Texture2D& other)
 {
 	this->_format = other._format;
 	this->_texture = other._texture;
 	this->_initialize();
 }
 
-void rgle::Texture2D::operator=(Texture2D&& rvalue)
+void rgle::gfx::Texture2D::operator=(Texture2D&& rvalue)
 {
 	this->_format = rvalue._format;
 	this->_texture = rvalue._texture;
 }
 
-void rgle::Texture2D::update()
+void rgle::gfx::Texture2D::update()
 {
 	glBindTexture(GL_TEXTURE_2D, this->id());
 	glTexImage2D(GL_TEXTURE_2D,
@@ -342,13 +342,13 @@ void rgle::Texture2D::update()
 	);
 }
 
-void rgle::Texture2D::bind()
+void rgle::gfx::Texture2D::bind()
 {
 	glActiveTexture(this->_texture);
 	glBindTexture(GL_TEXTURE_2D, this->id());
 }
 
-void rgle::Texture2D::_initialize()
+void rgle::gfx::Texture2D::_initialize()
 {
 	glBindTexture(GL_TEXTURE_2D, this->id());
 
@@ -370,7 +370,7 @@ void rgle::Texture2D::_initialize()
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 }
 
-rgle::PersistentTexture2D::PersistentTexture2D(std::shared_ptr<Image> image, int index, Format format, GLenum type, GLenum access) :
+rgle::gfx::PersistentTexture2D::PersistentTexture2D(std::shared_ptr<Image> image, int index, Format format, GLenum type, GLenum access) :
 	_format(format),
 	_type(type),
 	_access(access),
@@ -379,37 +379,37 @@ rgle::PersistentTexture2D::PersistentTexture2D(std::shared_ptr<Image> image, int
 	this->_initialize();
 }
 
-rgle::PersistentTexture2D::PersistentTexture2D(const PersistentTexture2D & other)
+rgle::gfx::PersistentTexture2D::PersistentTexture2D(const PersistentTexture2D & other)
 {
 	this->_access = other._access;
 	this->_format = other._format;
 	this->_initialize();
 }
 
-rgle::PersistentTexture2D::PersistentTexture2D(PersistentTexture2D && rvalue)
+rgle::gfx::PersistentTexture2D::PersistentTexture2D(PersistentTexture2D && rvalue)
 {
 	this->_access = rvalue._access;
 	this->_format = rvalue._format;
 }
 
-rgle::PersistentTexture2D::~PersistentTexture2D()
+rgle::gfx::PersistentTexture2D::~PersistentTexture2D()
 {
 }
 
-void rgle::PersistentTexture2D::operator=(const PersistentTexture2D & other)
+void rgle::gfx::PersistentTexture2D::operator=(const PersistentTexture2D & other)
 {
 	this->_access = other._access;
 	this->_format = other._format;
 	this->_initialize();
 }
 
-void rgle::PersistentTexture2D::operator=(PersistentTexture2D && rvalue)
+void rgle::gfx::PersistentTexture2D::operator=(PersistentTexture2D && rvalue)
 {
 	this->_access = rvalue._access;
 	this->_format = rvalue._format;
 }
 
-void rgle::PersistentTexture2D::update()
+void rgle::gfx::PersistentTexture2D::update()
 {
 	glTextureSubImage2D(this->id(),
 		0, 0, 0,
@@ -421,28 +421,28 @@ void rgle::PersistentTexture2D::update()
 	);
 }
 
-void rgle::PersistentTexture2D::bind()
+void rgle::gfx::PersistentTexture2D::bind()
 {
 	glActiveTexture(GL_TEXTURE0 + this->index());
 	glBindTexture(GL_TEXTURE_2D, this->id());
 }
 
-void rgle::PersistentTexture2D::bindImage2D()
+void rgle::gfx::PersistentTexture2D::bindImage2D()
 {
 	glBindImageTexture(this->index(), this->id(), 0, GL_FALSE, 0, this->_access, this->_format.internal);
 }
 
-GLenum & rgle::PersistentTexture2D::access()
+GLenum & rgle::gfx::PersistentTexture2D::access()
 {
 	return this->_access;
 }
 
-const GLenum & rgle::PersistentTexture2D::access() const
+const GLenum & rgle::gfx::PersistentTexture2D::access() const
 {
 	return this->_access;
 }
 
-void rgle::PersistentTexture2D::_initialize()
+void rgle::gfx::PersistentTexture2D::_initialize()
 {
 	glBindTexture(GL_TEXTURE_2D, this->id());
 	glTexStorage2D(GL_TEXTURE_2D,

@@ -2,7 +2,7 @@
 
 #include "rgle/Exception.h"
 
-namespace rgle {
+namespace rgle::sync {
 	class ThreadException : public Exception {
 	public:
 		ThreadException(std::string except, Logger::Detail detail);

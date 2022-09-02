@@ -2,9 +2,9 @@
 
 #include "rgle/Exception.h"
 
-#define RGLE_DEBUG_ASSERT(x) RGLE_DEBUG_ONLY(rgle::debug_assert(x, LOGGER_DETAIL_DEFAULT);)
+#define RGLE_DEBUG_ASSERT(x) RGLE_DEBUG_ONLY(rgle::util::debug_assert(x, LOGGER_DETAIL_DEFAULT);)
 
-namespace rgle {
+namespace rgle::util {
 	const int UID_LENGTH = 25;
 
 	class DebugException : public Exception {

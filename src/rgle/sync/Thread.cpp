@@ -1,11 +1,10 @@
 #include "rgle/sync/Thread.h"
 
-
-rgle::ThreadException::ThreadException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::ThreadException")
+rgle::sync::ThreadException::ThreadException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::sync::ThreadException")
 {
 }
 
-rgle::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(false), _activeWorkers(0), _queueMutex()
+rgle::sync::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(false), _activeWorkers(0), _queueMutex()
 {
 	this->_workers.reserve(n);
 	for (size_t i = 0; i < n; i++) {
@@ -13,11 +12,11 @@ rgle::ThreadPool::ThreadPool(size_t n) : _locked(false), _alive(true), _ready(fa
 	}
 }
 
-rgle::ThreadPool::ThreadPool(const ThreadPool & other) : ThreadPool(other._workers.size())
+rgle::sync::ThreadPool::ThreadPool(const ThreadPool & other) : ThreadPool(other._workers.size())
 {
 }
 
-rgle::ThreadPool::~ThreadPool()
+rgle::sync::ThreadPool::~ThreadPool()
 {
 	this->_alive = false;
 	this->_ready = true;
@@ -27,7 +26,7 @@ rgle::ThreadPool::~ThreadPool()
 	}
 }
 
-void rgle::ThreadPool::startJob(std::function<void()> job)
+void rgle::sync::ThreadPool::startJob(std::function<void()> job)
 {
 	while (this->_locked) {
 		std::this_thread::yield();
@@ -40,12 +39,12 @@ void rgle::ThreadPool::startJob(std::function<void()> job)
 	this->_workerCondition.notify_one();
 }
 
-bool rgle::ThreadPool::standBy()
+bool rgle::sync::ThreadPool::standBy()
 {
 	return this->_jobQueue.empty() && this->_activeWorkers == 0;
 }
 
-void rgle::ThreadPool::_threadLoop()
+void rgle::sync::ThreadPool::_threadLoop()
 {
 	while (this->_alive) {
 		std::function<void()> job;

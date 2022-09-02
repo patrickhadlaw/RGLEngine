@@ -1,20 +1,20 @@
 #include "rgle/util/Color.h"
 
 
-rgle::Fill::Fill()
+rgle::util::Fill::Fill()
 {
 }
 
-rgle::Fill::Fill(glm::vec4 solid)
+rgle::util::Fill::Fill(glm::vec4 solid)
 {
 	this->_solid = solid;
 }
 
-rgle::Fill::~Fill()
+rgle::util::Fill::~Fill()
 {
 }
 
-glm::vec4 rgle::Fill::evaluate(float, float)
+glm::vec4 rgle::util::Fill::evaluate(float, float)
 {
 	switch (this->_type)
 	{
@@ -33,7 +33,7 @@ glm::vec4 rgle::Fill::evaluate(float, float)
 	}
 }
 
-glm::vec4 rgle::Color::blend(std::initializer_list<glm::vec4> colors)
+glm::vec4 rgle::util::Color::blend(std::initializer_list<glm::vec4> colors)
 {
 	glm::vec4 result = glm::vec4(0.0f);
 	for (const glm::vec4 color : colors) {

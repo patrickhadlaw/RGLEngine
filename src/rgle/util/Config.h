@@ -2,7 +2,7 @@
 
 #include "rgle/Exception.h"
 
-namespace rgle {
+namespace rgle::util {
 	class ConfigException : public Exception {
 	public:
 		ConfigException(std::string exception, Logger::Detail detail);

@@ -2,7 +2,7 @@
 
 #include "rgle/Exception.h"
 
-namespace rgle {
+namespace rgle::util {
 
 	typedef std::function<bool()> ExpectationFunc;
 	typedef std::function<std::string()> PrintFunc;

@@ -1,10 +1,10 @@
 #include "rgle/util/Config.h"
 
-rgle::Config::Config()
+rgle::util::Config::Config()
 {
 }
 
-rgle::Config::Config(std::string filename)
+rgle::util::Config::Config(std::string filename)
 {
 	std::ifstream config(filename);
 	if (config.is_open()) {
@@ -67,17 +67,17 @@ rgle::Config::Config(std::string filename)
 	}
 }
 
-int rgle::Config::getInt(std::string entry)
+int rgle::util::Config::getInt(std::string entry)
 {
 	return 0;
 }
 
-float rgle::Config::getFloat(std::string entry)
+float rgle::util::Config::getFloat(std::string entry)
 {
 	return 0.0f;
 }
 
-std::string rgle::Config::operator[](std::string entry) const
+std::string rgle::util::Config::operator[](std::string entry) const
 {
 	if (this->_config.find(entry) == this->_config.end()) {
 		throw ConfigException("failed to lookup config entry: " + entry + ", entry not found", LOGGER_DETAIL_DEFAULT);
@@ -87,11 +87,11 @@ std::string rgle::Config::operator[](std::string entry) const
 	}
 }
 
-bool rgle::Config::_validate(char c)
+bool rgle::util::Config::_validate(char c)
 {
 	return c == '_' || c == '-' || std::isalnum(static_cast<unsigned char>(c));
 }
 
-rgle::ConfigException::ConfigException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::ConfigException")
+rgle::util::ConfigException::ConfigException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::util::ConfigException")
 {
 }

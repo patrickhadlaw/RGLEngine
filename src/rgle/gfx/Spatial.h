@@ -2,7 +2,7 @@
 
 #include "rgle/gfx/Graphics.h"
 
-namespace rgle {
+namespace rgle::gfx {
 
 	namespace OctreeIndex {
 		enum X {
@@ -119,7 +119,7 @@ namespace rgle {
 		std::deque<size_t> _freeBlocks;
 
 		// Queue storing the modified blocks (used for buffer flush)
-		CollectingQueue<size_t> _modifiedBlocks;
+		util::CollectingQueue<size_t> _modifiedBlocks;
 
 		// The top index of buffer
 		size_t _top;

@@ -1,55 +1,55 @@
 #include "rgle/gfx/Renderable.h"
 
 
-std::mutex rgle::ContextManager::_currentContextMutex;
-std::thread::id rgle::ContextManager::_contextThread;
-bool rgle::ContextManager::_contextBound = false;
-std::condition_variable rgle::ContextManager::_contextCondition;
-rgle::Context rgle::ContextManager::_currentContext;
+std::mutex rgle::gfx::ContextManager::_currentContextMutex;
+std::thread::id rgle::gfx::ContextManager::_contextThread;
+bool rgle::gfx::ContextManager::_contextBound = false;
+std::condition_variable rgle::gfx::ContextManager::_contextCondition;
+rgle::gfx::Context rgle::gfx::ContextManager::_currentContext;
 
-rgle::Renderable::Renderable() : _context(ContextManager::getCurrentContext())
+rgle::gfx::Renderable::Renderable() : _context(ContextManager::getCurrentContext())
 {
 }
 
-rgle::Renderable::~Renderable()
+rgle::gfx::Renderable::~Renderable()
 {
 }
 
-void rgle::Renderable::update()
+void rgle::gfx::Renderable::update()
 {
 }
 
-void rgle::Renderable::render()
+void rgle::gfx::Renderable::render()
 {
 }
 
-const char * rgle::Renderable::typeName() const
+const char * rgle::gfx::Renderable::typeName() const
 {
-	return "rgle::Renderable";
+	return "rgle::gfx::Renderable";
 }
 
-rgle::Context & rgle::Renderable::context()
+rgle::gfx::Context & rgle::gfx::Renderable::context()
 {
 	RGLE_DEBUG_ASSERT(!this->_context.id.empty())
 	return this->_context;
 }
 
-const rgle::Context & rgle::Renderable::context() const
+const rgle::gfx::Context & rgle::gfx::Renderable::context() const
 {
 	return this->_context;
 }
 
-std::weak_ptr<rgle::ShaderProgram>& rgle::Renderable::shader()
+std::weak_ptr<rgle::gfx::ShaderProgram>& rgle::gfx::Renderable::shader()
 {
 	return this->_shader;
 }
 
-const std::weak_ptr<rgle::ShaderProgram>& rgle::Renderable::shader() const
+const std::weak_ptr<rgle::gfx::ShaderProgram>& rgle::gfx::Renderable::shader() const
 {
 	return this->_shader;
 }
 
-std::shared_ptr<rgle::ShaderProgram> rgle::Renderable::shaderLocked() const
+std::shared_ptr<rgle::gfx::ShaderProgram> rgle::gfx::Renderable::shaderLocked() const
 {
 	if (this->_shader.expired()) {
 		throw NullPointerException(LOGGER_DETAIL_IDENTIFIER(this->id));
@@ -57,7 +57,7 @@ std::shared_ptr<rgle::ShaderProgram> rgle::Renderable::shaderLocked() const
 	return std::move(this->_shader.lock());
 }
 
-rgle::RenderLayer::RenderLayer(
+rgle::gfx::RenderLayer::RenderLayer(
 	std::string id,
 	std::shared_ptr<ViewTransformer> transformer,
 	std::shared_ptr<Viewport> viewport
@@ -68,64 +68,64 @@ rgle::RenderLayer::RenderLayer(
 	this->id = id;
 }
 
-rgle::RenderLayer::RenderLayer(std::string id, std::shared_ptr<ViewTransformer> transformer) :
+rgle::gfx::RenderLayer::RenderLayer(std::string id, std::shared_ptr<ViewTransformer> transformer) :
 	RenderLayer(id, transformer, std::make_shared<Viewport>())
 {
 }
 
-rgle::RenderLayer::RenderLayer(std::string id) : RenderLayer(id, std::make_shared<ViewTransformer>(), std::make_shared<Viewport>())
+rgle::gfx::RenderLayer::RenderLayer(std::string id) : RenderLayer(id, std::make_shared<ViewTransformer>(), std::make_shared<Viewport>())
 {
 }
 
-rgle::RenderLayer::~RenderLayer()
+rgle::gfx::RenderLayer::~RenderLayer()
 {
 }
 
-void rgle::RenderLayer::update()
+void rgle::gfx::RenderLayer::update()
 {
 	clock_t time = clock();
 	this->transformer()->update(((float)time - (float)_previousTime) / CLOCKS_PER_SEC);
 	this->_previousTime = time;
 }
 
-void rgle::RenderLayer::render()
+void rgle::gfx::RenderLayer::render()
 {
 }
 
-void rgle::RenderLayer::addRenderable(std::shared_ptr<Renderable> renderable)
+void rgle::gfx::RenderLayer::addRenderable(std::shared_ptr<Renderable> renderable)
 {
 }
 
-const char * rgle::RenderLayer::typeName() const
+const char * rgle::gfx::RenderLayer::typeName() const
 {
-	return "rgle::RenderLayer";
+	return "rgle::gfx::RenderLayer";
 }
 
-std::shared_ptr<rgle::ViewTransformer>& rgle::RenderLayer::transformer()
-{
-	return this->_transformer;
-}
-
-const std::shared_ptr<rgle::ViewTransformer>& rgle::RenderLayer::transformer() const
+std::shared_ptr<rgle::gfx::ViewTransformer>& rgle::gfx::RenderLayer::transformer()
 {
 	return this->_transformer;
 }
 
-std::shared_ptr<rgle::Viewport>& rgle::RenderLayer::viewport()
+const std::shared_ptr<rgle::gfx::ViewTransformer>& rgle::gfx::RenderLayer::transformer() const
+{
+	return this->_transformer;
+}
+
+std::shared_ptr<rgle::gfx::Viewport>& rgle::gfx::RenderLayer::viewport()
 {
 	return this->_viewport;
 }
 
-const std::shared_ptr<rgle::Viewport>& rgle::RenderLayer::viewport() const
+const std::shared_ptr<rgle::gfx::Viewport>& rgle::gfx::RenderLayer::viewport() const
 {
 	return this->_viewport;
 }
 
-rgle::ContextManager::ContextManager()
+rgle::gfx::ContextManager::ContextManager()
 {
 }
 
-rgle::ContextManager::ContextManager(std::shared_ptr<Window> window, std::string id)
+rgle::gfx::ContextManager::ContextManager(std::shared_ptr<Window> window, std::string id)
 {
 	this->_window = window;
 	this->id = id;
@@ -133,11 +133,11 @@ rgle::ContextManager::ContextManager(std::shared_ptr<Window> window, std::string
 	this->_shaderManager = std::make_shared<ShaderManager>();
 }
 
-rgle::ContextManager::~ContextManager()
+rgle::gfx::ContextManager::~ContextManager()
 {
 }
 
-rgle::Context rgle::ContextManager::getContext()
+rgle::gfx::Context rgle::gfx::ContextManager::getContext()
 {
 	Context context;
 	context.id = this->id;
@@ -147,7 +147,7 @@ rgle::Context rgle::ContextManager::getContext()
 	return context;
 }
 
-std::shared_ptr<rgle::RenderLayer> rgle::ContextManager::getLayerReference(std::string layer)
+std::shared_ptr<rgle::gfx::RenderLayer> rgle::gfx::ContextManager::getLayerReference(std::string layer)
 {
 	for (size_t i = 0; i < _layers.size(); i++) {
 		if (this->_layers[i]->id == layer) {
@@ -157,12 +157,12 @@ std::shared_ptr<rgle::RenderLayer> rgle::ContextManager::getLayerReference(std::
 	return nullptr;
 }
 
-void rgle::ContextManager::addShader(std::shared_ptr<ShaderProgram> shader)
+void rgle::gfx::ContextManager::addShader(std::shared_ptr<ShaderProgram> shader)
 {
 	this->_shaderManager->addShader(shader);
 }
 
-void rgle::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
+void rgle::gfx::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
 {
 	for (size_t i = 0; i < this->_layers.size(); i++) {
 		if (this->_layers[i]->id == layer->id) {
@@ -172,7 +172,7 @@ void rgle::ContextManager::addLayer(std::shared_ptr<RenderLayer> layer)
 	this->_layers.push_back(layer);
 }
 
-void rgle::ContextManager::addRenderable(std::string layer, std::shared_ptr<Renderable> renderable)
+void rgle::gfx::ContextManager::addRenderable(std::string layer, std::shared_ptr<Renderable> renderable)
 {
 	for (size_t i = 0; i < this->_layers.size(); i++) {
 		if (this->_layers[i]->id == layer) {
@@ -183,12 +183,12 @@ void rgle::ContextManager::addRenderable(std::string layer, std::shared_ptr<Rend
 	throw IdentifierException("could not find identifier", layer, LOGGER_DETAIL_DEFAULT);
 }
 
-void rgle::ContextManager::addResource(std::shared_ptr<Resource> resource)
+void rgle::gfx::ContextManager::addResource(std::shared_ptr<Resource> resource)
 {
 	this->_resourceManager->addResource(resource);
 }
 
-void rgle::ContextManager::update()
+void rgle::gfx::ContextManager::update()
 {
 	for (size_t i = 0; i < this->_layers.size(); i++) {
 		this->_layers[i]->update();
@@ -196,7 +196,7 @@ void rgle::ContextManager::update()
 	this->_window->update();
 }
 
-void rgle::ContextManager::render()
+void rgle::gfx::ContextManager::render()
 {
 	if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
 		Logger::warn("incomplete framebuffer!", LOGGER_DETAIL_IDENTIFIER(this->id));
@@ -206,12 +206,12 @@ void rgle::ContextManager::render()
 	}
 }
 
-const char * rgle::ContextManager::typeName() const
+const char * rgle::gfx::ContextManager::typeName() const
 {
-	return "rgle::ContextManager";
+	return "rgle::gfx::ContextManager";
 }
 
-rgle::Context rgle::ContextManager::getCurrentContext()
+rgle::gfx::Context rgle::gfx::ContextManager::getCurrentContext()
 {
 	if (ContextManager::_contextBound) {
 		return ContextManager::_currentContext;
@@ -224,12 +224,12 @@ rgle::Context rgle::ContextManager::getCurrentContext()
 	}
 }
 
-void rgle::ContextManager::executeInContext(std::function<void()> func)
+void rgle::gfx::ContextManager::executeInContext(std::function<void()> func)
 {
 	ContextManager::_executeInContext(func, this->getContext());
 }
 
-void rgle::ContextManager::_executeInContext(std::function<void()> func, const Context & context)
+void rgle::gfx::ContextManager::_executeInContext(std::function<void()> func, const Context & context)
 {
 	if (context.id.empty() || context.manager.resource.expired() || context.manager.shader.expired() || context.window.expired()) {
 		throw IllegalArgumentException("invalid context", LOGGER_DETAIL_DEFAULT);
@@ -269,7 +269,7 @@ void rgle::ContextManager::_executeInContext(std::function<void()> func, const C
 	}
 }
 
-rgle::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
+rgle::gfx::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -277,7 +277,7 @@ rgle::RenderableLayer::RenderableLayer(std::string id) : RenderLayer(id)
 	_viewport = std::make_shared<Viewport>();
 }
 
-rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer) : RenderLayer(id)
+rgle::gfx::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -285,7 +285,7 @@ rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTrans
 	_viewport = std::make_shared<Viewport>(Viewport());
 }
 
-rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer, std::shared_ptr<Viewport> viewport) : RenderLayer(id)
+rgle::gfx::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTransformer> transformer, std::shared_ptr<Viewport> viewport) : RenderLayer(id)
 {
 	_previousTime = clock();
 	this->id = id;
@@ -293,16 +293,16 @@ rgle::RenderableLayer::RenderableLayer(std::string id, std::shared_ptr<ViewTrans
 	_viewport = viewport;
 }
 
-rgle::RenderableLayer::~RenderableLayer()
+rgle::gfx::RenderableLayer::~RenderableLayer()
 {
 }
 
-float rgle::RenderableLayer::getFrameDelay()
+float rgle::gfx::RenderableLayer::getFrameDelay()
 {
 	return ((float)clock() - (float)this->_previousTime) / CLOCKS_PER_SEC;
 }
 
-void rgle::RenderableLayer::update()
+void rgle::gfx::RenderableLayer::update()
 {
 	RenderLayer::update();
 	for (size_t i = 0; i < this->_renderables.size(); i++) {
@@ -310,7 +310,7 @@ void rgle::RenderableLayer::update()
 	}
 }
 
-void rgle::RenderableLayer::render()
+void rgle::gfx::RenderableLayer::render()
 {
 	this->_viewport->use();
 	GLuint currentShader = 0;
@@ -325,7 +325,7 @@ void rgle::RenderableLayer::render()
 	}
 }
 
-void rgle::RenderableLayer::addRenderable(std::shared_ptr<Renderable> renderable)
+void rgle::gfx::RenderableLayer::addRenderable(std::shared_ptr<Renderable> renderable)
 {
 	if (renderable->shader().expired()) {
 		throw ApplicationException("failed to add renderable to layer, shader is null", LOGGER_DETAIL_IDENTIFIER(renderable->id));
@@ -345,16 +345,16 @@ void rgle::RenderableLayer::addRenderable(std::shared_ptr<Renderable> renderable
 	this->_renderables.push_back(renderable);
 }
 
-const char * rgle::RenderableLayer::typeName() const
+const char * rgle::gfx::RenderableLayer::typeName() const
 {
-	return "rgle::RenderableLayer";
+	return "rgle::gfx::RenderableLayer";
 }
 
-rgle::RenderException::RenderException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::RenderException")
+rgle::gfx::RenderException::RenderException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::gfx::RenderException")
 {
 }
 
-void rgle::Context::executeInContext(std::function<void()> func)
+void rgle::gfx::Context::executeInContext(std::function<void()> func)
 {
 	ContextManager::_executeInContext(func, *this);
 }

@@ -2,7 +2,7 @@
 
 #include "rgle/gfx/Renderable.h"
 
-namespace rgle {
+namespace rgle::util {
 	namespace Color {
 		glm::vec4 blend(std::initializer_list<glm::vec4> colors);
 	}

@@ -1,33 +1,33 @@
 #include "rgle/ui/Interface.h"
-#include "rgle/gfx/Font.h"
+#include "rgle/ui/Text.h"
 
-rgle::UI::BoundingBox::BoundingBox()
+rgle::ui::BoundingBox::BoundingBox()
 {
 }
 
-rgle::UI::BoundingBox::BoundingBox(UnitVector2D dimensions, UnitVector2D topleft)
+rgle::ui::BoundingBox::BoundingBox(UnitVector2D dimensions, UnitVector2D topleft)
 {
 }
 
-rgle::UI::BoundingBox::~BoundingBox()
+rgle::ui::BoundingBox::~BoundingBox()
 {
 }
 
-void rgle::UI::BoundingBox::onBoxUpdate()
+void rgle::ui::BoundingBox::onBoxUpdate()
 {
 }
 
-rgle::UnitVector2D rgle::UI::BoundingBox::getTopLeft()
+rgle::UnitVector2D rgle::ui::BoundingBox::getTopLeft()
 {
 	return _topLeft;
 }
 
-rgle::UnitVector2D rgle::UI::BoundingBox::getDimensions()
+rgle::UnitVector2D rgle::ui::BoundingBox::getDimensions()
 {
 	return _dimensions;
 }
 
-void rgle::UI::BoundingBox::changeDimensions(UnitVector2D dimensions)
+void rgle::ui::BoundingBox::changeDimensions(UnitVector2D dimensions)
 {
 	this->_dimensions = dimensions;
 	LayoutChangeMessage* message = new LayoutChangeMessage();
@@ -37,7 +37,7 @@ void rgle::UI::BoundingBox::changeDimensions(UnitVector2D dimensions)
 	this->onBoxUpdate();
 }
 
-void rgle::UI::BoundingBox::changeTopLeft(UnitVector2D topleft)
+void rgle::ui::BoundingBox::changeTopLeft(UnitVector2D topleft)
 {
 	this->_topLeft = topleft;
 	LayoutChangeMessage* message = new LayoutChangeMessage();
@@ -47,7 +47,7 @@ void rgle::UI::BoundingBox::changeTopLeft(UnitVector2D topleft)
 	this->onBoxUpdate();
 }
 
-void rgle::UI::BoundingBox::change(UnitVector2D dimensions, UnitVector2D topleft)
+void rgle::ui::BoundingBox::change(UnitVector2D dimensions, UnitVector2D topleft)
 {
 	this->_dimensions = dimensions;
 	this->_topLeft = topleft;
@@ -58,38 +58,38 @@ void rgle::UI::BoundingBox::change(UnitVector2D dimensions, UnitVector2D topleft
 	this->onBoxUpdate();
 }
 
-void rgle::UI::BoundingBox::quietChangeDimensions(UnitVector2D dimensions)
+void rgle::ui::BoundingBox::quietChangeDimensions(UnitVector2D dimensions)
 {
 	this->_dimensions = dimensions;
 	this->onBoxUpdate();
 }
 
-void rgle::UI::BoundingBox::quietChangeTopLeft(UnitVector2D topleft)
+void rgle::ui::BoundingBox::quietChangeTopLeft(UnitVector2D topleft)
 {
 	this->_topLeft = topleft;
 	this->onBoxUpdate();
 }
 
-void rgle::UI::BoundingBox::quietChange(UnitVector2D dimensions, UnitVector2D topleft)
+void rgle::ui::BoundingBox::quietChange(UnitVector2D dimensions, UnitVector2D topleft)
 {
 	this->_dimensions = dimensions;
 	this->_topLeft = topleft;
 	this->onBoxUpdate();
 }
 
-rgle::UI::LayoutChangeMessage::LayoutChangeMessage()
+rgle::ui::LayoutChangeMessage::LayoutChangeMessage()
 {
 }
 
-rgle::UI::LayoutChangeMessage::~LayoutChangeMessage()
+rgle::ui::LayoutChangeMessage::~LayoutChangeMessage()
 {
 }
 
-rgle::UI::RelativeAligner::RelativeAligner()
+rgle::ui::RelativeAligner::RelativeAligner()
 {
 }
 
-rgle::UI::RelativeAligner::RelativeAligner(std::shared_ptr<BoundingBox> element, std::shared_ptr<BoundingBox> align, RelativeAlignerAttributes attributes)
+rgle::ui::RelativeAligner::RelativeAligner(std::shared_ptr<BoundingBox> element, std::shared_ptr<BoundingBox> align, RelativeAlignerAttributes attributes)
 {
 	this->_element = element;
 	this->_align = align;
@@ -98,11 +98,11 @@ rgle::UI::RelativeAligner::RelativeAligner(std::shared_ptr<BoundingBox> element,
 	this->realign();
 }
 
-rgle::UI::RelativeAligner::~RelativeAligner()
+rgle::ui::RelativeAligner::~RelativeAligner()
 {
 }
 
-void rgle::UI::RelativeAligner::realign()
+void rgle::ui::RelativeAligner::realign()
 {
 	UnitVector2D newTopLeft = UnitVector2D{};
 	switch (_attributes.direction) {
@@ -126,11 +126,11 @@ void rgle::UI::RelativeAligner::realign()
 	_align->changeTopLeft(newTopLeft);
 }
 
-rgle::UI::LinearAligner::LinearAligner()
+rgle::ui::LinearAligner::LinearAligner()
 {
 }
 
-rgle::UI::LinearAligner::LinearAligner(std::vector<std::shared_ptr<BoundingBox>> elements, LinearAlignerAttributes attributes)
+rgle::ui::LinearAligner::LinearAligner(std::vector<std::shared_ptr<BoundingBox>> elements, LinearAlignerAttributes attributes)
 {
 	this->_elements = elements;
 	this->_attributes = attributes;
@@ -147,15 +147,15 @@ rgle::UI::LinearAligner::LinearAligner(std::vector<std::shared_ptr<BoundingBox>>
 	}
 }
 
-rgle::UI::LinearAligner::~LinearAligner()
+rgle::ui::LinearAligner::~LinearAligner()
 {
 }
 
-void rgle::UI::LinearAligner::push(std::shared_ptr<BoundingBox> element)
+void rgle::ui::LinearAligner::push(std::shared_ptr<BoundingBox> element)
 {
 }
 
-std::shared_ptr<rgle::UI::BoundingBox> rgle::UI::LinearAligner::pop()
+std::shared_ptr<rgle::ui::BoundingBox> rgle::ui::LinearAligner::pop()
 {
 	this->_aligners.pop_back();
 	std::shared_ptr<BoundingBox> bbox = this->_elements.back();
@@ -163,34 +163,34 @@ std::shared_ptr<rgle::UI::BoundingBox> rgle::UI::LinearAligner::pop()
 	return bbox;
 }
 
-void rgle::UI::LinearAligner::realign()
+void rgle::ui::LinearAligner::realign()
 {
 	for (size_t i = 0; i < this->_aligners.size(); i++) {
 		this->_aligners[i].realign();
 	}
 }
 
-rgle::UI::Element::Element()
+rgle::ui::Element::Element()
 {
 }
 
-rgle::UI::Element::Element(ElementAttributes attributes)
+rgle::ui::Element::Element(ElementAttributes attributes)
 {
 	this->_elementAttributes = attributes;
 }
 
-rgle::UI::Element::~Element()
+rgle::ui::Element::~Element()
 {
 }
 
-void rgle::UI::Element::onMessage(std::string eventname, EventMessage *)
+void rgle::ui::Element::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "resize") {
 		this->onBoxUpdate();
 	}
 }
 
-bool rgle::UI::Element::raycast(Ray ray)
+bool rgle::ui::Element::raycast(Ray ray)
 {
 	auto window = this->context().window.lock();
 	glm::vec3 topleft = glm::vec3(_topLeft.resolve(window), 0.0);
@@ -206,12 +206,12 @@ bool rgle::UI::Element::raycast(Ray ray)
 	return ray.intersect(topright, topleft, bottomleft) || ray.intersect(bottomleft, bottomright, topright);
 }
 
-rgle::UI::DelegateMouseState rgle::UI::Element::delegateMouseState(Ray clickray, bool, MouseState)
+rgle::ui::DelegateMouseState rgle::ui::Element::delegateMouseState(Ray clickray, bool, MouseState)
 {
 	return DelegateMouseState::UNCHANGED;
 }
 
-glm::mat4 rgle::UI::Element::transform()
+glm::mat4 rgle::ui::Element::transform()
 {
 	glm::mat4 transform = glm::mat4(1.0f);
 	auto window = this->context().window.lock();
@@ -221,43 +221,43 @@ glm::mat4 rgle::UI::Element::transform()
 	return transform;
 }
 
-rgle::UI::ElementAttributes rgle::UI::Element::getElementAttribs()
+rgle::ui::ElementAttributes rgle::ui::Element::getElementAttribs()
 {
 	return _elementAttributes;
 }
 
-const char * rgle::UI::Element::typeName() const
+const char * rgle::ui::Element::typeName() const
 {
-	return "rgle::UI::Element";
+	return "rgle::ui::Element";
 }
 
-rgle::UI::Aligner::Aligner()
-{
-}
-
-rgle::UI::Aligner::~Aligner()
+rgle::ui::Aligner::Aligner()
 {
 }
 
-void rgle::UI::Aligner::onMessage(std::string eventname, EventMessage *)
+rgle::ui::Aligner::~Aligner()
+{
+}
+
+void rgle::ui::Aligner::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "bounding-box") {
 		this->realign();
 	}
 }
 
-void rgle::UI::Aligner::realign()
+void rgle::ui::Aligner::realign()
 {
 }
 
-rgle::UI::Layer::Layer(std::string id, float ticktime) : 
+rgle::ui::Layer::Layer(std::string id, float ticktime) : 
 	RenderLayer(id),
 	_tickTime(ticktime),
 	_lastTick(0),
 	_raycastCheck(false),
 	_castHit(false)
 {
-	this->transformer() = std::make_shared<Camera>(CameraType::ORTHOGONAL_PROJECTION, this->context().window.lock());
+	this->transformer() = std::make_shared<gfx::Camera>(gfx::CameraType::ORTHOGONAL_PROJECTION, this->context().window.lock());
 	if (ticktime <= 0.0f || !std::isnormal(ticktime)) {
 		throw IllegalArgumentException("failed to create UI layer, invalid tick time", LOGGER_DETAIL_IDENTIFIER(id));
 	}
@@ -266,21 +266,21 @@ rgle::UI::Layer::Layer(std::string id, float ticktime) :
 	window->registerListener("mouseclick", this);
 }
 
-rgle::UI::Layer::~Layer()
+rgle::ui::Layer::~Layer()
 {
 }
 
-bool rgle::UI::Layer::tick()
+bool rgle::ui::Layer::tick()
 {
 	return (((float)clock() - (float)_lastTick) / CLOCKS_PER_SEC) >= _tickTime;
 }
 
-bool rgle::UI::Layer::raycastHit()
+bool rgle::ui::Layer::raycastHit()
 {
 	return _castHit;
 }
 
-void rgle::UI::Layer::onMessage(std::string eventname, EventMessage * message)
+void rgle::ui::Layer::onMessage(std::string eventname, EventMessage * message)
 {
 	bool click = eventname == "mouseclick";
 	auto window = this->context().window.lock();
@@ -298,7 +298,7 @@ void rgle::UI::Layer::onMessage(std::string eventname, EventMessage * message)
 	}
 }
 
-void rgle::UI::Layer::update()
+void rgle::ui::Layer::update()
 {
 	clock_t currentTime = clock();
 	float deltaTime = ((float)currentTime - (float)_lastTick) / CLOCKS_PER_SEC;
@@ -356,14 +356,14 @@ void rgle::UI::Layer::update()
 	}
 }
 
-void rgle::UI::Layer::render()
+void rgle::ui::Layer::render()
 {
 	glClear(GL_DEPTH_BUFFER_BIT);
 	this->viewport()->use();
 	GLuint currentShader = 0;
 	for (size_t i = 0; i < this->_elements.size(); i++) {
 		if (this->_elements[i]->shader().expired()) {
-			throw RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(this->_elements[i]->id));
+			throw gfx::RenderException("failed to render ui element, shader is null", LOGGER_DETAIL_IDENTIFIER(this->_elements[i]->id));
 		}
 		auto shader = this->_elements[i]->shader().lock();
 		if (shader->programId() != currentShader) {
@@ -375,12 +375,12 @@ void rgle::UI::Layer::render()
 	}
 }
 
-void rgle::UI::Layer::addLogicNode(sLogicNode node)
+void rgle::ui::Layer::addLogicNode(sLogicNode node)
 {
 	this->_logicNodes.push_back(node);
 }
 
-void rgle::UI::Layer::addElement(sElement element)
+void rgle::ui::Layer::addElement(sElement element)
 {
 	for (size_t i = 0; i < this->_elements.size(); i++) {
 		if (element->getElementAttribs().zIndex < this->_elements[i]->getElementAttribs().zIndex) {
@@ -391,26 +391,26 @@ void rgle::UI::Layer::addElement(sElement element)
 	this->_elements.push_back(element);
 }
 
-rgle::UI::Button::Button()
+rgle::ui::Button::Button()
 {
 
 }
 
-rgle::UI::Button::~Button()
+rgle::ui::Button::~Button()
 {
 }
 
-void rgle::UI::Button::render()
+void rgle::ui::Button::render()
 {
 	
 }
 
-void rgle::UI::Button::update()
+void rgle::ui::Button::update()
 {
 
 }
 
-rgle::UI::DelegateMouseState rgle::UI::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
+rgle::ui::DelegateMouseState rgle::ui::Button::delegateMouseState(Ray clickray, bool inside, MouseState state)
 {
 	int key = this->context().window.lock()->getMouseButton(GLFW_MOUSE_BUTTON_LEFT);
 	State next = DEFAULT;
@@ -434,14 +434,14 @@ rgle::UI::DelegateMouseState rgle::UI::Button::delegateMouseState(Ray clickray, 
 	return delegateState;
 }
 
-void rgle::UI::Button::onStateChange(State, bool inside, MouseState mouseState)
+void rgle::ui::Button::onStateChange(State, bool inside, MouseState mouseState)
 {
 	if (this->_currentState == ACTIVE && inside) {
 		this->broadcastEvent("onclick", new MouseStateMessage(mouseState));
 	}
 }
 
-rgle::UI::BasicButton::BasicButton(std::string shaderid, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
+rgle::ui::BasicButton::BasicButton(std::string shaderid, std::string fontfamily, std::string text, BasicButtonAttributes attribs)
 {
 	auto shader = (*this->context().manager.shader.lock())[shaderid];
 	this->shader() = shader;
@@ -457,7 +457,7 @@ rgle::UI::BasicButton::BasicButton(std::string shaderid, std::string fontfamily,
 		(attribs.paddingVertical.x + attribs.paddingVertical.y) + this->_text->getDimensions().y
 	);
 
-	this->_rect = Rect(shaderid, this->_dimensions.x.resolve(window, Window::X), this->_dimensions.x.resolve(window, Window::X));
+	this->_rect = gfx::Rect(shaderid, this->_dimensions.x.resolve(window, Window::X), this->_dimensions.x.resolve(window, Window::X));
 	this->_rect.standardFill(attribs.defaultColor);
 	this->_rect.updateColorBuffer();
 	window->registerListener("mousemove", this);
@@ -465,11 +465,11 @@ rgle::UI::BasicButton::BasicButton(std::string shaderid, std::string fontfamily,
 	window->registerListener("resize", this);
 }
 
-rgle::UI::BasicButton::~BasicButton()
+rgle::ui::BasicButton::~BasicButton()
 {
 }
 
-void rgle::UI::BasicButton::onBoxUpdate()
+void rgle::ui::BasicButton::onBoxUpdate()
 {
 	glm::mat4 transform = this->transform();
 	this->_rect.model.matrix = transform;
@@ -478,7 +478,7 @@ void rgle::UI::BasicButton::onBoxUpdate()
 	this->_text->changeTopLeft(UnitVector2D(this->_topLeft.x + this->_basicButtonAttributes.paddingHorizontal.x, this->_topLeft.y));
 }
 
-void rgle::UI::BasicButton::onStateChange(Button::State state, bool inside, MouseState mouseState)
+void rgle::ui::BasicButton::onStateChange(Button::State state, bool inside, MouseState mouseState)
 {
 	Button::onStateChange(state, inside, mouseState);
 	switch (state) {
@@ -496,7 +496,7 @@ void rgle::UI::BasicButton::onStateChange(Button::State state, bool inside, Mous
 	}
 }
 
-void rgle::UI::BasicButton::render()
+void rgle::ui::BasicButton::render()
 {
 	this->_rect.render();
 	this->_text->shaderLocked()->use(); // NOTE: rendering should be ordered by shader...
@@ -504,11 +504,11 @@ void rgle::UI::BasicButton::render()
 	this->shaderLocked()->use();
 }
 
-rgle::UI::RectElement::RectElement()
+rgle::ui::RectElement::RectElement()
 {
 }
 
-rgle::UI::RectElement::RectElement(std::string& shaderid, RectAttributes& attribs)
+rgle::ui::RectElement::RectElement(std::string& shaderid, RectAttributes& attribs)
 {
 	auto shader = (*this->context().manager.shader.lock())[shaderid];
 	this->shader() = shader;
@@ -554,11 +554,11 @@ rgle::UI::RectElement::RectElement(std::string& shaderid, RectAttributes& attrib
 	this->generate();
 }
 
-rgle::UI::RectElement::~RectElement()
+rgle::ui::RectElement::~RectElement()
 {
 }
 
-void rgle::UI::RectElement::onMessage(std::string eventname, EventMessage * message)
+void rgle::ui::RectElement::onMessage(std::string eventname, EventMessage * message)
 {
 	Element::onMessage(eventname, message);
 	if (eventname == "resize") {
@@ -566,17 +566,17 @@ void rgle::UI::RectElement::onMessage(std::string eventname, EventMessage * mess
 	}
 }
 
-void rgle::UI::RectElement::onBoxUpdate()
+void rgle::ui::RectElement::onBoxUpdate()
 {
 	this->model.matrix = this->transform();
 }
 
-void rgle::UI::RectElement::render()
+void rgle::ui::RectElement::render()
 {
 	this->standardRender(this->shaderLocked());
 }
 
-void rgle::UI::RectElement::updateGeometry()
+void rgle::ui::RectElement::updateGeometry()
 {
 	this->model.matrix = this->transform();
 	glm::vec2 dimensions = this->_dimensions.resolve(this->context().window.lock());
@@ -590,7 +590,7 @@ void rgle::UI::RectElement::updateGeometry()
 	glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(GLfloat) * vertex.list.size() * 3, vertex.list.data());
 }
 
-void rgle::UI::RectElement::changeColor(Fill fill)
+void rgle::ui::RectElement::changeColor(util::Fill fill)
 {
 	this->_attributes.color = fill;
 	this->color.list = {

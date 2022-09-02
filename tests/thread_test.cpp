@@ -1,8 +1,8 @@
 #include "rgle.h"
 
 int main() {
-	return rgle::Tester::run([](rgle::Tester& tester) {
-		rgle::ThreadPool pool = rgle::ThreadPool();
+	return rgle::util::Tester::run([](rgle::util::Tester& tester) {
+		rgle::sync::ThreadPool pool = rgle::sync::ThreadPool();
 		std::atomic_int count = 0;
 		for (int i = 0; i < 100; i++) {
 			pool.startJob([&count]() {

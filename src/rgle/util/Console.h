@@ -2,7 +2,7 @@
 
 #include "rgle/Platform.h"
 
-namespace rgle {
+namespace rgle::util {
 	namespace Console {
 		enum class Color {
 			DEFAULT,

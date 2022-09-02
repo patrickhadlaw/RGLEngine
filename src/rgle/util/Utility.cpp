@@ -1,18 +1,18 @@
 #include "rgle/util/Utility.h"
 
 
-rgle::DebugException::DebugException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::DebugException")
+rgle::util::DebugException::DebugException(std::string except, Logger::Detail detail) : Exception(except, detail, "rgle::util::DebugException")
 {
 }
 
-void rgle::debug_assert(bool assert, Logger::Detail detail)
+void rgle::util::debug_assert(bool assert, Logger::Detail detail)
 {
 	if (!assert) {
 		throw DebugException("assertion failed", detail);
 	}
 }
 
-unsigned char rgle::random_byte()
+unsigned char rgle::util::random_byte()
 {
 	std::random_device rd;
 	std::default_random_engine random;
@@ -21,7 +21,7 @@ unsigned char rgle::random_byte()
 	return static_cast<unsigned char>(distribution(random));
 }
 
-std::string rgle::uid()
+std::string rgle::util::uid()
 {
 	std::stringstream ss;
 	for (int i = 0; i < UID_LENGTH; i++) {

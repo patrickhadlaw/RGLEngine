@@ -1,7 +1,7 @@
 #include "rgle/util/Tester.h"
 
 
-int rgle::Tester::run(std::function<void(Tester&)> test)
+int rgle::util::Tester::run(std::function<void(Tester&)> test)
 {
 	Platform::initialize();
 	Settings::setLoggerWrite(false);
@@ -33,7 +33,7 @@ int rgle::Tester::run(std::function<void(Tester&)> test)
 	return tester._succeeded == tester._total ? ret : -1;
 }
 
-void rgle::Tester::expect(std::string description, ExpectationFunc expect)
+void rgle::util::Tester::expect(std::string description, ExpectationFunc expect)
 {
 	try {
 		this->_addTestResult(description, expect());
@@ -50,7 +50,7 @@ void rgle::Tester::expect(std::string description, ExpectationFunc expect)
 	}
 }
 
-void rgle::Tester::expectAndPrint(std::string description, ExpectationFunc expect, PrintFunc print)
+void rgle::util::Tester::expectAndPrint(std::string description, ExpectationFunc expect, PrintFunc print)
 {
 	try {
 		if (expect()) {
@@ -72,7 +72,7 @@ void rgle::Tester::expectAndPrint(std::string description, ExpectationFunc expec
 	}
 }
 
-void rgle::Tester::expectToThrow(std::string description, std::string type, std::function<void()> run)
+void rgle::util::Tester::expectToThrow(std::string description, std::string type, std::function<void()> run)
 {
 	try {
 		run();
@@ -98,7 +98,7 @@ void rgle::Tester::expectToThrow(std::string description, std::string type, std:
 	this->_addTestResult(description, false, "expected exception to be thrown");
 }
 
-void rgle::Tester::printStatus()
+void rgle::util::Tester::printStatus()
 {
 	std::cout << std::endl << "----------------------------------------------------" << std::endl;
 	std::cout << this->_succeeded << '/' << this->_total << " - PASSED" << std::endl;
@@ -113,7 +113,7 @@ void rgle::Tester::printStatus()
 	std::cout << std::endl;
 }
 
-void rgle::Tester::_addTestResult(std::string description, bool result, std::string errorString)
+void rgle::util::Tester::_addTestResult(std::string description, bool result, std::string errorString)
 {
 	this->_total++;
 	if (result) {

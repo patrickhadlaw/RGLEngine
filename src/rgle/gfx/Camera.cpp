@@ -1,19 +1,19 @@
 #include "rgle/gfx/Camera.h"
 
 
-float rgle::z_index(float z)
+float rgle::gfx::z_index(float z)
 {
 	return (std::exp2(z / 1000.0f) - 1.0f) / (std::exp2(z / 1000.0f) + 1.0f);
 }
 
-rgle::Camera::Camera()
+rgle::gfx::Camera::Camera()
 {
 	this->_position = glm::vec3(0.0, 0.0, 0.0);
 	this->_projection = glm::mat4(1.0f);
 	this->_view = glm::mat4(1.0f);
 }
 
-rgle::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
+rgle::gfx::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
 {
 	RGLE_DEBUG_ASSERT(window != nullptr)
 	this->_window = window;
@@ -30,29 +30,29 @@ rgle::Camera::Camera(CameraType type, std::shared_ptr<Window> window)
 }
 
 
-rgle::Camera::~Camera()
+rgle::gfx::Camera::~Camera()
 {
 }
 
-void rgle::Camera::onMessage(std::string eventname, EventMessage *)
+void rgle::gfx::Camera::onMessage(std::string eventname, EventMessage *)
 {
 	if (eventname == "resize") {
 		this->generate(this->_type);
 	}
 }
 
-void rgle::Camera::update(float)
+void rgle::gfx::Camera::update(float)
 {
 	this->_view = glm::lookAt(this->_position, this->_position + this->_direction, this->_up);
 }
 
-void rgle::Camera::bind(std::shared_ptr<ShaderProgram> shader)
+void rgle::gfx::Camera::bind(std::shared_ptr<ShaderProgram> shader)
 {
 	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "projection"), 1, GL_FALSE, &_projection[0][0]);
 	glUniformMatrix4fv(glGetUniformLocation(shader->programId(), "view"), 1, GL_FALSE, &_view[0][0]);
 }
 
-void rgle::Camera::generate(CameraType type)
+void rgle::gfx::Camera::generate(CameraType type)
 {
 	this->_view = glm::mat4(1.0f);
 	switch (type) {
@@ -66,14 +66,14 @@ void rgle::Camera::generate(CameraType type)
 	}
 }
 
-void rgle::Camera::translate(float x, float y, float z)
+void rgle::gfx::Camera::translate(float x, float y, float z)
 {
 	_position.x += x;
 	_position.y += y;
 	_position.z += z;
 }
 
-void rgle::Camera::rotate(float x, float y, float z)
+void rgle::gfx::Camera::rotate(float x, float y, float z)
 {
 	x = -x;
 	y = -y;
@@ -84,60 +84,60 @@ void rgle::Camera::rotate(float x, float y, float z)
 	_right = glm::cross(_direction, _up);
 }
 
-void rgle::Camera::lookAt(glm::vec3 direction)
+void rgle::gfx::Camera::lookAt(glm::vec3 direction)
 {
 	this->_direction = direction;
 	this->_right = glm::cross(this->_direction, this->_up);
 	this->_up = glm::cross(this->_right, this->_direction);
 }
 
-void rgle::Camera::relocate(glm::vec3 position)
+void rgle::gfx::Camera::relocate(glm::vec3 position)
 {
 	this->_position = position;
 }
 
-glm::vec3 rgle::Camera::position()
+glm::vec3 rgle::gfx::Camera::position()
 {
 	return _position;
 }
 
-glm::vec3 rgle::Camera::direction()
+glm::vec3 rgle::gfx::Camera::direction()
 {
 	return _direction;
 }
 
-glm::vec3 rgle::Camera::up()
+glm::vec3 rgle::gfx::Camera::up()
 {
 	return _up;
 }
 
-glm::mat4 rgle::Camera::view()
+glm::mat4 rgle::gfx::Camera::view()
 {
 	return _view;
 }
 
-glm::mat4 rgle::Camera::projection()
+glm::mat4 rgle::gfx::Camera::projection()
 {
 	return _projection;
 }
 
-rgle::NoClipCamera::NoClipCamera() : Camera()
+rgle::gfx::NoClipCamera::NoClipCamera() : Camera()
 {
 	_isGrabbed = false;
 }
 
-rgle::NoClipCamera::NoClipCamera(CameraType type, std::shared_ptr<Window> window) : Camera(type, window)
+rgle::gfx::NoClipCamera::NoClipCamera(CameraType type, std::shared_ptr<Window> window) : Camera(type, window)
 {
 	_isGrabbed = false;
 	this->_window = window;
 	this->_window->registerListener("mousemove", this);
 }
 
-rgle::NoClipCamera::~NoClipCamera()
+rgle::gfx::NoClipCamera::~NoClipCamera()
 {
 }
 
-void rgle::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
+void rgle::gfx::NoClipCamera::onMessage(std::string eventname, EventMessage * message)
 {
 	Camera::onMessage(eventname, message);
 	if (eventname == "mousemove") {
@@ -147,7 +147,7 @@ void rgle::NoClipCamera::onMessage(std::string eventname, EventMessage * message
 	}
 }
 
-void rgle::NoClipCamera::update(float deltaT)
+void rgle::gfx::NoClipCamera::update(float deltaT)
 {
 	if (_window->grabbed()) {
 		int state = _window->getKey(GLFW_KEY_ESCAPE);
@@ -189,52 +189,52 @@ void rgle::NoClipCamera::update(float deltaT)
 	_view = glm::lookAt(_position, _position + _direction, _up);
 }
 
-void rgle::NoClipCamera::grab()
+void rgle::gfx::NoClipCamera::grab()
 {
 	this->_isGrabbed = true;
 	_window->grabCursor();
 }
 
-void rgle::NoClipCamera::unGrab()
+void rgle::gfx::NoClipCamera::unGrab()
 {
 	this->_isGrabbed = false;
 	_window->ungrabCursor();
 }
 
-void rgle::NoClipCamera::moveRelative(float forward, float horizontal, float vertical)
+void rgle::gfx::NoClipCamera::moveRelative(float forward, float horizontal, float vertical)
 {
 	glm::vec3 right = glm::cross(_direction, _up);
 	_position += _direction * forward + right * horizontal + _up * vertical;
 }
 
-rgle::ViewTransformer::ViewTransformer()
+rgle::gfx::ViewTransformer::ViewTransformer()
 {
 }
 
-rgle::ViewTransformer::~ViewTransformer()
+rgle::gfx::ViewTransformer::~ViewTransformer()
 {
 }
 
-void rgle::ViewTransformer::update(float)
+void rgle::gfx::ViewTransformer::update(float)
 {
 }
 
-void rgle::ViewTransformer::bind(std::shared_ptr<ShaderProgram> program)
+void rgle::gfx::ViewTransformer::bind(std::shared_ptr<ShaderProgram> program)
 {
 }
 
-rgle::Viewport::Viewport()
+rgle::gfx::Viewport::Viewport()
 {
 }
 
-rgle::Viewport::Viewport(int width, int height, glm::ivec2 position) : _width(width), _height(height), _position(position)
+rgle::gfx::Viewport::Viewport(int width, int height, glm::ivec2 position) : _width(width), _height(height), _position(position)
 {
 }
 
-rgle::Viewport::~Viewport()
+rgle::gfx::Viewport::~Viewport()
 {
 }
 
-void rgle::Viewport::use()
+void rgle::gfx::Viewport::use()
 {
 }

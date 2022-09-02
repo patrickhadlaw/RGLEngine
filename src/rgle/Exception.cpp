@@ -44,7 +44,7 @@ std::string rgle::Exception::print()
 {
 	std::string time = Logger::timeString(this->_details.timestamp);
 	std::cout << time << '|';
-	Console::coloredPrint(Console::Color::RED, "EXCEPTION");
+	util::Console::coloredPrint(util::Console::Color::RED, "EXCEPTION");
 	std::string result = std::string("|") + this->_typeReflected + Logger::detailString(this->_details);
 	result += std::string("|: ") + _exception;
 	std::cout << result << std::endl;

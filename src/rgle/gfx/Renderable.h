@@ -5,7 +5,7 @@
 #include "rgle/gfx/Camera.h"
 #include "rgle/Node.h"
 
-namespace rgle {
+namespace rgle::gfx {
 
 	class RenderException : public Exception {
 	public:

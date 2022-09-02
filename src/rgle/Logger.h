@@ -40,7 +40,7 @@ namespace rgle {
 			std::string header,
 			std::string& message,
 			Detail& detail,
-			Console::Color color = Console::Color::DEFAULT
+			util::Console::Color color = util::Console::Color::DEFAULT
 		);
 
 		static std::string _getDefaultLogFilename();
