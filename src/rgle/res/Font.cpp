@@ -82,7 +82,7 @@ rgle::res::Glyph::Glyph(char charecter, FT_Glyph& glyph, FT_Glyph_Metrics& metri
 	this->image->image = new unsigned char[this->image->width * this->image->channels * this->image->height];
 	for (size_t i = 0; i < this->image->width; i++) {
 		for (size_t j = 0; j < this->image->height; j++) {
-			int index = this->image->channels * (i + j * this->image->width);
+			size_t index = this->image->channels * (i + j * this->image->width);
 			if (static_cast<unsigned int>(i) < this->border.width && static_cast<unsigned int>(j) < this->border.height) {
 				this->image->image[index] = bitmap.buffer[j * this->border.width + i];
 			}

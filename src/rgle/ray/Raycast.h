@@ -30,7 +30,7 @@ namespace rgle {
 		virtual bool raycast(Ray ray);
 	};
 
-	namespace raycast {
+	namespace ray {
 		class Ray {
 		public:
 			Ray transform(const glm::mat4& matrix) const;

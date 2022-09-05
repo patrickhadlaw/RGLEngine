@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rgle/gfx/Graphics.h"
-#include "rgle/Raycast.h"
+#include "rgle/ray/Raycast.h"
 #include "rgle/Event.h"
 
 namespace rgle::ui {

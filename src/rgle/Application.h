@@ -2,7 +2,7 @@
 
 #include "rgle/gfx/Renderable.h"
 #include "rgle/ui/Text.h"
-#include "rgle/Raycast.h"
+#include "rgle/ray/Raycast.h"
 #include "rgle/sync/Thread.h"
 
 namespace rgle {

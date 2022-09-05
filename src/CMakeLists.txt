@@ -10,6 +10,7 @@ set(
   rgle/gfx/ShaderProgram.cpp
   rgle/gfx/Spatial.cpp
   rgle/math/Quadratic.cpp
+  rgle/ray/Raycast.cpp
   rgle/res/Font.cpp
   rgle/sync/Thread.cpp
   rgle/ui/Interface.cpp
@@ -25,7 +26,6 @@ set(
   rgle/Logger.cpp
   rgle/Node.cpp
   rgle/Platform.cpp
-  rgle/Raycast.cpp
   rgle/Window.cpp
 )
 

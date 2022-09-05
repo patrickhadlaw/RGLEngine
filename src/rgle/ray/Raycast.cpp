@@ -1,4 +1,4 @@
-#include "rgle/Raycast.h"
+#include "rgle/ray/Raycast.h"
 
 
 rgle::Ray::Ray()
@@ -75,7 +75,7 @@ bool rgle::Raycastable::raycast(Ray ray)
 	return false;
 }
 
-rgle::raycast::Ray rgle::raycast::Ray::transform(const glm::mat4& matrix) const
+rgle::ray::Ray rgle::ray::Ray::transform(const glm::mat4& matrix) const
 {
 	return Ray(
 		(matrix * glm::vec4(this->eye, 1.0f)).xyz,
@@ -83,23 +83,23 @@ rgle::raycast::Ray rgle::raycast::Ray::transform(const glm::mat4& matrix) const
 	);
 }
 
-glm::vec3 rgle::raycast::Ray::delta() const
+glm::vec3 rgle::ray::Ray::delta() const
 {
 	return this->target - this->eye;
 }
 
-rgle::raycast::Intersection rgle::raycast::Intersection::transform(const glm::mat4& positionTransform, const glm::mat3& normalTransform) const {
+rgle::ray::Intersection rgle::ray::Intersection::transform(const glm::mat4& positionTransform, const glm::mat3& normalTransform) const {
 	return Intersection {
 		.position = (positionTransform * glm::vec4(this->position, 1.0f)).xyz,
 		.normal = glm::normalize(normalTransform * this->normal)
 	};
 }
 
-float rgle::raycast::Intersection::distance(const Ray& ray) const {
+float rgle::ray::Intersection::distance(const Ray& ray) const {
 	return glm::distance(this->position, ray.eye);
 }
 
-std::optional<rgle::raycast::Intersection> rgle::raycast::IntersectResult::closest() const {
+std::optional<rgle::ray::Intersection> rgle::ray::IntersectResult::closest() const {
 	if (auto val = std::get_if<HitOnce>(this)) {
 		return val->hit;
 	}
@@ -109,7 +109,7 @@ std::optional<rgle::raycast::Intersection> rgle::raycast::IntersectResult::close
 	return std::nullopt;
 }
 
-std::optional<rgle::raycast::Intersection> rgle::raycast::IntersectResult::farthest() const {
+std::optional<rgle::ray::Intersection> rgle::ray::IntersectResult::farthest() const {
 	if (auto val = std::get_if<HitOnce>(this)) {
 		return val->hit;
 	}
@@ -119,19 +119,19 @@ std::optional<rgle::raycast::Intersection> rgle::raycast::IntersectResult::farth
 	return std::nullopt;
 }
 
-rgle::raycast::Intersect::~Intersect()
+rgle::ray::Intersect::~Intersect()
 {
 }
 
-rgle::raycast::Plane::Plane(glm::vec3 position, glm::vec3 normal) : position(position), normal(normal)
+rgle::ray::Plane::Plane(glm::vec3 position, glm::vec3 normal) : position(position), normal(normal)
 {	
 }
 
-rgle::raycast::Plane::~Plane()
+rgle::ray::Plane::~Plane()
 {
 }
 
-rgle::raycast::IntersectResult rgle::raycast::Plane::intersect(const Ray& ray) const {
+rgle::ray::IntersectResult rgle::ray::Plane::intersect(const Ray& ray) const {
 	auto delta = ray.delta();
 	float denom = glm::dot(delta, this->normal);
 	if (denom == 0.0f) {
@@ -165,7 +165,7 @@ rgle::raycast::IntersectResult rgle::raycast::Plane::intersect(const Ray& ray) c
 	return IntersectResult(Miss {});
 }
 
-rgle::raycast::ClipResult rgle::raycast::Plane::clip(const glm::vec3& point) const {
+rgle::ray::ClipResult rgle::ray::Plane::clip(const glm::vec3& point) const {
 	auto v = point - this->position;
 	float dist = glm::dot(v, this->normal);
 	if (dist >= 0.0f) {
@@ -178,15 +178,15 @@ rgle::raycast::ClipResult rgle::raycast::Plane::clip(const glm::vec3& point) con
 	});
 }
 
-rgle::raycast::Ball::Ball(float radius) : radius(radius) 
+rgle::ray::Ball::Ball(float radius) : radius(radius) 
 {
 }
 
-rgle::raycast::Ball::~Ball()
+rgle::ray::Ball::~Ball()
 {
 }
 
-rgle::raycast::IntersectResult rgle::raycast::Ball::intersect(const Ray& ray) const
+rgle::ray::IntersectResult rgle::ray::Ball::intersect(const Ray& ray) const
 {
 	auto delta = ray.delta();
 	float a = glm::dot(delta, delta);
@@ -222,30 +222,30 @@ rgle::raycast::IntersectResult rgle::raycast::Ball::intersect(const Ray& ray) co
 	return IntersectResult(Miss {});
 }
 
-rgle::raycast::RayTransform::RayTransform() : RayTransform(glm::mat4(1.0f))
+rgle::ray::RayTransform::RayTransform() : RayTransform(glm::mat4(1.0f))
 {}
 
-rgle::raycast::RayTransform::RayTransform(const glm::mat4& transform) : affine(transform), affineInverse(glm::inverse(transform))
+rgle::ray::RayTransform::RayTransform(const glm::mat4& transform) : affine(transform), affineInverse(glm::inverse(transform))
 {
 	auto normal = glm::mat3(transform[0].xyz, transform[1].xyz, transform[2].xyz);
 	this->normal = glm::transpose(glm::inverse(normal));
 }
 
-rgle::raycast::Ray rgle::raycast::RayTransform::applyForward(const Ray& ray) const {
+rgle::ray::Ray rgle::ray::RayTransform::applyForward(const Ray& ray) const {
 	return Ray {
 		.eye = (this->affineInverse * glm::vec4(ray.eye, 1.0f)).xyz,
 		.target = (this->affineInverse * glm::vec4(ray.target, 1.0f)).xyz
 	};
 }
 
-rgle::raycast::Intersection rgle::raycast::RayTransform::applyBackward(const Intersection& intersection) const {
+rgle::ray::Intersection rgle::ray::RayTransform::applyBackward(const Intersection& intersection) const {
 	return Intersection {
 		.position = (this->affine * glm::vec4(intersection.position, 1.0f)).xyz,
 		.normal = glm::normalize(this->normal * intersection.normal)
 	};
 }
 
-std::optional<rgle::raycast::Intersection> rgle::raycast::Model::intersect(const Ray& ray) const
+std::optional<rgle::ray::Intersection> rgle::ray::Model::intersect(const Ray& ray) const
 {
 	if (auto val = std::get_if<Object>(this)) {
 		return val->object->intersect(ray).closest();
