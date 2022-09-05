@@ -45,17 +45,23 @@ namespace rgle {
 			Intersection transform(const glm::mat4& positionTransform, const glm::mat3& normalTransform) const;
 			float distance(const Ray& ray) const;
 
+			auto operator<=>(const Intersection&) const = default;
+
 			glm::vec3 position;
 			glm::vec3 normal;
 		};
 
-		struct Miss {};
+		struct Miss {
+			auto operator<=>(const Miss&) const = default;
+		};
 
 		struct HitOnce {
+			auto operator<=>(const HitOnce&) const = default;
 			Intersection hit;
 		};
 
 		struct HitTwice {
+			auto operator<=>(const HitTwice&) const = default;
 			Intersection closer;
 			Intersection farther;
 		};
@@ -160,5 +166,18 @@ namespace rgle {
 
 			std::optional<Intersection> intersect(const Ray& ray) const;
 		};
+
+		template<typename T>
+		concept Intersectable = std::is_base_of<Intersect, T>::value;
+
+		template<Intersectable T>
+		std::unique_ptr<Model> transform(T&& object, glm::mat4 transform) {
+			return std::make_unique<Model>(Model(Transform {
+				.transform = RayTransform(transform),
+				.model = std::make_unique<Model>(Model(Object {
+					.object = std::make_unique<T>(std::move(object))
+				}))
+			}));
+		}
 	}
 }
