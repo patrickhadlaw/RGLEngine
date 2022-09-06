@@ -20,7 +20,7 @@ rgle::Application::Application()
 {
 }
 
-rgle::Application::Application(std::string app, std::shared_ptr<Window> window) : ContextManager(window, app)
+rgle::Application::Application(std::string app, std::shared_ptr<Window> window) : gfx::ContextManager(window, app)
 {
 }
 
@@ -40,7 +40,7 @@ void rgle::Application::initialize()
 	const char* glslVersion = (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
 	rgle::Logger::info(std::string("GLSL Version[") + glslVersion + ']', LOGGER_DETAIL_IDENTIFIER(this->id));
 	glEnable(GL_DEBUG_OUTPUT);
-	glDebugMessageCallback(rgle::debugCallback, 0);
+	glDebugMessageCallback(rgle::gfx::debugCallback, 0);
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	glEnable(GL_DEPTH_TEST);
 	glDepthFunc(GL_LESS);
@@ -48,7 +48,7 @@ void rgle::Application::initialize()
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 }
 
-std::shared_ptr<rgle::ContextManager> rgle::Application::getContextManager(std::string managerid)
+std::shared_ptr<rgle::gfx::ContextManager> rgle::Application::getContextManager(std::string managerid)
 {
-	return std::shared_ptr<rgle::ContextManager>();
+	return std::shared_ptr<rgle::gfx::ContextManager>();
 }

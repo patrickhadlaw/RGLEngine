@@ -1,6 +1,6 @@
 #pragma once
 
-#include "rgle/Console.h"
+#include "rgle/util/Console.h"
 
 #define LOGGER_DETAIL_DEFAULT rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__}
 #define LOGGER_DETAIL_IDENTIFIER(id) rgle::Logger::Detail{std::chrono::system_clock::now(), RGLE_FILENAME, __func__, __LINE__, id}
@@ -40,7 +40,7 @@ namespace rgle {
 			std::string header,
 			std::string& message,
 			Detail& detail,
-			Console::Color color = Console::Color::DEFAULT
+			util::Console::Color color = util::Console::Color::DEFAULT
 		);
 
 		static std::string _getDefaultLogFilename();

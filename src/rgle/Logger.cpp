@@ -32,7 +32,7 @@ void rgle::Logger::message(std::string message)
 void rgle::Logger::info(std::string message, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::INFO) {
-		Logger::write(Logger::_print("INFO", message, detail, Console::Color::CYAN));
+		Logger::write(Logger::_print("INFO", message, detail, util::Console::Color::CYAN));
 	}
 }
 
@@ -46,14 +46,14 @@ void rgle::Logger::debug(std::string message, Detail detail)
 void rgle::Logger::warn(std::string warning, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::WARN) {
-		Logger::write(Logger::_print("WARN", warning, detail, Console::Color::YELLOW));
+		Logger::write(Logger::_print("WARN", warning, detail, util::Console::Color::YELLOW));
 	}
 }
 
 void rgle::Logger::error(std::string error, Detail detail)
 {
 	if (Settings::getLogLevel() <= LogLevel::ERROR) {
-		Logger::write(Logger::_print("ERROR", error, detail, Console::Color::RED));
+		Logger::write(Logger::_print("ERROR", error, detail, util::Console::Color::RED));
 	}
 }
 
@@ -82,11 +82,11 @@ void rgle::Logger::write(std::string entry)
 	}
 }
 
-std::string rgle::Logger::_print(std::string header, std::string& message, Detail& detail, Console::Color color)
+std::string rgle::Logger::_print(std::string header, std::string& message, Detail& detail, util::Console::Color color)
 {
 	std::string time = Logger::timeString(detail.timestamp);
 	std::cout << time << '|';
-	Console::coloredPrint(color, header);
+	util::Console::coloredPrint(color, header);
 	std::string result = detailString(detail);
 	result += std::string("|: ") + message;
 	std::cout << result << std::endl;

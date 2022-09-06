@@ -44,11 +44,14 @@
 #include <mutex>
 #include <condition_variable>
 #include <type_traits>
+#include <optional>
+#include <variant>
 
 #include <GL\glew.h>
 #include <GL\GL.h>
 #include <GLFW\glfw3.h>
 #define GLM_FORCE_SILENT_WARNINGS
+#define GLM_FORCE_SWIZZLE
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 #include <glm\gtc\quaternion.hpp>
@@ -91,12 +94,14 @@ namespace rgle {
 		void initialize();
 	}
 
-	class Config;
-	class Tester;
+	namespace util {
+		class Config;
+		class Tester;
+	}
 
 	class Settings {
 		friend void Platform::initialize();
-		friend class Tester;
+		friend class util::Tester;
 	public:
 		static std::string get(std::string key);
 
@@ -111,7 +116,7 @@ namespace rgle {
 	private:
 		static RGLE_DLLEXPORTED std::atomic_bool _loggerWrite;
 		static RGLE_DLLEXPORTED std::atomic<LogLevel> _logLevel;
-		static RGLE_DLLEXPORTED Config _config;
+		static RGLE_DLLEXPORTED util::Config _config;
 		static RGLE_DLLEXPORTED std::atomic_bool _initialized;
 	};
 }

@@ -1,13 +1,13 @@
 #include "rgle.h"
 
 int main() {
-	return rgle::Tester::run([](rgle::Tester& tester) {
+	return rgle::util::Tester::run([](rgle::util::Tester& tester) {
 
 		tester.expect("uid should generate changing strings", []() {
-			return rgle::uid() != rgle::uid();
+			return rgle::util::uid() != rgle::util::uid();
 		});
 
-		rgle::CollectingQueue<size_t> collectingQueue;
+		rgle::util::CollectingQueue<size_t> collectingQueue;
 
 		tester.expectAndPrint("collecting queue should have size of 1", [&collectingQueue]() {
 			collectingQueue.push(0);
@@ -46,7 +46,7 @@ int main() {
 			return ss.str();
 		});
 
-		rgle::Range<size_t> range;
+		rgle::util::Range<size_t> range;
 
 		tester.expectAndPrint("collecting queue pop should return top of queue", [&collectingQueue, &range]() {
 			collectingQueue.clear();
@@ -64,9 +64,9 @@ int main() {
 			return ss.str();
 		});
 
-		rgle::Range<size_t> first;
-		rgle::Range<size_t> second;
-		rgle::Range<size_t> third;
+		rgle::util::Range<size_t> first;
+		rgle::util::Range<size_t> second;
+		rgle::util::Range<size_t> third;
 
 		tester.expectAndPrint("collecting queue should have correct ordering", [&collectingQueue, &first, &second, &third]() {
 			collectingQueue.clear();

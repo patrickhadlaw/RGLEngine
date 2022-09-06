@@ -1,5 +1,5 @@
 #pragma once
 
 #include "rgle/Application.h"
-#include "rgle/Spatial.h"
-#include "rgle/Tester.h"
+#include "rgle/gfx/Spatial.h"
+#include "rgle/util/Tester.h"
