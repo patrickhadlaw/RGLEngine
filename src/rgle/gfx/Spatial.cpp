@@ -640,16 +640,14 @@ glm::vec3 rgle::gfx::SparseVoxelNode::_childPosition(OctreeIndex::X x, OctreeInd
 void rgle::gfx::SparseVoxelNode::_propagateChanges()
 {
 	if (!this->leaf()) {
-		this->_color = util::Color::blend({
-			this->_children[0]._color,
-			this->_children[1]._color,
-			this->_children[2]._color,
-			this->_children[3]._color,
-			this->_children[4]._color,
-			this->_children[5]._color,
-			this->_children[6]._color,
-			this->_children[7]._color
-		});
+		glm::vec3 hsv = glm::vec3();
+		float divisor = 0.0f;
+		for (size_t i = 0; i < 8; i++) {
+			auto rgba = util::RGBA(this->_children[i]._color);
+			hsv = hsv + util::Color(rgba).into<util::HSV>().vector * rgba.a;
+			divisor += rgba.a;
+		}
+		this->_color = glm::vec4(util::Color(util::HSV(hsv)).into<util::RGB>().vector / divisor, divisor / 8);
 		this->update();
 	}
 	if (!this->root()) {

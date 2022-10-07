@@ -67,6 +67,11 @@ namespace rgle {
 		NotFoundException(std::string exception, Logger::Detail detail);
 	};
 
+	class NotImplementedException : public Exception {
+	public:
+		NotImplementedException(Logger::Detail detail);
+	};
+
 	class ApplicationException : public Exception {
 	public:
 		ApplicationException(std::string exception, Logger::Detail detail);

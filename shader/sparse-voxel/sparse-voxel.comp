@@ -13,7 +13,12 @@ const vec3 BASIS_Z = vec3(0.0f, 0.0f, 1.0f);
 
 const float EPSILON = 0.01f;
 
-const uint UINT_MAX_LOG = 9;
+const uint UINT_MAX = 0xFFFFFFFF;
+
+struct Chunk {
+	ivec2 coords;
+	uint root;
+};
 
 struct OctreeNode {
 	vec4 color;
@@ -109,12 +114,13 @@ vec3 cube_upper_bound(OctreeNode node, float size) {
 }
 
 // Returns true if cube bounded by lower and upper is hit by ray p + vt
-bool raycast_cube(vec3 lower, vec3 upper, vec3 p, vec3 v) {
-	vec2 tx = vec2((lower.x - p.x) / v.x, (upper.x - p.x) / v.x);
+bool raycast_cube(vec3 bounds[2], vec3 p, vec3 v) {
+	uvec3 idx = uvec3(vec3(1.0f) - (sign(v) + 1.0f) / 2.0f);
+	vec2 tx = vec2((bounds[idx.x].x - p.x) / v.x, (bounds[1 - idx.x].x - p.x) / v.x);
 	tx = vec2(min(tx.x, tx.y), max(tx.x, tx.y));
-	vec2 ty = vec2((lower.y - p.y) / v.y, (upper.y - p.y) / v.y);
+	vec2 ty = vec2((bounds[idx.y].y - p.y) / v.y, (bounds[1 - idx.y].y - p.y) / v.y);
 	ty = vec2(min(ty.x, ty.y), max(ty.x, ty.y));
-	vec2 tz = vec2((lower.z - p.z) / v.z, (upper.z - p.z) / v.z);
+	vec2 tz = vec2((bounds[idx.z].z - p.z) / v.z, (bounds[1 - idx.z].z - p.z) / v.z);
 	tz = vec2(min(tz.x, tz.y), max(tz.x, tz.y));
 	float tlower = max(tx.x, max(ty.x, tz.x));
 	float tupper = min(tx.y, min(ty.y, tz.y));
@@ -131,7 +137,7 @@ float log10(float x) {
 }
 
 uint serialize_depth(float depth) {
-	return uint(pow(10, UINT_MAX_LOG - (uint(log10(camera_far)) + 1)) * depth);
+	return uint(UINT_MAX * ((depth - camera_near) / (camera_far - camera_near)));
 }
 
 void main() {
@@ -148,24 +154,32 @@ void main() {
 	const bool valid_invocation = subpass_offset + gl_GlobalInvocationID.x < read_pass_size && gl_GlobalInvocationID.x < subpass_size;
 
 	// Aquire ray state for ith invocation of pass
-	state = valid_invocation ? PassReadBuffer.read_state[subpass_offset + gl_GlobalInvocationID.x] : RayState(0, -1);
+	if (valid_invocation) {
+		state = PassReadBuffer.read_state[subpass_offset + gl_GlobalInvocationID.x];
+	} else {
+		state = RayState(0, -1);
+	}
 	offset = bootstrap || !valid_invocation ? root_node_offset : state.offset;
 	vec3 ray = quat_transform(RayBuffer.rays[state.pixel].xyz, rotation_quat);
 	ivec2 pixel = ivec2(state.pixel % render_resolution.x, state.pixel / render_resolution.x);
 
 	current_node = OctreeBuffer.nodes[offset];
 	size = root_node_size * pow(0.5f, current_node.depth - root_node.depth);
-	depth = length(current_node.position.xyz - camera_position);
+	depth = length(current_node.position.xyz - camera_position) * sign(dot(camera_direction, current_node.position.xyz - camera_position));
 	float r = sin(pixel_angle) * length(current_node.position.xyz - camera_position);
 	const bool ray_done =
 		size < r ||
 		current_node.color.a < EPSILON ||
-		dot(camera_direction, current_node.position.xyz - camera_position) < camera_near - size ||
-		depth > camera_far + size ||
+		depth < camera_near ||
+		depth > camera_far ||
 		current_node.next < 0 ||
 		finalize;
-	
-	const bool hit = raycast_cube(cube_lower_bound(current_node, size), cube_upper_bound(current_node, size), camera_position, ray) && valid_invocation;
+	vec3 bounds[2] = vec3[2](cube_lower_bound(current_node, size), cube_upper_bound(current_node, size));
+	const bool hit =
+		raycast_cube(bounds, camera_position, ray) &&
+		valid_invocation &&
+		depth >= camera_near &&
+		depth <= camera_far;
 	const bool write = hit && !ray_done;
 
 	uint previous_write_size = atomicCounterAdd(write_pass_counter, write ? 8 : 0);
@@ -189,6 +203,6 @@ void main() {
 		uint previous_depth = imageAtomicMin(depth_image, pixel, write_depth);
 		if (write_depth <= previous_depth) {
 			imageAtomicExchange(out_image, pixel, offset);
-		}
+		} 
 	}
 }

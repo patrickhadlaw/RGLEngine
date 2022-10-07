@@ -114,6 +114,9 @@ rgle::NotFoundException::NotFoundException(std::string exception, Logger::Detail
 {
 }
 
+rgle::NotImplementedException::NotImplementedException(Logger::Detail detail) : Exception("code path not implemented", detail, "rgle::NotImplementedException") {
+}
+
 rgle::InvalidStateException::InvalidStateException(std::string exception, Logger::Detail detail) : Exception(exception, detail, "rgle::InvalidStateException")
 {
 }
